@@ -1,0 +1,59 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+.env.*
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build output
+dist/
+build/
+coverage/
+
+# Angular
+.angular/
+.angular/cache/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Package manager
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Temporary files
+tmp/
+temp/
+.cache/
+
+# Test reports
+coverage/
+.nyc_output/
+
+# Firebase
+.firebase/
+
+# Local configuration
+*.local
+
+# Electron (if applicable)
+release/
+out/
+
+# Misc
+*.pid
+*.seed
+*.pid.lock
