@@ -1,4 +1,4 @@
-const { askAI } = require("../services/openRouterServices");
+const { askAI } = require("../services/huggingFaceService");
 const connectDB = require("../db"); 
 const oracledb = require("oracledb");
 
