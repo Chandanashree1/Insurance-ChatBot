@@ -1,4 +1,4 @@
-const { askAI } = require("../services/openRouterServices");
+const { askAI } = require("../services/huggingFaceService");
 
 const chat = async (req, res) => {
     try {
