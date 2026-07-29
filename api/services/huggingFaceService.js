@@ -6,7 +6,68 @@ const client = new OpenAI({
     baseURL: "https://router.huggingface.co/v1"
 });
 
-async function askAI(userMessage) {
+
+async function askAI(message, databaseContext = "", history = []) {
+
+    try {
+
+        const messages = [
+
+            {
+                role: "system",
+                content: insurancePrompt
+            }
+
+        ];
+
+        // Add customer information only if available
+        if (databaseContext) {
+
+            messages.push({
+
+                role: "system",
+
+                content: `Customer Information
+                    ${databaseContext}
+                    Use this information whenever required.
+                    Do not say you cannot access customer information.
+                    If customer information is available, answer using it.
+                    If it is not available, politely mention that.`
+            });
+
+        }
+
+        // Previous conversation
+        messages.push(...history);
+
+        const response = await client.chat.completions.create({
+
+            model: process.env.HF_MODEL,
+
+            messages,
+
+            temperature: 0.4,
+
+            max_tokens: 500
+
+        });
+
+        return response.choices[0].message.content;
+
+    }
+
+    catch (err) {
+
+        console.error("AI Error:", err);
+
+        throw new Error("Unable to get AI response.");
+
+    }
+
+}
+
+
+async function detectIntentAI(userMessage) {
 
     try {
 
@@ -15,31 +76,81 @@ async function askAI(userMessage) {
             model: process.env.HF_MODEL,
 
             messages: [
+
                 {
+
                     role: "system",
-                    content: insurancePrompt
+
+                    content: `You are an Insurance Intent Classifier.
+                        Return ONLY JSON.
+                        Allowed intents:
+                        GENERAL
+                        POLICY
+                        CLAIM
+                        FAQ
+                        Rules:
+                        1. Never create new intent names.
+                        2. Ignore spelling mistakes.
+                        3. Understand user meaning.
+                        4. Always return one of:
+                        GENERAL
+                        POLICY
+                        CLAIM
+                        FAQ
+                        Example:
+                        {
+                            "intent":"CLAIM",
+                            "confidence":0.98
+                        }`
                 },
+
                 {
+
                     role: "user",
+
                     content: userMessage
+
                 }
+
             ],
 
-            temperature: 0.7,
-            max_tokens: 500
+            temperature: 0,
+
+            max_tokens: 50
 
         });
 
-        return response.choices[0].message.content;
+        const content = response.choices[0].message.content;
 
-    } catch (err) {
+        const cleanContent = content
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim();
 
-        console.log(err);
+        return JSON.parse(cleanContent);
 
-        throw new Error("Unable to get AI response.");
+    }
+
+    catch (err) {
+
+        console.error("Intent Detection Error:", err);
+
+        return {
+
+            intent: "GENERAL",
+
+            confidence: 0
+
+        };
 
     }
 
 }
 
-module.exports = { askAI };
+module.exports = {
+
+    askAI,
+
+    detectIntentAI
+
+};

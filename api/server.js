@@ -3,7 +3,7 @@ const cors = require("cors");
 require("dotenv").config();
 
 const chatRoutes = require("./routes/chatRoutes");
-const connectDB = require("./db"); 
+// const connectDB = require("./db"); 
 
 const app = express();
 app.use(cors());
@@ -18,11 +18,11 @@ const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
-    connectDB()
-    .then(() => {
-      console.log("Database connection sequence finished.");
-    })
-    .catch((error) => {
-      console.error(" Failed to initiate database connection:", error.message);
-    });
+    // // connectDB()
+    // .then(() => {
+    //   console.log("Database connection sequence finished.");
+    // })
+    // .catch((error) => {
+    //   console.error(" Failed to initiate database connection:", error.message);
+    // });
 });
