@@ -1,0 +1,62 @@
+<h1>Insurance Chatbot</h1>
+<button
+  class="launcher"
+  (click)="toggleOpen()"
+  [class.open]="isOpen"
+  aria-label="Toggle policy assistant chat"
+>
+  <svg *ngIf="!isOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+    <rect x="4" y="7" width="16" height="12" rx="3"/>
+    <circle cx="9" cy="13" r="1.2" fill="currentColor" stroke="none"/>
+    <circle cx="15" cy="13" r="1.2" fill="currentColor" stroke="none"/>
+    <path d="M9 3.5v3.5M15 3.5v3.5"/>
+    <path d="M4 11H2M22 11h-2"/>
+  </svg>
+  <svg *ngIf="isOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+    <line x1="18" y1="6" x2="6" y2="18"/>
+    <line x1="6" y1="6" x2="18" y2="18"/>
+  </svg>
+</button>
+
+<div class="folder" [class.visible]="isOpen">
+  <div class="header">
+    <div class="header-top">
+      <div>
+        <h1>Policy Assistant</h1>
+        <p>SECURE SESSION</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="messages" #chatContainer>
+    <div
+      class="row"
+      *ngFor="let msg of messages"
+      [class.user]="msg.sender === 'user'"
+      [class.bot]="msg.sender === 'bot'"
+    >
+      <div class="bubble">{{ msg.text }}</div>
+    </div>
+
+    <div class="row bot" *ngIf="isLoading">
+      <div class="typing">
+        <span></span><span></span><span></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="composer">
+    <textarea
+      rows="1"
+      placeholder="Type a message…"
+      [(ngModel)]="userMessage"
+      (keydown.enter)="$event.preventDefault(); sendMessage()"
+    ></textarea>
+    <button class="send-btn" (click)="sendMessage()" [disabled]="isLoading" aria-label="Send message">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="22" y1="2" x2="11" y2="13"/>
+        <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+      </svg>
+    </button>
+  </div>
+</div>
