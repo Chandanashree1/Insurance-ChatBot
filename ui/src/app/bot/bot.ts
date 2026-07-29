@@ -8,6 +8,13 @@ interface ChatMessage {
   text: string;
 }
 
+type QuickAction = 'buyPolicy' | 'rop' | 'renew' | 'complaint';
+
+const WELCOME_MESSAGE: ChatMessage = {
+  sender: 'bot',
+  text: 'Welcome to ABC Insurance! Your account connection is fully secured. Please feel free to ask about your policy layout, billing statements, or premium parameters.'
+};
+
 @Component({
   selector: 'app-bot', // Matches your component selector tag
   standalone: true,
@@ -20,12 +27,18 @@ export class Bot implements AfterViewChecked {
 
   isOpen: boolean = false;
 
-  messages: ChatMessage[] = [
-    { sender: 'bot', text: 'Welcome to ABC Insurance! Your account connection is fully secured. Please feel free to ask about your policy layout, billing statements, or premium parameters.' }
-  ];
+  messages: ChatMessage[] = [ { ...WELCOME_MESSAGE } ];
   userMessage: string = '';
   selectedCustomerId: number = 1;
   isLoading: boolean = false;
+
+  // Preset prompts behind each quick-action tile
+  private readonly quickPrompts: Record<QuickAction, string> = {
+    buyPolicy: 'I want to buy a new policy',
+    rop: 'I want to submit ROP',
+    renew: 'I want to renew my policy',
+    complaint: 'I want to register a complaint'
+  };
 
   constructor(private http: HttpClient) {}
 
@@ -37,10 +50,22 @@ export class Bot implements AfterViewChecked {
     this.isOpen = !this.isOpen;
   }
 
+  goHome(): void {
+    if (this.isLoading) return;
+    this.userMessage = '';
+    this.messages = [ { ...WELCOME_MESSAGE } ];
+  }
+
   private scrollToBottom(): void {
     try {
       this.chatContainer.nativeElement.scrollTop = this.chatContainer.nativeElement.scrollHeight;
     } catch (err) {}
+  }
+
+  quickAction(action: QuickAction): void {
+    if (this.isLoading) return;
+    this.userMessage = this.quickPrompts[action];
+    this.sendMessage();
   }
 
   sendMessage() {
