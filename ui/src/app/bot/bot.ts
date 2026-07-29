@@ -78,7 +78,7 @@ export class Bot implements AfterViewChecked {
 
     const payload = {
       message: textToSend,
-      customerId: Number(this.selectedCustomerId)
+      // customerId: Number(this.selectedCustomerId)
     };
 
     this.http.post<any>('http://localhost:5000/api/chat', payload).subscribe({
