@@ -1,7 +1,8 @@
-import { Component, ViewChild, ElementRef, AfterViewChecked } from '@angular/core';
+import { Component, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { DoCheck } from '@angular/core';
 
 interface ChatMessage {
   sender: 'user' | 'bot';
@@ -22,12 +23,13 @@ const WELCOME_MESSAGE: ChatMessage = {
   templateUrl: './bot.html',
   styleUrls: ['./bot.scss']
 })
-export class Bot implements AfterViewChecked {
+export class Bot implements AfterViewChecked, DoCheck {
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
 
   isOpen: boolean = false;
 
-  messages: ChatMessage[] = [ { ...WELCOME_MESSAGE } ];
+  messages: ChatMessage[] = [{ ...WELCOME_MESSAGE }];
+
   userMessage: string = '';
   selectedCustomerId: number = 1;
   isLoading: boolean = false;
@@ -40,7 +42,19 @@ export class Bot implements AfterViewChecked {
     complaint: 'I want to register a complaint'
   };
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef
+  ) { }
+
+  private previousLength = this.messages.length;
+
+  ngDoCheck(): void {
+    if (this.messages.length !== this.previousLength) {
+      this.previousLength = this.messages.length;
+      // console.log('Messages changed:', this.messages);
+    }
+  }
 
   ngAfterViewChecked() {
     this.scrollToBottom();
@@ -53,13 +67,13 @@ export class Bot implements AfterViewChecked {
   goHome(): void {
     if (this.isLoading) return;
     this.userMessage = '';
-    this.messages = [ { ...WELCOME_MESSAGE } ];
+    this.messages = [{ ...WELCOME_MESSAGE }];
   }
 
   private scrollToBottom(): void {
     try {
       this.chatContainer.nativeElement.scrollTop = this.chatContainer.nativeElement.scrollHeight;
-    } catch (err) {}
+    } catch (err) { }
   }
 
   quickAction(action: QuickAction): void {
@@ -78,17 +92,23 @@ export class Bot implements AfterViewChecked {
 
     const payload = {
       message: textToSend,
-      customerId: Number(this.selectedCustomerId)
+      // customerId: Number(this.selectedCustomerId)
     };
 
     this.http.post<any>('http://localhost:5000/api/chat', payload).subscribe({
       next: (response) => {
         if (response && response.success) {
+          debugger
           this.messages.push({ sender: 'bot', text: response.reply });
+          console.log("message", this.messages);
+          this.isLoading = false;
+          this.cdr.detectChanges();
         } else {
           this.messages.push({ sender: 'bot', text: ' Backend process succeeded, but returned an invalid data payload format.' });
+          this.isLoading = false;
+          this.cdr.detectChanges();
         }
-        this.isLoading = false;
+
       },
       error: (err) => {
         console.error('Frontend Connection Failure:', err);
