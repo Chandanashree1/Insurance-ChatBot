@@ -14,13 +14,29 @@ const OUT_OF_SCOPE_REPLIES = {
     en: "I am ABC Insurance's virtual assistant and can only assist with insurance-related queries.",
     ar: "أنا المساعد الافتراضي لشركة ABC للتأمين، ويمكنني فقط مساعدتك في الاستفسارات المتعلقة بالتأمين."
 };
+const TEXT = {
+    en: {
+        greeting: "👋 Hello! Welcome to ABC Insurance.\nHow can I assist you today?",
+        thanks: "You're welcome! 😊",
+        goodbye: "Thank you for choosing ABC Insurance. Have a wonderful day! 👋",
+        help: "I can help you with:\n• Policy Details\n• Claim Status\n• Renewals\n• Premiums\n• Claim Documents",
+        login: "I'd be happy to help with your personal insurance information. Please log in to continue.",
+    },
 
+    ar: {
+        greeting: "👋 مرحباً! أهلاً بك في تأمين ABC.كيف يمكنني مساعدتك اليوم؟",
+        thanks: "على الرحب والسعة! 😊",
+        goodbye: "شكراً لاختيارك تأمين ABC. نتمنى لك يوماً رائعاً! 👋",
+        help: "يمكنني مساعدتك في:\n• تفاصيل الوثيقة\n• حالة المطالبة\n• تجديد الوثيقة\n• الأقساط\n• مستندات المطالبة",
+        login: "سأكون سعيدًا بمساعدتك بمعلومات التأمين الشخصي الخاصة بك. الرجاء تسجيل الدخول للمتابعة.",
+    }
+};
 const chat = async (req, res) => {
 
     try {
 
         const { message, customerId, loggedIn = true, language } = req.body;
-
+        const t = TEXT[language] || TEXT.en;
         if (!message) {
 
             return res.status(400).json({
@@ -48,7 +64,8 @@ const chat = async (req, res) => {
 
                     success: true,
 
-                    reply: "👋 Hello! Welcome to ABC Insurance.\n\nHow can I assist you today?",
+                    // reply: "👋 Hello! Welcome to ABC Insurance.\n\nHow can I assist you today?",
+                    reply: t.greeting,
 
                     uiType: "GREETING",
 
@@ -79,7 +96,8 @@ const chat = async (req, res) => {
 
                     success: true,
 
-                    reply: "You're welcome! 😊",
+                    // reply: "You're welcome! 😊",
+                    reply: t.thanks,
 
                     uiType: "TEXT"
 
@@ -91,7 +109,8 @@ const chat = async (req, res) => {
 
                     success: true,
 
-                    reply: "Thank you for choosing ABC Insurance. Have a wonderful day! 👋",
+                    // reply: "Thank you for choosing ABC Insurance. Have a wonderful day! 👋",
+                    reply: t.goodbye,
 
                     uiType: "TEXT"
 
@@ -103,8 +122,8 @@ const chat = async (req, res) => {
 
                     success: true,
 
-                    reply: "I can help you with:\n• Policy Details\n• Claim Status\n• Renewals\n• Premiums\n• Claim Documents",
-
+                    // reply: "I can help you with:\n• Policy Details\n• Claim Status\n• Renewals\n• Premiums\n• Claim Documents",
+                    reply: t.help,
                     uiType: "HELP"
 
                 });
@@ -121,9 +140,8 @@ const chat = async (req, res) => {
 
                 uiType: "LOGIN_REQUIRED",
 
-                reply:
-                    "I'd be happy to help with your personal insurance information. Please log in to continue.",
-
+                // reply:"I'd be happy to help with your personal insurance information. Please log in to continue.",
+                reply:t.login,
                 actions: [
                     {
                         label: "Login",

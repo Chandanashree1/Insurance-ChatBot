@@ -95,16 +95,16 @@
         [class.bot]="msg.sender === 'bot'">
         <div class="bubble">{{ msg.text }}
           <button *ngIf="msg.showLoginButton" class="login-btn" (click)="openLogin()">
-            🔐 Login
+            🔐 {{translations[selectedLanguage].loginBtn}}
           </button>
         </div>
       </div>
     </ng-container>
     <div class="login-container" *ngIf="showLoginPopup">
-      <h2>Customer Login</h2>
+      <h2>{{translations[selectedLanguage].loginHeader}}</h2>
       <input type="email" placeholder="Enter Email" [(ngModel)]="email" /><br>
       <input type="password" placeholder="Enter Password" [(ngModel)]="password" /> <br>
-      <button (click)="login()">Login</button>
+      <button (click)="login()">{{translations[selectedLanguage].loginBtn}}</button>
     </div>
     <div class="row bot" *ngIf="isLoading">
       <div class="typing">

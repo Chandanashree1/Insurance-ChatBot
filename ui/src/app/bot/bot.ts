@@ -56,7 +56,7 @@ export class Bot implements AfterViewChecked, DoCheck {
             this.showLoginPopup = false;
             this.messages.push({
               sender: 'bot',
-              text: '✅ Login successful! Retrieving your previous request...'
+              text: this.translations.ar.loginSuccess
             });
             if (this.pendingQuestion) {
               this.userMessage = this.pendingQuestion;
@@ -140,6 +140,9 @@ export class Bot implements AfterViewChecked, DoCheck {
       renew: "Renew Your Policy",
       complaint: "Register a Complaint",
       placeholder: "Type here...",
+      loginSuccess:' Login successful! Retrieving your previous request...',
+      loginBtn:'login',
+      loginHeader:'Customer Login',
       welcome:
         "Welcome to ABC Insurance! Your account connection is secure. Please feel free to ask any questions or share your concerns."
     },
@@ -151,6 +154,9 @@ export class Bot implements AfterViewChecked, DoCheck {
       renew: "تجديد وثيقتك",
       complaint: "تسجيل شكوى",
       placeholder: "اكتب هنا...",
+      loginSuccess:' تم تسجيل الدخول بنجاح! جاري استرجاع طلبك السابق...',
+      loginBtn:'تسجيل الدخول',
+      loginHeader:'تسجيل دخول العميل',
       welcome:
         "مرحباً بك في شركة ABC للتأمين! حسابك متصل بشكل آمن. يمكنك الاستفسار عن وثيقتك أو الفواتير أو تفاصيل التأمين."
     }
