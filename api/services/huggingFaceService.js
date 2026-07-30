@@ -7,7 +7,7 @@ const client = new OpenAI({
 });
 
 
-async function askAI(message, databaseContext = "", history = []) {
+async function askAI(message, databaseContext = "", ragContext = "", history = []) {
 
     try {
 
@@ -20,25 +20,58 @@ async function askAI(message, databaseContext = "", history = []) {
 
         ];
 
-        // Add customer information only if available
-        if (databaseContext) {
+        // Customer Information from Oracle
+        if (databaseContext && databaseContext.trim() !== "") {
 
             messages.push({
 
                 role: "system",
 
                 content: `Customer Information
-                    ${databaseContext}
-                    Use this information whenever required.
-                    Do not say you cannot access customer information.
-                    If customer information is available, answer using it.
-                    If it is not available, politely mention that.`
+
+${databaseContext}
+
+Use this customer information whenever applicable.
+If customer information is available, answer using it.
+Do not say you cannot access customer information.`
+
             });
 
         }
 
-        // Previous conversation
-        messages.push(...history);
+        // RAG Context from PDF documents
+        if (ragContext && ragContext.trim() !== "") {
+
+            messages.push({
+
+                role: "system",
+
+                content: `Insurance Documents
+
+${ragContext}
+
+Use ONLY this document information whenever it helps answer the user's insurance question.
+If the answer is not present in these documents, say you couldn't find it in the available insurance documents.`
+
+            });
+
+        }
+
+        // Previous Conversation
+        if (history && history.length > 0) {
+
+            messages.push(...history);
+
+        }
+
+        // Current User Question
+        messages.push({
+
+            role: "user",
+
+            content: message
+
+        });
 
         const response = await client.chat.completions.create({
 
@@ -46,13 +79,13 @@ async function askAI(message, databaseContext = "", history = []) {
 
             messages,
 
-            temperature: 0.4,
+            temperature: 0.3,
 
             max_tokens: 500
 
         });
 
-        return response.choices[0].message.content;
+        return response.choices[0].message.content.trim();
 
     }
 
@@ -81,27 +114,106 @@ async function detectIntentAI(userMessage) {
 
                     role: "system",
 
-                    content: `You are an Insurance Intent Classifier.
-                        Return ONLY JSON.
-                        Allowed intents:
-                        GENERAL
-                        POLICY
-                        CLAIM
-                        FAQ
-                        Rules:
-                        1. Never create new intent names.
-                        2. Ignore spelling mistakes.
-                        3. Understand user meaning.
-                        4. Always return one of:
-                        GENERAL
-                        POLICY
-                        CLAIM
-                        FAQ
-                        Example:
-                        {
-                            "intent":"CLAIM",
-                            "confidence":0.98
-                        }`
+                    content: `You are an AI Intent Classifier for ABC Insurance.
+
+                    Your ONLY job is to classify the user's message.
+
+                    Return ONLY valid JSON.
+
+                    Allowed intents:
+
+                    POLICY
+                    CLAIM
+                    FAQ
+                    INSURANCE_GENERAL
+                    OUT_OF_SCOPE
+
+                    Definitions:
+
+                    POLICY
+                    - Policy details
+                    - Policy status
+                    - Policy number
+                    - Premium
+                    - Sum insured
+                    - Coverage
+                    - Renewal
+                    - Policy benefits
+
+                    CLAIM
+                    - Claim status
+                    - Claim amount
+                    - Claim settlement
+                    - Claim approval
+                    - Claim rejection
+                    - Claim history
+
+                    FAQ
+                    - Frequently asked insurance questions
+                    - Insurance process
+                    - Documents required
+                    - Eligibility
+                    - Payment methods
+
+                    INSURANCE_GENERAL
+                    - General insurance concepts
+                    - What is insurance?
+                    - What is health insurance?
+                    - Difference between life and health insurance
+                    - Insurance terminology
+                    - Insurance guidance
+
+                    OUT_OF_SCOPE
+
+                    Return OUT_OF_SCOPE for ANY message that is NOT related to insurance.
+
+                    Examples include:
+
+                    - Weather
+                    - News
+                    - Politics
+                    - Religion
+                    - Sports
+                    - Movies
+                    - Music
+                    - Celebrities
+                    - Programming
+                    - Java
+                    - Python
+                    - SQL
+                    - Cooking
+                    - Travel
+                    - Shopping
+                    - Banking
+                    - Mathematics
+                    - Science
+                    - Homework
+                    - General knowledge
+                    - Jokes
+                    - Casual conversation
+                    - Greetings with unrelated follow-up
+                    - Abusive language
+                    - Offensive language
+                    - Sensitive topics
+                    - Harmful requests
+                    - Personal advice
+                    - Medical advice
+                    - Legal advice
+                    - Relationship advice
+
+                    Rules:
+
+                    1. Never invent new intent names.
+                    2. Always return exactly one intent.
+                    3. Return ONLY JSON.
+                    4. Do not explain your reasoning.
+
+                    Example:
+
+                    {
+                    "intent":"POLICY",
+                    "confidence":0.99
+                    }`
                 },
 
                 {
@@ -137,7 +249,7 @@ async function detectIntentAI(userMessage) {
 
         return {
 
-            intent: "GENERAL",
+            intent: "INSURANCE_GENERAL",
 
             confidence: 0
 

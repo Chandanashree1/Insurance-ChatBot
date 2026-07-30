@@ -92,13 +92,12 @@ export class Bot implements AfterViewChecked, DoCheck {
 
     const payload = {
       message: textToSend,
-      // customerId: Number(this.selectedCustomerId)
+      customerId: Number(this.selectedCustomerId)
     };
 
     this.http.post<any>('http://localhost:5000/api/chat', payload).subscribe({
       next: (response) => {
         if (response && response.success) {
-          debugger
           this.messages.push({ sender: 'bot', text: response.reply });
           console.log("message", this.messages);
           this.isLoading = false;

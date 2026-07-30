@@ -13,11 +13,13 @@
   "dependencies": {
     "@huggingface/inference": "^4.13.23",
     "axios": "^1.18.1",
+    "compute-cosine-similarity": "^1.1.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "nodemon": "^3.1.14",
     "openai": "^6.49.0",
-    "oracledb": "^7.0.1"
+    "oracledb": "^7.0.1",
+    "pdf-parse": "^1.1.1"
   }
 }
