@@ -1,6 +1,6 @@
 const { detectIntentAI } = require("./huggingFaceService");
 
-async function detectIntent(message) {
+async function detectIntent(message, language = "en") {
 
     const result = await detectIntentAI(message);
 

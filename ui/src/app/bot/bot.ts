@@ -24,6 +24,45 @@ const WELCOME_MESSAGE: ChatMessage = {
   styleUrls: ['./bot.scss']
 })
 export class Bot implements AfterViewChecked, DoCheck {
+  email = '';
+  password = '';
+  isLogginIn:boolean=false
+  // login() {
+  //   const body = {
+  //     email: this.email,
+  //     password: this.password
+  //   };
+  //   console.log(body);
+  //   this.isLogginIn=true
+  // }
+  login() {
+
+  const body = {
+    email: this.email,
+    password: this.password
+  };
+
+  this.http.post<any>("http://localhost:5000/api/login", body)
+    .subscribe({
+      next: (res) => {
+
+        if (res.success) {
+
+          this.isLogginIn = true;
+          this.cdr.detectChanges(); 
+          console.log("Customer Id :", res.customerId);
+
+        } else {
+          this.isLogginIn = false;
+          alert(res.message);
+
+        }
+
+      }
+    });
+
+}
+
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
 
   isOpen: boolean = false;
@@ -31,7 +70,7 @@ export class Bot implements AfterViewChecked, DoCheck {
   messages: ChatMessage[] = [{ ...WELCOME_MESSAGE }];
 
   userMessage: string = '';
-  selectedCustomerId: number = 1;
+  // selectedCustomerId: number = 1;
   isLoading: boolean = false;
 
   // Preset prompts behind each quick-action tile

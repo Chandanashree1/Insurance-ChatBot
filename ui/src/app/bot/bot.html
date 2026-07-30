@@ -79,7 +79,7 @@
 
     <button class="quick-tile"
             (click)="quickAction('rop')"
-            [disabled]="isLoading">
+           >
       <span class="tile-icon">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
           <path d="M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
@@ -135,10 +135,21 @@
 
   <!-- Typing -->
   <div class="row bot" *ngIf="isLoading">
-    <div class="typing">
+    <!-- <div class="typing">
       <span></span>
       <span></span>
       <span></span>
+</div> -->
+    <div class="login-container" *ngIf="!isLogginIn">
+      <h2>Customer Login</h2>
+      <input type="email" placeholder="Enter Email" [(ngModel)]="email"/><br>
+      <input type="password" placeholder="Enter Password" [(ngModel)]="password" /> <br>
+      <button (click)="login()">Login</button>
+    </div>
+    <div class="row bot" *ngIf="isLoading">
+      <div class="typing">
+        <span></span><span></span><span></span>
+      </div>
     </div>
   </div>
 
