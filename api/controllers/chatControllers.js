@@ -7,7 +7,7 @@ const chat = async (req, res) => {
 
     try {
 
-        const { message, customerId } = req.body;
+        const { message, customerId , language } = req.body;
 
         if (!message) {
 
@@ -70,7 +70,8 @@ const chat = async (req, res) => {
         const aiReply = await askAI(
             message,
             databaseContext,
-            history
+            history,
+             language
         );
 
         // Save AI reply

@@ -7,18 +7,44 @@ const client = new OpenAI({
 });
 
 
-async function askAI(message, databaseContext = "", history = []) {
+
+async function askAI(
+    message,
+    databaseContext = "",
+    history = [],
+    language = "en"
+) {
 
     try {
+
+        let languageInstruction = "";
+
+        if (language === "ar") {
+
+            languageInstruction =
+                "Respond ONLY in Arabic. Do not use English.";
+
+        } else {
+
+            languageInstruction =
+                "Respond ONLY in English. Do not use Arabic.";
+
+        }
+
 
         const messages = [
 
             {
                 role: "system",
-                content: insurancePrompt
+                content: `${insurancePrompt}
+
+                Language Rule:
+                ${languageInstruction}
+                `
             }
 
         ];
+
 
         // Add customer information only if available
         if (databaseContext) {
@@ -27,18 +53,25 @@ async function askAI(message, databaseContext = "", history = []) {
 
                 role: "system",
 
-                content: `Customer Information
-                    ${databaseContext}
-                    Use this information whenever required.
-                    Do not say you cannot access customer information.
-                    If customer information is available, answer using it.
-                    If it is not available, politely mention that.`
+                content: `
+                Customer Information:
+
+                ${databaseContext}
+
+                Use this information whenever required.
+                Do not say you cannot access customer information.
+                If customer information is available, answer using it.
+                If it is not available, politely mention that.
+                `
+
             });
 
         }
 
+
         // Previous conversation
         messages.push(...history);
+
 
         const response = await client.chat.completions.create({
 
@@ -52,7 +85,9 @@ async function askAI(message, databaseContext = "", history = []) {
 
         });
 
+
         return response.choices[0].message.content;
+
 
     }
 
