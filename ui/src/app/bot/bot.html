@@ -36,7 +36,7 @@
   <div class="messages" #chatContainer>
 
     <div class="quick-grid">
-      <button class="quick-tile" (click)="quickAction('buyPolicy')" [disabled]="isLoading">
+      <button class="quick-tile" (click)="quickAction('buyPolicy')">
         <span class="tile-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="6" width="18" height="12" rx="2"/>
@@ -47,7 +47,7 @@
         <span class="tile-label">Buy Policy</span>
       </button>
 
-      <button class="quick-tile" (click)="quickAction('rop')" [disabled]="isLoading">
+      <button class="quick-tile" (click)="quickAction('rop')">
         <span class="tile-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d="M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/>
@@ -58,7 +58,7 @@
         <span class="tile-label">ROP Submission</span>
       </button>
 
-      <button class="quick-tile" (click)="quickAction('renew')" [disabled]="isLoading">
+      <button class="quick-tile" (click)="quickAction('renew')">
         <span class="tile-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d="M4 4v6h6"/>
@@ -68,7 +68,7 @@
         <span class="tile-label">Renew Your Policy</span>
       </button>
 
-      <button class="quick-tile" (click)="quickAction('complaint')" [disabled]="isLoading">
+      <button class="quick-tile" (click)="quickAction('complaint')">
         <span class="tile-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
@@ -78,7 +78,7 @@
         <span class="tile-label">Register a Complaint</span>
       </button>
     </div>
-
+<div>
     <div
       class="row"
       *ngFor="let msg of messages"
@@ -87,7 +87,13 @@
     >
       <div class="bubble">{{ msg.text }}</div>
     </div>
-
+</div>
+    <div class="login-container" *ngIf="isLogginIn">
+      <h2>Customer Login</h2>
+      <input type="email" placeholder="Enter Email" [(ngModel)]="email"/><br>
+      <input type="password" placeholder="Enter Password" [(ngModel)]="password" /> <br>
+      <button (click)="login()">Login</button>
+    </div>
     <div class="row bot" *ngIf="isLoading">
       <div class="typing">
         <span></span><span></span><span></span>
