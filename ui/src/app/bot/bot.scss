@@ -120,6 +120,7 @@
 
 .header-text {
   min-width: 0;
+  flex: 1;
 }
 
 .header h1 {
@@ -311,6 +312,67 @@
 
     &:focus { border-color: var(--gold); }
   }
+}
+
+.folder.rtl {
+  direction: rtl;
+}
+
+/* Header */
+.folder.rtl .header-text {
+  text-align: right;
+}
+
+/* Messages */
+.folder.rtl .row.user {
+  justify-content: flex-start;
+}
+
+.folder.rtl .row.bot {
+  justify-content: flex-end;
+}
+
+.folder.rtl .bubble {
+  text-align: right;
+}
+
+/* Input area */
+.folder.rtl .composer {
+  direction: rtl;
+}
+
+.folder.rtl textarea {
+  text-align: right;
+}
+
+/* Buttons */
+.folder.rtl .send-btn {
+  transform: scaleX(-1);
+}
+
+.language-switch {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.language-switch button {
+  border: none;
+  background: transparent;
+  color: var(--paper);
+  padding: 3px 5px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: var(--font-body);
+}
+
+.language-switch button.active {
+  background: var(--gold);
+  color: var(--navy);
+  font-weight: 600;
 }
 
 .send-btn {

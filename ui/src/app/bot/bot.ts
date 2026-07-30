@@ -81,6 +81,44 @@ export class Bot implements AfterViewChecked, DoCheck {
     this.userMessage = this.quickPrompts[action];
     this.sendMessage();
   }
+ translations = {
+  en: {
+    title: "Insurance Chatbot",
+    buyPolicy: "Buy Policy",
+    rop: "ROP Submission",
+    renew: "Renew Your Policy",
+    complaint: "Register a Complaint",
+    placeholder: "Type here...",
+    welcome:
+      "Welcome to ABC Insurance! Your account connection is secure. Please feel free to ask any questions or share your concerns."
+  },
+
+  ar: {
+    title: "دردشة التأمين",
+    buyPolicy: "شراء وثيقة تأمين",
+    rop: "تقديم طلب استرداد",
+    renew: "تجديد وثيقتك",
+    complaint: "تسجيل شكوى",
+    placeholder: "اكتب هنا...",
+    welcome:
+      "مرحباً بك في شركة ABC للتأمين! حسابك متصل بشكل آمن. يمكنك الاستفسار عن وثيقتك أو الفواتير أو تفاصيل التأمين."
+  }
+};
+
+
+selectedLanguage: 'en' | 'ar' = 'en';
+
+
+setLanguage(lang: 'en' | 'ar') {
+  this.selectedLanguage = lang;
+
+  this.messages = [
+    {
+      sender: 'bot',
+      text: this.translations[lang].welcome
+    }
+  ];
+}
 
   sendMessage() {
     const textToSend = this.userMessage.trim();
@@ -92,13 +130,13 @@ export class Bot implements AfterViewChecked, DoCheck {
 
     const payload = {
       message: textToSend,
+       language: this.selectedLanguage
       // customerId: Number(this.selectedCustomerId)
     };
 
     this.http.post<any>('http://localhost:5000/api/chat', payload).subscribe({
       next: (response) => {
         if (response && response.success) {
-          debugger
           this.messages.push({ sender: 'bot', text: response.reply });
           console.log("message", this.messages);
           this.isLoading = false;
@@ -114,7 +152,7 @@ export class Bot implements AfterViewChecked, DoCheck {
         console.error('Frontend Connection Failure:', err);
         this.messages.push({
           sender: 'bot',
-          text: ' Network Link Offline: The Angular UI cannot access port 5000. Ensure "node server.js" is running in your backend terminal.'
+          text: ' Network Link Offline'
         });
         this.isLoading = false;
       }
