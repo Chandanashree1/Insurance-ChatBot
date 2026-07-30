@@ -7,6 +7,7 @@ import { DoCheck } from '@angular/core';
 interface ChatMessage {
   sender: 'user' | 'bot';
   text: string;
+  showLoginButton?: boolean;
 }
 
 type QuickAction = 'buyPolicy' | 'rop' | 'renew' | 'complaint';
@@ -26,7 +27,10 @@ const WELCOME_MESSAGE: ChatMessage = {
 export class Bot implements AfterViewChecked, DoCheck {
   email = '';
   password = '';
-  isLogginIn:boolean=false
+  isLogginIn: boolean = false
+  customerId: number | null = null;
+  pendingQuestion = '';
+  showLoginPopup = false;
   // login() {
   //   const body = {
   //     email: this.email,
@@ -37,31 +41,39 @@ export class Bot implements AfterViewChecked, DoCheck {
   // }
   login() {
 
-  const body = {
-    email: this.email,
-    password: this.password
-  };
+    const body = {
+      email: this.email,
+      password: this.password
+    };
 
-  this.http.post<any>("http://localhost:5000/api/login", body)
-    .subscribe({
-      next: (res) => {
+    this.http.post<any>("http://localhost:5000/api/login", body)
+      .subscribe({
+        next: (res) => {
 
-        if (res.success) {
-
-          this.isLogginIn = true;
-          this.cdr.detectChanges(); 
-          console.log("Customer Id :", res.customerId);
-
-        } else {
-          this.isLogginIn = false;
-          alert(res.message);
+          if (res.success) {
+            this.isLogginIn = true;
+            this.customerId = res.customerId;
+            this.showLoginPopup = false;
+            this.messages.push({
+              sender: 'bot',
+              text: '✅ Login successful! Retrieving your previous request...'
+            });
+            if (this.pendingQuestion) {
+              this.userMessage = this.pendingQuestion;
+              this.pendingQuestion = '';
+              setTimeout(() => {
+                this.sendMessage();
+              }, 500);
+            }
+          } else {
+            this.isLogginIn = false;
+            alert(res.message);
+          }
 
         }
+      });
 
-      }
-    });
-
-}
+  }
 
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
 
@@ -120,45 +132,44 @@ export class Bot implements AfterViewChecked, DoCheck {
     this.userMessage = this.quickPrompts[action];
     this.sendMessage();
   }
- translations = {
-  en: {
-    title: "Insurance Chatbot",
-    buyPolicy: "Buy Policy",
-    rop: "ROP Submission",
-    renew: "Renew Your Policy",
-    complaint: "Register a Complaint",
-    placeholder: "Type here...",
-    welcome:
-      "Welcome to ABC Insurance! Your account connection is secure. Please feel free to ask any questions or share your concerns."
-  },
+  translations = {
+    en: {
+      title: "Insurance Chatbot",
+      buyPolicy: "Buy Policy",
+      rop: "ROP Submission",
+      renew: "Renew Your Policy",
+      complaint: "Register a Complaint",
+      placeholder: "Type here...",
+      welcome:
+        "Welcome to ABC Insurance! Your account connection is secure. Please feel free to ask any questions or share your concerns."
+    },
 
-  ar: {
-    title: "دردشة التأمين",
-    buyPolicy: "شراء وثيقة تأمين",
-    rop: "تقديم طلب استرداد",
-    renew: "تجديد وثيقتك",
-    complaint: "تسجيل شكوى",
-    placeholder: "اكتب هنا...",
-    welcome:
-      "مرحباً بك في شركة ABC للتأمين! حسابك متصل بشكل آمن. يمكنك الاستفسار عن وثيقتك أو الفواتير أو تفاصيل التأمين."
-  }
-};
-
-
-selectedLanguage: 'en' | 'ar' = 'en';
-
-
-setLanguage(lang: 'en' | 'ar') {
-  this.selectedLanguage = lang;
-
-  this.messages = [
-    {
-      sender: 'bot',
-      text: this.translations[lang].welcome
+    ar: {
+      title: "دردشة التأمين",
+      buyPolicy: "شراء وثيقة تأمين",
+      rop: "تقديم طلب استرداد",
+      renew: "تجديد وثيقتك",
+      complaint: "تسجيل شكوى",
+      placeholder: "اكتب هنا...",
+      welcome:
+        "مرحباً بك في شركة ABC للتأمين! حسابك متصل بشكل آمن. يمكنك الاستفسار عن وثيقتك أو الفواتير أو تفاصيل التأمين."
     }
-  ];
-}
+  };
 
+
+  selectedLanguage: 'en' | 'ar' = 'en';
+
+
+  setLanguage(lang: 'en' | 'ar') {
+    this.selectedLanguage = lang;
+
+    this.messages = [
+      {
+        sender: 'bot',
+        text: this.translations[lang].welcome
+      }
+    ];
+  }
   sendMessage() {
     const textToSend = this.userMessage.trim();
     if (!textToSend || this.isLoading) return;
@@ -169,14 +180,19 @@ setLanguage(lang: 'en' | 'ar') {
 
     const payload = {
       message: textToSend,
-       language: this.selectedLanguage
+      language: this.selectedLanguage,
+      customerId: this.customerId,
+      loggedIn: this.isLogginIn
       // customerId: Number(this.selectedCustomerId)
     };
 
     this.http.post<any>('http://localhost:5000/api/chat', payload).subscribe({
       next: (response) => {
         if (response && response.success) {
-          this.messages.push({ sender: 'bot', text: response.reply });
+          if (response.requiresLogin) {
+            this.pendingQuestion = textToSend;
+          }
+          this.messages.push({ sender: 'bot', text: response.reply, showLoginButton: response.requiresLogin || false });
           console.log("message", this.messages);
           this.isLoading = false;
           this.cdr.detectChanges();
@@ -196,5 +212,10 @@ setLanguage(lang: 'en' | 'ar') {
         this.isLoading = false;
       }
     });
+  }
+  openLogin() {
+
+    this.showLoginPopup = true;
+
   }
 }

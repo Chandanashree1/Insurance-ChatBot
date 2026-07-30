@@ -1,3 +1,4 @@
+const PROTECTED_INTENTS = ["POLICY", "CLAIM", "PROFILE", "PAYMENT", "DOWNLOAD_POLICY", "RENEW_POLICY"];
 const { getPolicy, getClaims, getFAQ } = require("../services/oracleService");
 const { askAI } = require("../services/huggingFaceService");
 const { detectIntent } = require("../services/intentService");
@@ -18,7 +19,7 @@ const chat = async (req, res) => {
 
     try {
 
-        const { message, customerId, language } = req.body;
+        const { message, customerId, loggedIn = true, language } = req.body;
 
         if (!message) {
 
@@ -39,6 +40,102 @@ const chat = async (req, res) => {
 
         // Detect intent
         const intent = await detectIntent(message);
+        switch (intent) {
+
+            case "GREETING":
+
+                return res.json({
+
+                    success: true,
+
+                    reply: "👋 Hello! Welcome to ABC Insurance.\n\nHow can I assist you today?",
+
+                    uiType: "GREETING",
+
+                    actions: [
+                        {
+                            label: "📄 My Policy",
+                            action: "POLICY"
+                        },
+                        {
+                            label: "📋 Claim Status",
+                            action: "CLAIM"
+                        },
+                        {
+                            label: "🔄 Renew Policy",
+                            action: "RENEW_POLICY"
+                        },
+                        {
+                            label: "📑 Claim Documents",
+                            action: "CLAIM_DOCUMENTS"
+                        }
+                    ]
+
+                });
+
+            case "THANKS":
+
+                return res.json({
+
+                    success: true,
+
+                    reply: "You're welcome! 😊",
+
+                    uiType: "TEXT"
+
+                });
+
+            case "GOODBYE":
+
+                return res.json({
+
+                    success: true,
+
+                    reply: "Thank you for choosing ABC Insurance. Have a wonderful day! 👋",
+
+                    uiType: "TEXT"
+
+                });
+
+            case "HELP":
+
+                return res.json({
+
+                    success: true,
+
+                    reply: "I can help you with:\n• Policy Details\n• Claim Status\n• Renewals\n• Premiums\n• Claim Documents",
+
+                    uiType: "HELP"
+
+                });
+
+        }
+        // Check whether login is required
+        if (PROTECTED_INTENTS.includes(intent) && !loggedIn) {
+
+            return res.json({
+
+                success: true,
+
+                requiresLogin: true,
+
+                uiType: "LOGIN_REQUIRED",
+
+                reply:
+                    "I'd be happy to help with your personal insurance information. Please log in to continue.",
+
+                actions: [
+                    {
+                        label: "Login",
+                        action: "LOGIN"
+                    }
+                ],
+
+                data: []
+
+            });
+
+        }
 
         // Handle non-insurance questions
         if (intent === "OUT_OF_SCOPE") {
@@ -147,6 +244,12 @@ const chat = async (req, res) => {
             intent,
 
             reply: aiReply,
+
+            requiresLogin: false,
+
+            uiType: "TEXT",
+
+            actions: [],
 
             data
 
