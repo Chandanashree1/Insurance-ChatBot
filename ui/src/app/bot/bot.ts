@@ -15,7 +15,16 @@ interface ChatMessage {
   showLoginButton?: boolean;
 }
 
-type QuickAction = 'buyPolicy' | 'rop' | 'renew' | 'complaint';
+type QuickAction = 'buyPolicy' | 'rop' | 'renew' | 'complaint' | 'chatWithUs';
+
+interface ComplaintForm {
+  subject: string;
+  fullName: string;
+  email: string;
+  mobile: string;
+  product: string;
+  message: string;
+}
 
 const WELCOME_MESSAGE: ChatMessage = {
   sender: 'bot',
@@ -32,18 +41,67 @@ const WELCOME_MESSAGE: ChatMessage = {
 export class Bot implements AfterViewChecked, DoCheck {
   email = '';
   password = '';
-  isLogginIn: boolean = false
+  isLogginIn: boolean = false;
   customerId: number | null = null;
   pendingQuestion = '';
   showLoginPopup = false;
-  // login() {
-  //   const body = {
-  //     email: this.email,
-  //     password: this.password
-  //   };
-  //   console.log(body);
-  //   this.isLogginIn=true
-  // }
+
+  // ----- Complaint form state -----
+  activeForm: 'complaint' | 'agentConnect' | null = null;
+  isSubmittingComplaint: boolean = false;
+
+  complaintForm: ComplaintForm = {
+    subject: '',
+    fullName: '',
+    email: '',
+    mobile: '',
+    product: '',
+    message: ''
+  };
+
+  complaintProducts: string[] = [
+    'Health Insurance',
+    'Life Insurance',
+    'Motor Insurance',
+    'Travel Insurance'
+  ];
+
+  // ----- Agent connect state -----
+  isConnectingToAgent: boolean = false;
+  agentForm = { name: '', email: '', phone: '' };
+
+  openAgentConnectForm(): void {
+    this.activeForm = 'agentConnect';
+    this.agentForm = { name: '', email: '', phone: '' };
+  }
+
+  cancelAgentForm(): void {
+    this.activeForm = null;
+  }
+
+  submitAgentConnect(): void {
+    const f = this.agentForm;
+    if (!f.name || !f.email || !f.phone) {
+      alert('Please fill out all required fields.');
+      return;
+    }
+    this.isConnectingToAgent = true;
+    this.http.post<any>('http://localhost:5000/api/agent-connect', { ...f, phone: '+968' + f.phone, language: this.selectedLanguage }).subscribe({
+      next: (res) => {
+        this.isConnectingToAgent = false;
+        this.activeForm = null;
+        if (res && res.success) this.messages.push({ sender: 'bot', text: 'Connecting you to a live chat support agent...' });
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.isConnectingToAgent = false;
+        this.activeForm = null;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // ----- Login -----
   login() {
 
     const body = {
@@ -90,12 +148,13 @@ export class Bot implements AfterViewChecked, DoCheck {
   // selectedCustomerId: number = 1;
   isLoading: boolean = false;
 
-  // Preset prompts behind each quick-action tile
+  // Preset prompts behind each quick-action tile (keyed to translation entries)
   private readonly quickPrompts: Record<QuickAction, string> = {
-    buyPolicy: 'I want to buy a new policy',
-    rop: 'I want to submit ROP',
-    renew: 'I want to renew my policy',
-    complaint: 'I want to register a complaint'
+    buyPolicy: 'quickBuyPolicy',
+    rop: 'quickRop',
+    renew: 'quickRenew',
+    complaint: 'quickComplaint',
+    chatWithUs: 'quickChat'
   };
 
   constructor(
@@ -109,6 +168,9 @@ export class Bot implements AfterViewChecked, DoCheck {
     if (this.messages.length !== this.previousLength) {
       this.previousLength = this.messages.length;
       // console.log('Messages changed:', this.messages);
+      setTimeout(() => {
+        this.scrollToBottom();
+      }, 50);
     }
   }
 
@@ -123,6 +185,7 @@ export class Bot implements AfterViewChecked, DoCheck {
   goHome(): void {
     if (this.isLoading) return;
     this.userMessage = '';
+    this.activeForm = null;
     this.messages = [{ ...WELCOME_MESSAGE }];
   }
 
@@ -132,11 +195,108 @@ export class Bot implements AfterViewChecked, DoCheck {
     } catch (err) { }
   }
 
+  // ----- Complaint form handling -----
+  openComplaintForm(): void {
+    this.activeForm = 'complaint';
+    this.resetComplaintForm();
+
+    this.messages.push({
+      sender: 'bot',
+      text: this.translations[this.selectedLanguage].complaintIntro
+    });
+  }
+
+  cancelComplaintForm(): void {
+    this.activeForm = null;
+    this.resetComplaintForm();
+  }
+
+  private resetComplaintForm(): void {
+    this.complaintForm = {
+      subject: '',
+      fullName: '',
+      email: '',
+      mobile: '',
+      product: '',
+      message: ''
+    };
+  }
+
+  submitComplaint(): void {
+    const f = this.complaintForm;
+
+    if (!f.subject || !f.fullName || !f.email || !f.mobile || !f.product || !f.message) {
+      alert(
+        this.selectedLanguage === 'ar'
+          ? 'يرجى تعبئة جميع الحقول المطلوبة.'
+          : 'Please fill out all required fields.'
+      );
+      return;
+    }
+
+    this.isSubmittingComplaint = true;
+
+    const payload = {
+      subject: f.subject,
+      fullName: f.fullName,
+      email: f.email,
+      mobile: f.mobile,
+      product: f.product,
+      message: f.message,
+      language: this.selectedLanguage
+    };
+
+    this.http.post<any>('http://localhost:5000/api/complaint', payload).subscribe({
+      next: (response) => {
+        this.isSubmittingComplaint = false;
+        this.activeForm = null;
+
+        if (response && response.success) {
+          this.messages.push({
+            sender: 'bot',
+            text: this.translations[this.selectedLanguage].complaintSuccess
+          });
+        } else {
+          this.messages.push({
+            sender: 'bot',
+            text: this.translations[this.selectedLanguage].complaintError
+          });
+        }
+
+        this.resetComplaintForm();
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Complaint Submission Failure:', err);
+        this.isSubmittingComplaint = false;
+        this.messages.push({
+          sender: 'bot',
+          text: this.translations[this.selectedLanguage].complaintError
+        });
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // ----- Quick action tiles -----
   quickAction(action: QuickAction): void {
     if (this.isLoading) return;
-    this.userMessage = this.quickPrompts[action];
+
+    if (action === 'complaint') {
+      this.openComplaintForm();
+      return;
+    }
+
+    if (action === 'chatWithUs') {
+      this.openAgentConnectForm();
+      return;
+    }
+
+    const key = this.quickPrompts[action] as keyof typeof this.translations['en'];
+    this.userMessage = this.translations[this.selectedLanguage][key];
     this.sendMessage();
   }
+
   translations = {
     en: {
       title: "Insurance Chatbot",
@@ -144,12 +304,37 @@ export class Bot implements AfterViewChecked, DoCheck {
       rop: "ROP Submission",
       renew: "Renew Your Policy",
       complaint: "Register a Complaint",
+      chat: "Chat with Us",
       placeholder: "Type here...",
-      loginSuccess:' Login successful! Retrieving your previous request...',
-      loginBtn:'login',
-      loginHeader:'Customer Login',
+      loginSuccess: ' Login successful! Retrieving your previous request...',
+      loginBtn: 'login',
+      loginHeader: 'Customer Login',
       welcome:
-        "Welcome to ABC Insurance! Your account connection is secure. Please feel free to ask any questions or share your concerns."
+        "Welcome to ABC Insurance! Your account connection is secure. Please feel free to ask any questions or share your concerns.",
+      complaintIntro: "Please fill out the form and submit your details.",
+      complaintFormTitle: "Register a Complaint",
+      subject: "Subject",
+      fullName: "Full Name",
+      emailId: "Email Id",
+      mobileNumber: "Mobile Number",
+      product: "Product",
+      productPlaceholder: "Select one of the following",
+      complaintMessage: "Complaint Message",
+      cancel: "Cancel",
+      submit: "Submit",
+      complaintSuccess: "Your complaint has been submitted successfully. Our team will get back to you shortly.",
+      complaintError: "Something went wrong while submitting your complaint. Please try again.",
+      agentTitle: "Connect with Agent",
+      agentSubtitle: "Please fill in these details to connect to our agent",
+      namePlaceholder: "Enter your Name*",
+      emailPlaceholder: "Enter Email-ID*",
+      phonePlaceholder: "Enter Phone Number*",
+      connecting: "Connecting you to a live chat support agent...",
+      quickBuyPolicy: 'I want to buy a new policy',
+      quickRop: 'I want to submit ROP',
+      quickRenew: 'I want to renew my policy',
+      quickComplaint: 'I want to register a complaint',
+      quickChat: 'I want to Connect'
     },
 
     ar: {
@@ -158,14 +343,40 @@ export class Bot implements AfterViewChecked, DoCheck {
       rop: "تقديم طلب استرداد",
       renew: "تجديد وثيقتك",
       complaint: "تسجيل شكوى",
+      chat: "تحدث معنا",
       placeholder: "اكتب هنا...",
-      loginSuccess:' تم تسجيل الدخول بنجاح! جاري استرجاع طلبك السابق...',
-      loginBtn:'تسجيل الدخول',
-      loginHeader:'تسجيل دخول العميل',
+      loginSuccess: ' تم تسجيل الدخول بنجاح! جاري استرجاع طلبك السابق...',
+      loginBtn: 'تسجيل الدخول',
+      loginHeader: 'تسجيل دخول العميل',
       welcome:
-        "مرحباً بك في شركة ABC للتأمين! حسابك متصل بشكل آمن. يمكنك الاستفسار عن وثيقتك أو الفواتير أو تفاصيل التأمين."
+        "مرحباً بك في شركة ABC للتأمين! حسابك متصل بشكل آمن. يمكنك الاستفسار عن وثيقتك أو الفواتير أو تفاصيل التأمين.",
+      complaintIntro: "يرجى تعبئة النموذج وإرسال بياناتك.",
+      complaintFormTitle: "تسجيل شكوى",
+      subject: "الموضوع",
+      fullName: "الاسم الكامل",
+      emailId: "البريد الإلكتروني",
+      mobileNumber: "رقم الجوال",
+      product: "المنتج",
+      productPlaceholder: "اختر أحد الخيارات التالية",
+      complaintMessage: "تفاصيل الشكوى",
+      cancel: "إلغاء",
+      submit: "إرسال",
+      complaintSuccess: "تم إرسال شكواك بنجاح. سيتواصل معك فريقنا قريباً.",
+      complaintError: "حدث خطأ أثناء إرسال شكواك. يرجى المحاولة مرة أخرى.",
+      agentTitle: "التواصل مع الوكيل",
+      agentSubtitle: "يرجى تعبئة هذه البيانات للتواصل مع وكيلنا",
+      namePlaceholder: "أدخل اسمك*",
+      emailPlaceholder: "أدخل البريد الإلكتروني*",
+      phonePlaceholder: "أدخل رقم الهاتف*",
+      connecting: "جارٍ تحويلك إلى وكيل الدعم المباشر...",
+      quickBuyPolicy: 'أريد شراء وثيقة تأمين جديدة',
+      quickRop: 'أريد تقديم طلب استرداد',
+      quickRenew: 'أريد تجديد وثيقتي',
+      quickComplaint: 'أريد تسجيل شكوى',
+      quickChat: 'أريد التواصل'
     }
   };
+
   private readonly actionMessages = {
     en: {
       POLICY: 'Show my policy',
@@ -182,9 +393,7 @@ export class Bot implements AfterViewChecked, DoCheck {
     }
   };
 
-
   selectedLanguage: 'en' | 'ar' = 'en';
-
 
   setLanguage(lang: 'en' | 'ar') {
     this.selectedLanguage = lang;
@@ -196,6 +405,7 @@ export class Bot implements AfterViewChecked, DoCheck {
       }
     ];
   }
+
   sendMessage() {
     const textToSend = this.userMessage.trim();
     if (!textToSend || this.isLoading) return;
@@ -218,7 +428,13 @@ export class Bot implements AfterViewChecked, DoCheck {
           if (response.requiresLogin) {
             this.pendingQuestion = textToSend;
           }
-          this.messages.push({ sender: 'bot', text: response.reply, uiType: response.uiType, actions: response.actions, showLoginButton: response.requiresLogin || false });
+          this.messages.push({
+            sender: 'bot',
+            text: response.reply,
+            uiType: response.uiType,
+            actions: response.actions,
+            showLoginButton: response.requiresLogin || false
+          });
           console.log("message", this.messages);
           this.isLoading = false;
           this.cdr.detectChanges();
@@ -239,17 +455,17 @@ export class Bot implements AfterViewChecked, DoCheck {
       }
     });
   }
+
   openLogin() {
-
     this.showLoginPopup = true;
-
   }
+
   onActionClick(action: string) {
 
     console.log("Button clicked:", action);
 
     // Flow answers
-    if (["HEALTH", "MOTOR", "TRAVEL", "SURGERY", "HOSPITALIZATION", "ACCIDENT", "CONSULTATION", "YES", "NO","BUY_HEALTH","BUY_MOTOR","BUY_TRAVEL","PLAN_BASIC","PLAN_STANDARD","PLAN_PREMIUM"].includes(action)) {
+    if (["HEALTH", "MOTOR", "TRAVEL", "SURGERY", "HOSPITALIZATION", "ACCIDENT", "CONSULTATION", "YES", "NO", "BUY_HEALTH", "BUY_MOTOR", "BUY_TRAVEL", "PLAN_BASIC", "PLAN_STANDARD", "PLAN_PREMIUM"].includes(action)) {
 
       this.userMessage = action;
       this.sendMessage();
