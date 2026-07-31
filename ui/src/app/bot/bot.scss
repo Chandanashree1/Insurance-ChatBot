@@ -124,7 +124,6 @@
 }
 
 .header h1 {
-  font-family: var(--font-display);
   font-size: 18px;
   font-weight: 600;
   margin: 0;
@@ -153,6 +152,170 @@
 
   &::-webkit-scrollbar { width: 8px; }
   &::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+}
+
+/* ==========================
+   Agent Connect Modal
+========================== */
+
+.modal-backdrop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(22, 35, 63, 0.45);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.agent-form-card {
+  width: 100%;
+  max-width: 340px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 18px;
+  box-shadow: 0 12px 32px rgba(22, 35, 63, 0.18);
+  animation: agentPopup .2s ease;
+}
+
+.modal-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--navy);
+  text-align: center;
+}
+
+.modal-subtitle {
+  margin: 8px 0 18px;
+  font-size: 13px;
+  text-align: center;
+  color: #666;
+}
+
+.modal-form-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.input-wrap input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  color: var(--ink);
+  font-size: 14px;
+  outline: none;
+  transition: .2s;
+}
+
+.input-wrap input:focus {
+  border-color: var(--gold);
+  background: #fff;
+}
+
+/* Phone */
+
+.phone-input-row {
+  display: flex;
+  gap: 10px;
+}
+
+.country-prefix-badge {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper-dim);
+  white-space: nowrap;
+}
+
+.flag-icon {
+  width: 18px;
+  height: 12px;
+}
+
+.prefix-number {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.phone-input-row input {
+  flex: 1;
+}
+
+/* Footer */
+
+.modal-footer-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.btn-link-cancel,
+.btn-solid-submit {
+  flex: 1;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: .15s;
+}
+
+.btn-link-cancel {
+  border: 1px solid var(--line);
+  background: var(--paper-dim);
+  color: var(--ink);
+}
+
+.btn-link-cancel:hover:not(:disabled) {
+  background: var(--line);
+}
+
+.btn-solid-submit {
+  border: none;
+  background: var(--navy);
+  color: var(--paper);
+}
+
+.btn-solid-submit:hover:not(:disabled) {
+  background: var(--navy-soft);
+}
+
+.btn-link-cancel:disabled,
+.btn-solid-submit:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+/* RTL */
+
+.folder.rtl .agent-form-card,
+.folder.rtl .modal-title,
+.folder.rtl .modal-subtitle {
+  text-align: right;
+}
+
+/* Animation */
+
+@keyframes agentPopup {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .quick-grid {
@@ -240,6 +403,186 @@
     border-bottom-left-radius: 3px;
   }
 }
+
+
+/* 2. Visual locking architecture for the bottom text entry zone */
+.composer-disabled {
+  opacity: 0.5;                  /* Dims the bottom interface visually */
+  pointer-events: none;          /* Completely blocks mouse clicks/taps */
+  background-color: #f1f2f4 !important; /* Grays out the area background */
+  
+  textarea {
+    cursor: not-allowed;
+    background: transparent !important;
+  }
+}
+textarea:disabled::placeholder {
+  color: #757575 !important; /* Forces a readable gray shade */
+  opacity: 1 !important;     /* Overrides the browser's native opacity drop */
+}
+
+.complaint-form-card {
+   /* Gives the form its own independent internal scrollbar */
+  padding: 15px;
+  background: #ffffff;
+  border-radius: 8px;
+}
+
+.complaint-form-card {
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  box-shadow: 0 4px 14px rgba(22, 35, 63, 0.06);
+
+  /* Target the inputs directly inside the card */
+  input, textarea, select {
+    background-color: #f8f9fa !important;
+    color: #1a1a1a !important;        /* Forces black text color */
+    border: 1px solid #ced4da !important;
+    padding: 8px 12px;
+    font-size: 14px;
+    border-radius: 6px;
+    width: 100%;
+    box-sizing: border-box;
+
+    /* Highlight input focus states */
+    &:focus {
+      outline: none;
+      border-color: #0056b3 !important;
+      background-color: #ffffff !important;
+    }
+  }
+
+  /* Make form labels look neat and distinct */
+  .form-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    
+    label {
+      color: #333333;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    
+    .required {
+      color: #dc3545;
+    }
+  }
+}
+
+
+.complaint-form-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--navy);
+  margin: 0 0 2px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+
+  label {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--ink);
+
+    .required {
+      color: var(--gold);
+      margin-left: 2px;
+    }
+  }
+
+  input,
+  select,
+  textarea {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 9px 11px;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    color: var(--ink);
+    background: var(--paper);
+    outline: none;
+    transition: border-color 0.15s;
+    width: 100%;
+
+    &:focus { border-color: var(--gold); }
+  }
+
+  textarea {
+    resize: none;
+    max-height: 110px;
+  }
+
+  select {
+    appearance: none;
+    background-image: linear-gradient(45deg, transparent 50%, var(--navy) 50%),
+      linear-gradient(135deg, var(--navy) 50%, transparent 50%);
+    background-position: calc(100% - 16px) calc(50% - 2px), calc(100% - 11px) calc(50% - 2px);
+    background-size: 5px 5px, 5px 5px;
+    background-repeat: no-repeat;
+  }
+}
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+
+  button {
+    flex: 1;
+    padding: 10px 12px;
+    border-radius: 8px;
+    font-family: var(--font-body);
+    font-size: 13.5px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid var(--line);
+    transition: background 0.15s, transform 0.1s, opacity 0.15s;
+
+    &:active:not(:disabled) { transform: scale(0.97); }
+    &:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  }
+}
+
+.form-cancel-btn {
+  background: var(--paper-dim);
+  color: var(--ink);
+
+  &:hover:not(:disabled) { background: var(--line); }
+}
+
+.form-submit-btn {
+  background: var(--navy);
+  color: var(--paper);
+  border-color: var(--navy);
+
+  &:hover:not(:disabled) { background: var(--navy-soft); }
+}
+
+/* RTL support for the complaint form */
+.folder.rtl .complaint-form-title,
+.folder.rtl .form-field label {
+  text-align: right;
+}
+
+.folder.rtl .form-field .required {
+  margin-left: 0;
+  margin-right: 2px;
+}
+
+.folder.rtl .form-field select {
+  background-position: calc(100% - 11px) calc(50% - 2px), calc(100% - 16px) calc(50% - 2px);
+}
+
 .home-btn {
   background: var(--paper-dim);
   color: var(--navy);
