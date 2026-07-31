@@ -17,36 +17,46 @@
 }
 
 * { box-sizing: border-box; }
-
 .launcher {
   position: fixed;
   right: 24px;
   bottom: 24px;
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
+  width: 140px;
+  height: 140px;
+  border-radius: 0;
   border: none;
-  background: var(--navy);
-  color: var(--gold-soft);
+  background: transparent;
+  box-shadow: none;
+  padding: 0;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  box-shadow: 0 10px 30px rgba(22, 35, 63, 0.35);
   z-index: 1000;
-  transition: transform 0.15s, background 0.15s;
+  transition: transform 0.15s, background 0.15s, width 0.15s, height 0.15s, border-radius 0.15s;
 
-  svg { width: 26px; height: 26px; }
+  svg { width: 68%; height: 68%; display: block; }
 
-  &:hover { background: var(--navy-soft); transform: scale(1.05); }
+  &:hover { transform: scale(1.05); }
   &:active { transform: scale(0.95); }
 
+  // When chat is open, collapse back down into a normal small button
   &.open {
-    background: var(--navy-soft);
-    color: var(--paper);
+    width: 58px;
+    height: 58px;
+    border-radius: 50%;
+    background: var(--navy);
+    box-shadow: 0 10px 30px rgba(255, 255, 255, 0.35);
+
+    &:hover { background: var(--navy-soft); }
+
+    .close-icon {
+      width: 22px;
+      height: 22px;
+      color: var(--gold-soft);
+    }
   }
 }
-
 .folder {
   width: 100%;
   max-width: 380px;
@@ -656,6 +666,25 @@ textarea:disabled::placeholder {
     &:focus { border-color: var(--gold); }
   }
 }
+
+// .launcher {
+//   background: transparent;   // removes the dark circle fill
+//   border: none;              // removes any border
+//   box-shadow: none;          // removes any drop-shadow/glow around the circle
+//   border-radius: 0;          // not required once background is gone, but tidy to remove
+//   padding: 0;
+//   display: flex;
+//    width: 140px;      // increase the button's own size first
+//   height: 140px;
+//   align-items: center;
+//   justify-content: center;
+
+//   svg {
+//     width: 68%;
+//     height: 68%;
+//     display: block;
+//   }
+// }
 
 .folder.rtl {
   direction: rtl;

@@ -1,16 +1,97 @@
 <button class="launcher" (click)="toggleOpen()" [class.open]="isOpen" aria-label="Toggle policy assistant chat">
-  <svg *ngIf="!isOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-    stroke-linejoin="round">
-    <rect x="4" y="7" width="16" height="12" rx="3" />
-    <circle cx="9" cy="13" r="1.2" fill="currentColor" stroke="none" />
-    <circle cx="15" cy="13" r="1.2" fill="currentColor" stroke="none" />
-    <path d="M9 3.5v3.5M15 3.5v3.5" />
-    <path d="M4 11H2M22 11h-2" />
+
+  <svg *ngIf="!isOpen" viewBox="70 35 260 380" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bodyShine2" cx="35%" cy="25%" r="75%">
+        <stop offset="0%" stop-color="#ffffff"/>
+        <stop offset="100%" stop-color="#f6e6ee"/>
+      </radialGradient>
+      <linearGradient id="visorGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#612B4C"/>
+        <stop offset="100%" stop-color="#3a1731"/>
+      </linearGradient>
+      <radialGradient id="eyeGlow2" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#ffe9b8"/>
+        <stop offset="100%" stop-color="#ffb84f"/>
+      </radialGradient>
+      <filter id="softGlow2" x="-30%" y="-30%" width="500%" height="600%">
+        <feGaussianBlur stdDeviation="5" result="blur"/>
+        <feMerge>
+          <feMergeNode in="blur"/>
+          <feMergeNode in="SourceGraphic"/>
+        </feMerge>
+      </filter>
+    </defs>
+
+    <g id="bot2">
+      <!-- Gentle float -->
+      <animateTransform attributeName="transform" type="translate"
+        values="0,0; 0,-9; 0,0" keyTimes="0;0.5;1"
+        dur="2.8s" repeatCount="indefinite"/>
+
+      <!-- Antenna stem -->
+      <line x1="200" y1="95" x2="200" y2="65" stroke="#dcb9c9" stroke-width="6" stroke-linecap="round"/>
+      <!-- Antenna tip, pulses -->
+      <circle cx="200" cy="55" r="12" fill="#ffb84f">
+        <animate attributeName="r" values="10;15;10" dur="1.6s" repeatCount="indefinite"/>
+        <animate attributeName="opacity" values="1;0.6;1" dur="1.6s" repeatCount="indefinite"/>
+      </circle>
+
+      <!-- Round chubby body -->
+      <ellipse cx="200" cy="330" rx="95" ry="80" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2"/>
+      <!-- Belly panel -->
+      <ellipse cx="200" cy="335" rx="45" ry="35" fill="#612B4C" opacity="0.85"/>
+      <circle cx="200" cy="335" r="8" fill="#ffe9b8"/>
+
+      <!-- Left arm, little wave sway -->
+      <g transform-origin="120 320">
+        <animateTransform attributeName="transform" type="rotate"
+          values="0 120 320; -12 120 320; 0 120 320"
+          keyTimes="0;0.5;1"
+          dur="2.4s" repeatCount="indefinite"/>
+        <ellipse cx="105" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2"/>
+      </g>
+
+      <!-- Right arm, opposite sway -->
+      <g transform-origin="280 320">
+        <animateTransform attributeName="transform" type="rotate"
+          values="0 280 320; 12 280 320; 0 280 320"
+          keyTimes="0;0.5;1"
+          dur="2.4s" repeatCount="indefinite"/>
+        <ellipse cx="295" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2"/>
+      </g>
+
+      <!-- Round chubby head -->
+      <circle cx="200" cy="190" r="105" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2"/>
+
+      <!-- Ear discs -->
+      <circle cx="90" cy="190" r="18" fill="#612B4C"/>
+      <circle cx="310" cy="190" r="18" fill="#612B4C"/>
+
+      <!-- Visor -->
+      <path d="M115,165 Q115,140 145,140 Q200,135 255,140 Q285,140 285,165 Q285,225 250,240 Q200,255 150,240 Q115,225 115,165 Z" fill="url(#visorGrad2)"/>
+      <path d="M130,155 Q200,130 270,155 Q220,155 200,165 Q170,158 130,155 Z" fill="#ffffff" opacity="0.15"/>
+
+      <!-- Eyes, blink -->
+      <g id="eyes2" transform-origin="200 190">
+        <animateTransform attributeName="transform" type="scale"
+          values="1,1; 1,1; 1,0.1; 1,1; 1,1"
+          keyTimes="0;0.85;0.9;0.95;1" additive="sum"
+          dur="3.5s" repeatCount="indefinite"/>
+        <circle cx="168" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)"/>
+        <circle cx="232" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)"/>
+      </g>
+
+      <!-- Cute smile -->
+      <path d="M180,220 Q200,232 220,220" fill="none" stroke="#ffe9b8" stroke-width="5" stroke-linecap="round"/>
+    </g>
   </svg>
-  <svg *ngIf="isOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+
+  <svg *ngIf="isOpen" class="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
     <line x1="18" y1="6" x2="6" y2="18" />
     <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
+
 </button>
 
 <div class="folder" [class.visible]="isOpen" [class.rtl]="selectedLanguage === 'ar'">
