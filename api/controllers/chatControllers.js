@@ -264,13 +264,14 @@ const chat = async (req, res) => {
         const ragContext = retrievedChunks
             .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
             .join("\n\n");
+        // const ragContext = "";
 
         // Optional Debug Logs
-        console.log("\n========== INTENT ==========");
-        console.log(intent);
+        // console.log("\n========== INTENT ==========");
+        // console.log(intent);
 
-        console.log("\n========== ORACLE CONTEXT ==========");
-        console.log(databaseContext);
+        // console.log("\n========== ORACLE CONTEXT ==========");
+        // console.log(databaseContext);
 
         console.log("\n========== RAG CONTEXT ==========");
         console.log(ragContext);
