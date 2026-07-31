@@ -143,12 +143,6 @@ const chat = async (req, res) => {
 
                 // reply:"I'd be happy to help with your personal insurance information. Please log in to continue.",
                 reply:t.login,
-                actions: [
-                    {
-                        label: "Login",
-                        action: "LOGIN"
-                    }
-                ],
 
                 data: []
 
