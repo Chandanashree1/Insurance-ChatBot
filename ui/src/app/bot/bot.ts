@@ -61,7 +61,7 @@ export class Bot implements AfterViewChecked, DoCheck {
             this.showLoginPopup = false;
             this.messages.push({
               sender: 'bot',
-              text: this.translations.ar.loginSuccess
+              text: this.translations[this.selectedLanguage].loginSuccess
             });
             if (this.pendingQuestion) {
               this.userMessage = this.pendingQuestion;

@@ -1,13 +1,13 @@
 :host {
-  --navy: #16233F;
-  --navy-soft: #21335A;
+  --navy: #612b4c;
+  --navy-soft: #612b4c;
   --paper: #F6F4EE;
   --paper-dim: #ECE8DD;
   --gold: #C9A24B;
   --gold-soft: #E7D5A6;
   --ink: #1D2430;
   --line: #DDD6C4;
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-display: 'Nunito', sans-serif;
   --font-body: 'IBM Plex Sans', -apple-system, Segoe UI, Roboto, sans-serif;
   --font-mono: 'IBM Plex Mono', 'Courier New', monospace;
 
@@ -76,6 +76,10 @@
     transform: translateY(0) scale(1);
     pointer-events: auto;
   }
+}
+.folder,
+.folder * {
+  font-family: 'Nunito', sans-serif;
 }
 
 .header {
@@ -366,7 +370,8 @@
   border-radius: 12px;
   cursor: pointer;
   font-size: 12px;
-  font-family: var(--font-body);
+  // font-family: var(--font-body);
+  font-display: 'Nunito', sans-serif;
 }
 
 .language-switch button.active {

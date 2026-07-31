@@ -95,11 +95,11 @@
         <div class="bubble">{{ msg.text }}
           <div class="action-buttons" *ngIf="msg.actions && msg.actions.length">
 
-            <button *ngFor="let action of msg.actions" (click)="onActionClick(action.action)">
+            <!-- <button *ngFor="let action of msg.actions" (click)="onActionClick(action.action)">
 
               {{ action.label }}
 
-            </button>
+            </button> -->
 
           </div>
           <button *ngIf="msg.showLoginButton" class="login-btn" (click)="openLogin()">
