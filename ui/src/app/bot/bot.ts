@@ -133,11 +133,11 @@ export class Bot implements AfterViewChecked, DoCheck {
 
   // Preset prompts behind each quick-action tile
   private readonly quickPrompts: Record<QuickAction, string> = {
-    buyPolicy: 'I want to buy a new policy',
-    rop: 'I want to submit ROP',
-    renew: 'I want to renew my policy',
-    complaint: 'I want to register a complaint',
-    chatWithUs: 'I want to Connect'
+    buyPolicy: 'quickBuyPolicy',
+    rop: 'quickRop',
+    renew: 'quickRenew',
+    complaint: 'quickComplaint',
+    chatWithUs: 'quickChat'
 
   };
 
@@ -261,20 +261,23 @@ export class Bot implements AfterViewChecked, DoCheck {
     });
   }
 
-  quickAction(action: QuickAction): void {
-    if (this.isLoading) return;
+ quickAction(action: QuickAction): void {
+  if (this.isLoading) return;
 
-    if (action === 'complaint') {
-      this.openComplaintForm();
-      return;
-    }
-
-    if (action === 'chatWithUs') { this.openAgentConnectForm(); return; }
-
-
-    this.userMessage = this.quickPrompts[action];
-    this.sendMessage();
+  if (action === 'complaint') {
+    this.openComplaintForm();
+    return;
   }
+
+  if (action === 'chatWithUs') {
+    this.openAgentConnectForm();
+    return;
+  }
+
+  const key = this.quickPrompts[action] as keyof typeof this.translations['en'];
+  this.userMessage = this.translations[this.selectedLanguage][key];
+  this.sendMessage();
+}
 
   translations = {
     en: {
@@ -305,7 +308,12 @@ export class Bot implements AfterViewChecked, DoCheck {
       namePlaceholder: "Enter your Name*",
       emailPlaceholder: "Enter Email-ID*",
       phonePlaceholder: "Enter Phone Number*",
-      connecting: "Connecting you to a live chat support agent..."
+      connecting: "Connecting you to a live chat support agent...",
+      quickBuyPolicy: 'I want to buy a new policy',
+      quickRop: 'I want to submit ROP',
+      quickRenew: 'I want to renew my policy',
+      quickComplaint: 'I want to register a complaint',
+      quickChat: 'I want to Connect'
     },
 
     ar: {
@@ -336,7 +344,13 @@ export class Bot implements AfterViewChecked, DoCheck {
       namePlaceholder: "أدخل اسمك*",
       emailPlaceholder: "أدخل البريد الإلكتروني*",
       phonePlaceholder: "أدخل رقم الهاتف*",
-      connecting: "جارٍ تحويلك إلى وكيل الدعم المباشر..."
+      connecting: "جارٍ تحويلك إلى وكيل الدعم المباشر...",
+      quickBuyPolicy: 'أريد شراء وثيقة تأمين جديدة',
+      quickRop: 'أريد تقديم طلب استرداد',
+      quickRenew: 'أريد تجديد وثيقتي',
+      quickComplaint: 'أريد تسجيل شكوى',
+      quickChat: 'أريد التواصل'
+
     }
   };
 

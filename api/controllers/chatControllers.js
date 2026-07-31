@@ -82,7 +82,6 @@ const chat = async (req, res) => {
                         Sum Insured: ${policy.SUM_INSURED}
                         Status: ${policy.STATUS}
                         `;
-
                 }
 
                 break;

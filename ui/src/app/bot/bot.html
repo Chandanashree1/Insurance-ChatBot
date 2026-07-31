@@ -173,9 +173,9 @@ required />
 
         <div class="modal-footer-actions">
           <button type="button" class="btn-link-cancel" (click)="cancelAgentForm()"
-            [disabled]="isConnectingToAgent">Cancel</button>
+            [disabled]="isConnectingToAgent">  {{ translations[selectedLanguage].cancel }}</button>
           <button type="button" class="btn-solid-submit" (click)="submitAgentConnect()"
-            [disabled]="isConnectingToAgent">Submit</button>
+            [disabled]="isConnectingToAgent"> {{ translations[selectedLanguage].submit }}</button>
         </div>
       </div>
     </div>
