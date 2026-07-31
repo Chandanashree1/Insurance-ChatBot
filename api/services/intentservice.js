@@ -33,27 +33,32 @@ function matchesKeyword(message, keywords) {
     return keywords.some(keyword => message.includes(keyword));
 }
 
-async function detectIntent(message, language = "en") {
+async function detectIntent(message) {
+
     const msg = message.toLowerCase().trim();
 
-    if (matchesKeyword(msg, GREETINGS)) {
+    // Fast keyword detection
+    if (matchesKeyword(msg, GREETINGS))
         return "GREETING";
-    }
 
-    if (matchesKeyword(msg, THANKS)) {
+    if (matchesKeyword(msg, THANKS))
         return "THANKS";
-    }
 
-    if (matchesKeyword(msg, GOODBYE)) {
+    if (matchesKeyword(msg, GOODBYE))
         return "GOODBYE";
-    }
 
-    if (matchesKeyword(msg, HELP)) {
+    if (matchesKeyword(msg, HELP))
         return "HELP";
-    }
+
+    // AI intent detection
     const result = await detectIntentAI(message);
 
-    // console.log("Intent Service Result:", result);
+    console.log("Detected Intent:", result.intent);
+    console.log("Confidence:", result.confidence);
+
+    if (result.confidence < 0.6) {
+        return "OUT_OF_SCOPE";
+    }
 
     return result.intent;
 }

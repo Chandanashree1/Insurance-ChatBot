@@ -1,13 +1,12 @@
 const PROTECTED_INTENTS = ["POLICY", "CLAIM", "PROFILE", "PAYMENT", "DOWNLOAD_POLICY", "RENEW_POLICY"];
+const CHAT_RESPONSES = require("../utils/chatResponses")
 const { getPolicy, getClaims, getFAQ } = require("../services/oracleService");
 const { askAI } = require("../services/huggingFaceService");
 const { detectIntent } = require("../services/intentService");
 const { retrieveRelevantChunks } = require("../services/ragService");
-const {
-    getHistory,
-    addMessage,
-    clearHistory
-} = require("../services/conversationservice");
+const { getHistory, addMessage, clearHistory } = require("../services/conversationservice");
+const { startFlow, getFlow, updateFlow, endFlow } = require("../services/claimEligibilityService");
+const { startFlow: startBuyPolicyFlow, getFlow: getBuyPolicyFlow, updateFlow: updateBuyPolicyFlow, endFlow: endBuyPolicyFlow } = require("../services/buyPoliceService");
 
 // Centralized bilingual out-of-scope reply
 const OUT_OF_SCOPE_REPLIES = {
@@ -47,7 +46,68 @@ const chat = async (req, res) => {
         }
 
         const userId = customerId || "guest";
+        const buyFlow = getBuyPolicyFlow(userId);
 
+        if (buyFlow) {
+
+            switch (buyFlow.step) {
+
+                case 1:
+
+                    updateBuyPolicyFlow(userId, {
+                        policyType: message
+                    });
+
+                    return res.json({
+
+                        success: true,
+
+                        uiType: "BUY_POLICY",
+
+                        reply: "Please choose a plan.",
+
+                        actions: [
+                            {
+                                label: "Basic",
+                                action: "PLAN_BASIC"
+                            },
+                            {
+                                label: "Standard",
+                                action: "PLAN_STANDARD"
+                            },
+                            {
+                                label: "Premium",
+                                action: "PLAN_PREMIUM"
+                            }
+                        ],
+
+                        data: []
+
+                    });
+
+                case 2:
+
+                    updateBuyPolicyFlow(userId, {
+                        plan: message
+                    });
+
+                    return res.json({
+
+                        success: true,
+
+                        uiType: "BUY_POLICY",
+
+                        reply: "Please enter your age.",
+
+                        actions: [],
+
+                        data: []
+
+                    });
+
+            }
+
+        }
         // Save latest user message
         addMessage(userId, "user", message);
 
@@ -56,77 +116,18 @@ const chat = async (req, res) => {
 
         // Detect intent
         const intent = await detectIntent(message);
-        switch (intent) {
+        const lang = language === "ar" ? "ar" : "en";
+        const staticResponse = CHAT_RESPONSES[lang][intent];
 
-            case "GREETING":
+        if (staticResponse) {
 
-                return res.json({
+            addMessage(userId, "assistant", staticResponse.reply);
 
-                    success: true,
-
-                    // reply: "👋 Hello! Welcome to ABC Insurance.\n\nHow can I assist you today?",
-                    reply: t.greeting,
-
-                    uiType: "GREETING",
-
-                    actions: [
-                        {
-                            label: "📄 My Policy",
-                            action: "POLICY"
-                        },
-                        {
-                            label: "📋 Claim Status",
-                            action: "CLAIM"
-                        },
-                        {
-                            label: "🔄 Renew Policy",
-                            action: "RENEW_POLICY"
-                        },
-                        {
-                            label: "📑 Claim Documents",
-                            action: "CLAIM_DOCUMENTS"
-                        }
-                    ]
-
-                });
-
-            case "THANKS":
-
-                return res.json({
-
-                    success: true,
-
-                    // reply: "You're welcome! 😊",
-                    reply: t.thanks,
-
-                    uiType: "TEXT"
-
-                });
-
-            case "GOODBYE":
-
-                return res.json({
-
-                    success: true,
-
-                    // reply: "Thank you for choosing ABC Insurance. Have a wonderful day! 👋",
-                    reply: t.goodbye,
-
-                    uiType: "TEXT"
-
-                });
-
-            case "HELP":
-
-                return res.json({
-
-                    success: true,
-
-                    // reply: "I can help you with:\n• Policy Details\n• Claim Status\n• Renewals\n• Premiums\n• Claim Documents",
-                    reply: t.help,
-                    uiType: "HELP"
-
-                });
+            return res.json({
+                success: true,
+                ...staticResponse,
+                data: []
+            });
 
         }
         // Check whether login is required
@@ -175,6 +176,38 @@ const chat = async (req, res) => {
         let data = [];
 
         switch (intent) {
+            case "BUY_POLICY":
+
+                startBuyPolicyFlow(userId);
+
+                return res.json({
+
+                    success: true,
+
+                    intent,
+
+                    uiType: "BUY_POLICY",
+
+                    reply: "Which type of insurance would you like to purchase?",
+
+                    actions: [
+                        {
+                            label: "Health Insurance",
+                            action: "BUY_HEALTH"
+                        },
+                        {
+                            label: "Motor Insurance",
+                            action: "BUY_MOTOR"
+                        },
+                        {
+                            label: "Travel Insurance",
+                            action: "BUY_TRAVEL"
+                        }
+                    ],
+
+                    data: []
+
+                });
 
             case "POLICY":
 

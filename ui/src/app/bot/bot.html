@@ -90,12 +90,20 @@
         <span class="tile-label">{{ translations[selectedLanguage].complaint }}</span>
       </button>
     </div>
-    <ng-container *ngFor = "let msg of messages.slice(1)">
-      <div class="row" [class.user]="msg.sender === 'user'"
-        [class.bot]="msg.sender === 'bot'">
+    <ng-container *ngFor="let msg of messages.slice(1)">
+      <div class="row" [class.user]="msg.sender === 'user'" [class.bot]="msg.sender === 'bot'">
         <div class="bubble">{{ msg.text }}
+          <div class="action-buttons" *ngIf="msg.actions && msg.actions.length">
+
+            <button *ngFor="let action of msg.actions" (click)="onActionClick(action.action)">
+
+              {{ action.label }}
+
+            </button>
+
+          </div>
           <button *ngIf="msg.showLoginButton" class="login-btn" (click)="openLogin()">
-            🔐 {{translations[selectedLanguage].loginBtn}}
+            {{translations[selectedLanguage].loginBtn}}
           </button>
         </div>
       </div>

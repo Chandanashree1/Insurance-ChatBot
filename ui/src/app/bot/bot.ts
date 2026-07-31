@@ -7,6 +7,11 @@ import { DoCheck } from '@angular/core';
 interface ChatMessage {
   sender: 'user' | 'bot';
   text: string;
+  uiType?: string;
+  actions?: {
+    label: string;
+    action: string;
+  }[];
   showLoginButton?: boolean;
 }
 
@@ -161,6 +166,21 @@ export class Bot implements AfterViewChecked, DoCheck {
         "مرحباً بك في شركة ABC للتأمين! حسابك متصل بشكل آمن. يمكنك الاستفسار عن وثيقتك أو الفواتير أو تفاصيل التأمين."
     }
   };
+  private readonly actionMessages = {
+    en: {
+      POLICY: 'Show my policy',
+      CLAIM: 'Show my claim status',
+      RENEW_POLICY: 'Renew my policy',
+      CLAIM_DOCUMENTS: 'What documents are required for a claim?'
+    },
+
+    ar: {
+      POLICY: 'اعرض وثيقتي',
+      CLAIM: 'اعرض حالة المطالبة',
+      RENEW_POLICY: 'أرغب في تجديد وثيقتي',
+      CLAIM_DOCUMENTS: 'ما هي المستندات المطلوبة للمطالبة؟'
+    }
+  };
 
 
   selectedLanguage: 'en' | 'ar' = 'en';
@@ -198,7 +218,7 @@ export class Bot implements AfterViewChecked, DoCheck {
           if (response.requiresLogin) {
             this.pendingQuestion = textToSend;
           }
-          this.messages.push({ sender: 'bot', text: response.reply, showLoginButton: response.requiresLogin || false });
+          this.messages.push({ sender: 'bot', text: response.reply, uiType: response.uiType, actions: response.actions, showLoginButton: response.requiresLogin || false });
           console.log("message", this.messages);
           this.isLoading = false;
           this.cdr.detectChanges();
@@ -223,5 +243,30 @@ export class Bot implements AfterViewChecked, DoCheck {
 
     this.showLoginPopup = true;
 
+  }
+  onActionClick(action: string) {
+
+    console.log("Button clicked:", action);
+
+    // Flow answers
+    if (["HEALTH", "MOTOR", "TRAVEL", "SURGERY", "HOSPITALIZATION", "ACCIDENT", "CONSULTATION", "YES", "NO","BUY_HEALTH","BUY_MOTOR","BUY_TRAVEL","PLAN_BASIC","PLAN_STANDARD","PLAN_PREMIUM"].includes(action)) {
+
+      this.userMessage = action;
+      this.sendMessage();
+      return;
+    }
+
+    // Existing quick actions
+    const message =
+      this.actionMessages[this.selectedLanguage][
+      action as keyof typeof this.actionMessages['en']
+      ];
+
+    if (!message) {
+      return;
+    }
+
+    this.userMessage = message;
+    this.sendMessage();
   }
 }
