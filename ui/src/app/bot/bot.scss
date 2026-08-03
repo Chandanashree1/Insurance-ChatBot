@@ -33,20 +33,19 @@
   justify-content: center;
   cursor: pointer;
   z-index: 1000;
-  transition: transform 0.15s, background 0.15s, width 0.15s, height 0.15s, border-radius 0.15s;
+  transition: transform 0.15s;   // ONLY transform animates — nothing else
 
   svg { width: 68%; height: 68%; display: block; }
 
   &:hover { transform: scale(1.05); }
   &:active { transform: scale(0.95); }
 
-  // When chat is open, collapse back down into a normal small button
   &.open {
     width: 58px;
     height: 58px;
     border-radius: 50%;
     background: var(--navy);
-    box-shadow: 0 10px 30px rgba(255, 255, 255, 0.35);
+    box-shadow: 0 10px 30px rgba(22, 35, 63, 0.35);
 
     &:hover { background: var(--navy-soft); }
 
@@ -671,24 +670,6 @@ textarea:disabled::placeholder {
   }
 }
 
-// .launcher {
-//   background: transparent;   // removes the dark circle fill
-//   border: none;              // removes any border
-//   box-shadow: none;          // removes any drop-shadow/glow around the circle
-//   border-radius: 0;          // not required once background is gone, but tidy to remove
-//   padding: 0;
-//   display: flex;
-//    width: 140px;      // increase the button's own size first
-//   height: 140px;
-//   align-items: center;
-//   justify-content: center;
-
-//   svg {
-//     width: 68%;
-//     height: 68%;
-//     display: block;
-//   }
-// }
 
 .folder.rtl {
   direction: rtl;
@@ -797,13 +778,13 @@ textarea:disabled::placeholder {
   padding: 10px;
   border: none;
   border-radius: 4px;
-  background: #1f2d5a;
+  background: #C9A24B;
   color: #fff;
   cursor: pointer;
 }
 
 .login-container button:hover {
-  background: #162247;
+  background: #e7c06e;
 }
 .action-buttons {
 
