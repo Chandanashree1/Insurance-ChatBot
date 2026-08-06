@@ -37,26 +37,23 @@ async function askAI(message, databaseContext = "", ragContext = "", history = [
 
     try {
 
-        const messages = [
+       const languageInstruction = language === "ar"
+    ? "You must respond ENTIRELY in Arabic. Never switch to English, Chinese, or any other language mid-response, even in long answers. Translate any English content you use from documents or data into Arabic — never copy English text as-is."
+    : "You must respond ENTIRELY in English. Never switch to Arabic, Chinese, or any other language mid-response, even in long answers.";
 
-            {
-                role: "system",
-                content:
-                    `${insurancePrompt}
+const messages = [
 
-                        Language Rules:
+    {
+        role: "system",
+        content:
+            `LANGUAGE RULE (highest priority, overrides everything below): ${languageInstruction}
 
-                        ${language === "ar"
-                        ?
-                        "Reply only in Arabic language. Do not use English."
-                        :
-                        "Reply only in English language."
-                    }
+${insurancePrompt}
 
-`
-            }
+Reminder: your entire reply, from first word to last, must be in ${language === "ar" ? "Arabic" : "English"} only.`
+    }
 
-        ];
+];
 
         // Customer Information from Oracle
         if (databaseContext && databaseContext.trim() !== "") {
@@ -69,9 +66,10 @@ async function askAI(message, databaseContext = "", ragContext = "", history = [
 
                 ${databaseContext}
 
-                Use this customer information whenever applicable.
-                If customer information is available, answer using it.
-                Do not say you cannot access customer information.`
+                 Use this customer information whenever applicable.
+  If customer information is available, answer using it.
+  Do not say you cannot access customer information.
+  Translate any field values into ${language === "ar" ? "Arabic" : "English"} when presenting them in your reply — do not output raw English field values inside an Arabic response.`
 
             });
 
@@ -88,8 +86,9 @@ async function askAI(message, databaseContext = "", ragContext = "", history = [
 
                 ${ragContext}
 
-                Use ONLY this document information whenever it helps answer the user's insurance question.
-                If the answer is not present in these documents, say you couldn't find it in the available insurance documents.`
+ Use ONLY this document information whenever it helps answer the user's insurance question.
+  Fully translate any content you use into ${language === "ar" ? "Arabic" : "English"} — do not copy English sentences or phrases directly into an Arabic reply.
+  If the answer is not present in these documents, say you couldn't find it in the available insurance documents.`
 
             });
 

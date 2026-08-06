@@ -28,7 +28,7 @@ interface ComplaintForm {
 
 const WELCOME_MESSAGE: ChatMessage = {
   sender: 'bot',
-  text: 'Welcome to ABC Insurance! Your account connection is fully secured. Please feel free to ask about your policy layout, billing statements, or premium parameters.'
+  text: 'Welcome to ABC Insurance ! 😊. You can get help for these functions as mentioned below.'
 };
 
 @Component({
@@ -307,10 +307,10 @@ export class Bot implements AfterViewChecked, DoCheck {
       chat: "Chat with Us",
       placeholder: "Type here...",
       loginSuccess: ' Login successful! Retrieving your previous request...',
-      loginBtn: 'login',
+      loginBtn: 'Login',
       loginHeader: 'Customer Login',
       welcome:
-        "Welcome to ABC Insurance! Your account connection is secure. Please feel free to ask any questions or share your concerns.",
+        "Welcome to ABC Insurance ! 😊. You can get help for these functions as mentioned below.",
       complaintIntro: "Please fill out the form and submit your details.",
       complaintFormTitle: "Register a Complaint",
       subject: "Subject",
@@ -349,7 +349,7 @@ export class Bot implements AfterViewChecked, DoCheck {
       loginBtn: 'تسجيل الدخول',
       loginHeader: 'تسجيل دخول العميل',
       welcome:
-        "مرحباً بك في شركة ABC للتأمين! حسابك متصل بشكل آمن. يمكنك الاستفسار عن وثيقتك أو الفواتير أو تفاصيل التأمين.",
+         "مرحباً بكم في شركة ABC للتأمين! 😊 يمكنكم الحصول على المساعدة بشأن الخدمات المدرجة أدناه.",
       complaintIntro: "يرجى تعبئة النموذج وإرسال بياناتك.",
       complaintFormTitle: "تسجيل شكوى",
       subject: "الموضوع",

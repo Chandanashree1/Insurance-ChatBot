@@ -390,8 +390,8 @@
 .row {
   display: flex;
 
-  &.user { justify-content: flex-end; }
-  &.bot { justify-content: flex-start; }
+  &.user { justify-content: flex-end !important; }
+  &.bot { justify-content: flex-start !important; }
 }
 
 .bubble {
