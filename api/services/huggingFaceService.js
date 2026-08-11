@@ -62,7 +62,8 @@ Reminder: your entire reply, from first word to last, must be in ${language === 
 
                 role: "system",
 
-                content: `Customer Information
+                content: `Customer Information\
+
 
                 ${databaseContext}
 
@@ -102,6 +103,7 @@ Reminder: your entire reply, from first word to last, must be in ${language === 
         }
 
         // Current User Question
+        
         messages.push({
 
             role: "user",

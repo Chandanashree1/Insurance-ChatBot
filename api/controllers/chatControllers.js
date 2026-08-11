@@ -44,7 +44,6 @@ const chat = async (req, res) => {
             });
 
         }
-
         const userId = customerId || "guest";
         const buyFlow = getBuyPolicyFlow(userId);
 
@@ -158,7 +157,7 @@ const chat = async (req, res) => {
             addMessage(userId, "assistant", reply);
 
             return res.json({
-                success: true,
+                // success: true,
                 intent,
                 reply,
                 data: []
