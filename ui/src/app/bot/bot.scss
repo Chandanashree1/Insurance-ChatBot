@@ -799,6 +799,38 @@ textarea:disabled::placeholder {
 
   svg { width: 18px; height: 18px; }
 }
+
+.bubble {
+  display: inline-block;
+  max-width: 78%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+
+.message-line {
+  display: flex;
+  align-items: flex-end; // time slightly down
+  gap: 10px;
+}
+
+.message-text {
+  font-size: 15px;
+  line-height: 1.5;
+
+  overflow-wrap: anywhere;
+}
+
+.message-time {
+  flex-shrink: 0;
+  font-size: 10px;
+  line-height: 1;
+  color: var(--gold);
+  white-space: nowrap;
+  /* konjam down */
+  margin-bottom: 1px;
+}
+
 // login css
 .login-container {
   width: 280px;
