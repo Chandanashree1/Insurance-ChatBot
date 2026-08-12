@@ -7,6 +7,7 @@ import { DoCheck } from '@angular/core';
 interface ChatMessage {
   sender: 'user' | 'bot';
   text: string;
+  time: Date;
   uiType?: string;
   actions?: {
     label: string;
@@ -28,7 +29,8 @@ interface ComplaintForm {
 
 const WELCOME_MESSAGE: ChatMessage = {
   sender: 'bot',
-  text: 'Welcome to ABC Insurance ! 😊. You can get help for these functions as mentioned below.'
+  text: 'Welcome to ABC Insurance ! 😊. You can get help for these functions as mentioned below.',
+  time: new Date()
 };
 
 @Component({
@@ -39,6 +41,8 @@ const WELCOME_MESSAGE: ChatMessage = {
   styleUrls: ['./bot.scss']
 })
 export class Bot implements AfterViewChecked, DoCheck {
+  userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  
   email = '';
   password = '';
   isLogginIn: boolean = false;
@@ -90,7 +94,7 @@ export class Bot implements AfterViewChecked, DoCheck {
       next: (res) => {
         this.isConnectingToAgent = false;
         this.activeForm = null;
-        if (res && res.success) this.messages.push({ sender: 'bot', text: 'Connecting you to a live chat support agent...' });
+        if (res && res.success) this.messages.push({ sender: 'bot', text: 'Connecting you to a live chat support agent...',time: new Date() });
         this.cdr.detectChanges();
       },
       error: () => {
@@ -119,7 +123,8 @@ export class Bot implements AfterViewChecked, DoCheck {
             this.showLoginPopup = false;
             this.messages.push({
               sender: 'bot',
-              text: this.translations[this.selectedLanguage].loginSuccess
+              text: this.translations[this.selectedLanguage].loginSuccess,
+              time:new Date()
             });
             if (this.pendingQuestion) {
               this.userMessage = this.pendingQuestion;
@@ -202,7 +207,8 @@ export class Bot implements AfterViewChecked, DoCheck {
 
     this.messages.push({
       sender: 'bot',
-      text: this.translations[this.selectedLanguage].complaintIntro
+      text: this.translations[this.selectedLanguage].complaintIntro,
+      time:new Date()
     });
   }
 
@@ -254,12 +260,15 @@ export class Bot implements AfterViewChecked, DoCheck {
         if (response && response.success) {
           this.messages.push({
             sender: 'bot',
-            text: this.translations[this.selectedLanguage].complaintSuccess
+            text: this.translations[this.selectedLanguage].complaintSuccess,
+            time:new Date()
+            
           });
         } else {
           this.messages.push({
             sender: 'bot',
-            text: this.translations[this.selectedLanguage].complaintError
+            text: this.translations[this.selectedLanguage].complaintError,
+            time:new Date()
           });
         }
 
@@ -271,7 +280,8 @@ export class Bot implements AfterViewChecked, DoCheck {
         this.isSubmittingComplaint = false;
         this.messages.push({
           sender: 'bot',
-          text: this.translations[this.selectedLanguage].complaintError
+          text: this.translations[this.selectedLanguage].complaintError,
+          time:new Date()
         });
         this.cdr.detectChanges();
       }
@@ -401,7 +411,8 @@ export class Bot implements AfterViewChecked, DoCheck {
     this.messages = [
       {
         sender: 'bot',
-        text: this.translations[lang].welcome
+        text: this.translations[lang].welcome,
+        time:new Date()
       }
     ];
   }
@@ -410,7 +421,7 @@ export class Bot implements AfterViewChecked, DoCheck {
     const textToSend = this.userMessage.trim();
     if (!textToSend || this.isLoading) return;
 
-    this.messages.push({ sender: 'user', text: textToSend });
+    this.messages.push({ sender: 'user', text: textToSend,time:new Date() });
     this.userMessage = '';
     this.isLoading = true;
 
@@ -433,13 +444,15 @@ export class Bot implements AfterViewChecked, DoCheck {
             text: response.reply,
             uiType: response.uiType,
             actions: response.actions,
-            showLoginButton: response.requiresLogin || false
+            showLoginButton: response.requiresLogin || false,
+            time:new Date()
+
           });
           console.log("message", this.messages);
           this.isLoading = false;
           this.cdr.detectChanges();
         } else {
-          this.messages.push({ sender: 'bot', text: ' Backend process succeeded, but returned an invalid data payload format.' });
+          this.messages.push({ sender: 'bot', text: ' Backend process succeeded, but returned an invalid data payload format.',time:new Date() });
           this.isLoading = false;
           this.cdr.detectChanges();
         }
@@ -449,7 +462,8 @@ export class Bot implements AfterViewChecked, DoCheck {
         console.error('Frontend Connection Failure:', err);
         this.messages.push({
           sender: 'bot',
-          text: ' Network Link Offline'
+          text: ' Network Link Offline', 
+          time : new Date()
         });
         this.isLoading = false;
       }
