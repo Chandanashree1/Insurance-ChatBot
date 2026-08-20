@@ -7,6 +7,7 @@ const { retrieveRelevantChunks } = require("../services/ragService");
 const { getHistory, addMessage, clearHistory } = require("../services/conversationservice");
 const { startFlow, getFlow, updateFlow, endFlow } = require("../services/claimEligibilityService");
 const { startFlow: startBuyPolicyFlow, getFlow: getBuyPolicyFlow, updateFlow: updateBuyPolicyFlow, endFlow: endBuyPolicyFlow } = require("../services/buyPoliceService");
+const INSURANCE_FORMS = require("../config/insuranceForms");
 
 // Centralized bilingual out-of-scope reply
 const OUT_OF_SCOPE_REPLIES = {
@@ -51,54 +52,143 @@ const chat = async (req, res) => {
 
             switch (buyFlow.step) {
 
+                // -------------------------
+                // STEP 1 - INSURANCE TYPE
+                // -------------------------
                 case 1:
 
+                    const validInsuranceTypes = [
+                        "BUY_HEALTH",
+                        "BUY_MOTOR",
+                        "BUY_TRAVEL"
+                    ];
+
+                    if (!validInsuranceTypes.includes(message)) {
+
+                        endBuyPolicyFlow(userId);
+
+                        break;
+                    }
+
+                    const insuranceType = message.replace("BUY_", "");
+
                     updateBuyPolicyFlow(userId, {
-                        policyType: message
+                        insuranceType
                     });
 
-                    return res.json({
+                    // Health and Travel have Basic/Standard/Premium.
+                    // Motor will be handled separately according to its form.
+                    if (insuranceType === "HEALTH" || insuranceType === "TRAVEL") {
 
-                        success: true,
+                        return res.json({
 
-                        uiType: "BUY_POLICY",
+                            success: true,
 
-                        reply: "Please choose a plan.",
+                            uiType: "BUY_POLICY",
 
-                        actions: [
-                            {
-                                label: "Basic",
-                                action: "PLAN_BASIC"
-                            },
-                            {
-                                label: "Standard",
-                                action: "PLAN_STANDARD"
-                            },
-                            {
-                                label: "Premium",
-                                action: "PLAN_PREMIUM"
-                            }
-                        ],
+                            reply: language === "ar"
+                                ? "يرجى اختيار الخطة."
+                                : "Please choose a plan.",
 
-                        data: []
+                            actions: [
+                                {
+                                    label: "Basic",
+                                    action: "PLAN_BASIC"
+                                },
+                                {
+                                    label: "Standard",
+                                    action: "PLAN_STANDARD"
+                                },
+                                {
+                                    label: "Premium",
+                                    action: "PLAN_PREMIUM"
+                                }
+                            ],
 
-                    });
+                            data: []
 
+                        });
+
+                    }
+
+                    // Motor does not have Basic/Standard/Premium
+                    // in the form you provided.
+                    if (insuranceType === "MOTOR") {
+
+                        const form = INSURANCE_FORMS.MOTOR;
+
+                        endBuyPolicyFlow(userId);
+
+                        return res.json({
+
+                            success: true,
+
+                            uiType: "APPLICATION_FORM",
+
+                            reply: language === "ar"
+                                ? "يرجى إكمال نموذج تأمين المركبات."
+                                : "Please complete your motor insurance application.",
+
+                            actions: [],
+
+                            form,
+
+                            data: []
+
+                        });
+
+                    }
+
+                    break;
+
+
+                // -------------------------
+                // STEP 2 - PLAN
+                // -------------------------
                 case 2:
 
+                    const validPlans = [
+                        "PLAN_BASIC",
+                        "PLAN_STANDARD",
+                        "PLAN_PREMIUM"
+                    ];
+
+                    if (!validPlans.includes(message)) {
+
+                        endBuyPolicyFlow(userId);
+
+                        break;
+                    }
+
+                    const plan = message.replace("PLAN_", "");
+
                     updateBuyPolicyFlow(userId, {
-                        plan: message
+                        plan
                     });
+
+                    const currentFlow = getBuyPolicyFlow(userId);
+
+                    const selectedInsurance =
+                        currentFlow.answers.insuranceType;
+
+                    const form =
+                        INSURANCE_FORMS[selectedInsurance];
+
+                    endBuyPolicyFlow(userId);
 
                     return res.json({
 
                         success: true,
 
-                        uiType: "BUY_POLICY",
+                        uiType: "APPLICATION_FORM",
 
-                        reply: "Please enter your age.",
+                        reply: language === "ar"
+                            ? "يرجى إكمال نموذج طلب التأمين."
+                            : "Please complete your insurance application form.",
 
                         actions: [],
+
+                        form,
 
                         data: []
 
@@ -141,7 +231,7 @@ const chat = async (req, res) => {
                 uiType: "LOGIN_REQUIRED",
 
                 // reply:"I'd be happy to help with your personal insurance information. Please log in to continue.",
-                reply:t.login,
+                reply: t.login,
 
                 data: []
 

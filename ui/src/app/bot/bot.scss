@@ -638,6 +638,79 @@ textarea:disabled::placeholder {
     &:nth-child(3) { animation-delay: 0.3s; }
   }
 }
+.application-form {
+  margin-top: 14px;
+  padding: 16px;
+  background: #ffffff;
+  border: 1px solid #e2d5bd;
+  border-radius: 12px;
+}
+
+.application-form h3 {
+  margin: 0 0 18px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.form-field {
+  margin-bottom: 14px;
+}
+
+.form-field > label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.form-field > label span {
+  color: red;
+}
+
+.form-field input,
+.form-field select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid #d9c9a8;
+  border-radius: 8px;
+  font-size: 14px;
+  outline: none;
+}
+
+.form-field input:focus,
+.form-field select:focus {
+  border-color: #c89432;
+}
+
+.radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.radio-option {
+  display: flex !important;
+  align-items: center;
+  gap: 5px;
+  font-weight: normal !important;
+}
+
+.radio-option input {
+  width: auto;
+}
+
+.application-submit {
+  width: 100%;
+  margin-top: 8px;
+  padding: 11px;
+  border: none;
+  border-radius: 8px;
+  background: #17233f;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
 
 @keyframes bounce {
   0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }

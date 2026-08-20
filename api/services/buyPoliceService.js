@@ -1,20 +1,21 @@
 const sessions = new Map();
 
 function startFlow(userId) {
+
     sessions.set(userId, {
         step: 1,
         answers: {
-            policyType: "",
-            plan: "",
-            age: "",
-            gender: "",
-            disease: ""
+            insuranceType: "",
+            plan: ""
         }
     });
+
 }
 
 function getFlow(userId) {
+
     return sessions.get(userId);
+
 }
 
 function updateFlow(userId, data) {
@@ -31,10 +32,13 @@ function updateFlow(userId, data) {
     session.step++;
 
     return session;
+
 }
 
 function endFlow(userId) {
+
     sessions.delete(userId);
+
 }
 
 module.exports = {
