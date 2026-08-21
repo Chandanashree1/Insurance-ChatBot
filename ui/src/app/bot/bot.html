@@ -3,87 +3,82 @@
   <svg *ngIf="!isOpen" viewBox="70 35 260 380" xmlns="http://www.w3.org/2000/svg">
     <defs>
       <radialGradient id="bodyShine2" cx="35%" cy="25%" r="75%">
-        <stop offset="0%" stop-color="#ffffff"/>
-        <stop offset="100%" stop-color="#f6e6ee"/>
+        <stop offset="0%" stop-color="#ffffff" />
+        <stop offset="100%" stop-color="#f6e6ee" />
       </radialGradient>
       <linearGradient id="visorGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#612B4C"/>
-        <stop offset="100%" stop-color="#3a1731"/>
+        <stop offset="0%" stop-color="#612B4C" />
+        <stop offset="100%" stop-color="#3a1731" />
       </linearGradient>
       <radialGradient id="eyeGlow2" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stop-color="#ffe9b8"/>
-        <stop offset="100%" stop-color="#ffb84f"/>
+        <stop offset="0%" stop-color="#ffe9b8" />
+        <stop offset="100%" stop-color="#ffb84f" />
       </radialGradient>
       <filter id="softGlow2" x="-30%" y="-30%" width="500%" height="600%">
-        <feGaussianBlur stdDeviation="5" result="blur"/>
+        <feGaussianBlur stdDeviation="5" result="blur" />
         <feMerge>
-          <feMergeNode in="blur"/>
-          <feMergeNode in="SourceGraphic"/>
+          <feMergeNode in="blur" />
+          <feMergeNode in="SourceGraphic" />
         </feMerge>
       </filter>
     </defs>
 
     <g id="bot2">
       <!-- Gentle float -->
-      <animateTransform attributeName="transform" type="translate"
-        values="0,0; 0,-9; 0,0" keyTimes="0;0.5;1"
-        dur="2.8s" repeatCount="indefinite"/>
+      <animateTransform attributeName="transform" type="translate" values="0,0; 0,-9; 0,0" keyTimes="0;0.5;1" dur="2.8s"
+        repeatCount="indefinite" />
 
       <!-- Antenna stem -->
-      <line x1="200" y1="95" x2="200" y2="65" stroke="#dcb9c9" stroke-width="6" stroke-linecap="round"/>
+      <line x1="200" y1="95" x2="200" y2="65" stroke="#dcb9c9" stroke-width="6" stroke-linecap="round" />
       <!-- Antenna tip, pulses -->
       <circle cx="200" cy="55" r="12" fill="#ffb84f">
-        <animate attributeName="r" values="10;15;10" dur="1.6s" repeatCount="indefinite"/>
-        <animate attributeName="opacity" values="1;0.6;1" dur="1.6s" repeatCount="indefinite"/>
+        <animate attributeName="r" values="10;15;10" dur="1.6s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="1;0.6;1" dur="1.6s" repeatCount="indefinite" />
       </circle>
 
       <!-- Round chubby body -->
-      <ellipse cx="200" cy="330" rx="95" ry="80" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2"/>
+      <ellipse cx="200" cy="330" rx="95" ry="80" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2" />
       <!-- Belly panel -->
-      <ellipse cx="200" cy="335" rx="45" ry="35" fill="#612B4C" opacity="0.85"/>
-      <circle cx="200" cy="335" r="8" fill="#ffe9b8"/>
+      <ellipse cx="200" cy="335" rx="45" ry="35" fill="#612B4C" opacity="0.85" />
+      <circle cx="200" cy="335" r="8" fill="#ffe9b8" />
 
       <!-- Left arm, little wave sway -->
       <g transform-origin="120 320">
-        <animateTransform attributeName="transform" type="rotate"
-          values="0 120 320; -12 120 320; 0 120 320"
-          keyTimes="0;0.5;1"
-          dur="2.4s" repeatCount="indefinite"/>
-        <ellipse cx="105" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2"/>
+        <animateTransform attributeName="transform" type="rotate" values="0 120 320; -12 120 320; 0 120 320"
+          keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite" />
+        <ellipse cx="105" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2" />
       </g>
 
       <!-- Right arm, opposite sway -->
       <g transform-origin="280 320">
-        <animateTransform attributeName="transform" type="rotate"
-          values="0 280 320; 12 280 320; 0 280 320"
-          keyTimes="0;0.5;1"
-          dur="2.4s" repeatCount="indefinite"/>
-        <ellipse cx="295" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2"/>
+        <animateTransform attributeName="transform" type="rotate" values="0 280 320; 12 280 320; 0 280 320"
+          keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite" />
+        <ellipse cx="295" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2" />
       </g>
 
       <!-- Round chubby head -->
-      <circle cx="200" cy="190" r="105" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2"/>
+      <circle cx="200" cy="190" r="105" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2" />
 
       <!-- Ear discs -->
-      <circle cx="90" cy="190" r="18" fill="#612B4C"/>
-      <circle cx="310" cy="190" r="18" fill="#612B4C"/>
+      <circle cx="90" cy="190" r="18" fill="#612B4C" />
+      <circle cx="310" cy="190" r="18" fill="#612B4C" />
 
       <!-- Visor -->
-      <path d="M115,165 Q115,140 145,140 Q200,135 255,140 Q285,140 285,165 Q285,225 250,240 Q200,255 150,240 Q115,225 115,165 Z" fill="url(#visorGrad2)"/>
-      <path d="M130,155 Q200,130 270,155 Q220,155 200,165 Q170,158 130,155 Z" fill="#ffffff" opacity="0.15"/>
+      <path
+        d="M115,165 Q115,140 145,140 Q200,135 255,140 Q285,140 285,165 Q285,225 250,240 Q200,255 150,240 Q115,225 115,165 Z"
+        fill="url(#visorGrad2)" />
+      <path d="M130,155 Q200,130 270,155 Q220,155 200,165 Q170,158 130,155 Z" fill="#ffffff" opacity="0.15" />
 
       <!-- Eyes, blink -->
       <g id="eyes2" transform-origin="200 190">
-        <animateTransform attributeName="transform" type="scale"
-          values="1,1; 1,1; 1,0.1; 1,1; 1,1"
-          keyTimes="0;0.85;0.9;0.95;1" additive="sum"
-          dur="3.5s" repeatCount="indefinite"/>
-        <circle cx="168" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)"/>
-        <circle cx="232" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)"/>
+        <animateTransform attributeName="transform" type="scale" values="1,1; 1,1; 1,0.1; 1,1; 1,1"
+          keyTimes="0;0.85;0.9;0.95;1" additive="sum" dur="3.5s" repeatCount="indefinite" />
+        <circle cx="168" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)" />
+        <circle cx="232" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)" />
       </g>
 
       <!-- Cute smile -->
-      <path d="M180,220 Q200,232 220,220" fill="none" stroke="#ffe9b8" stroke-width="5" stroke-linecap="round"/>
+      <path d="M180,220 Q200,232 220,220" fill="none" stroke="#ffe9b8" stroke-width="5" stroke-linecap="round" />
     </g>
   </svg>
 
@@ -234,63 +229,99 @@
     </div>
 
     <!-- User/Bot Conversation -->
-   <ng-container *ngFor="let msg of messages.slice(1)">
-  <div
-    class="row"
-    [class.user]="msg.sender === 'user'"
-    [class.bot]="msg.sender === 'bot'">
+    <ng-container *ngFor="let msg of messages.slice(1)">
+      <div class="row" [class.user]="msg.sender === 'user'" [class.bot]="msg.sender === 'bot'">
+        <div class="bubble">
+          <div class="message-line">
+            <span class="message-text">
+              {{ msg.text }}
+            </span>
 
-    <div class="bubble">
+            <span class="message-time">
+              {{ msg.time | date:'h:mm a':userTimeZone }}
+            </span>
+          </div>
+          <div class="action-buttons" *ngIf="msg.actions && msg.actions.length">
+            <button *ngFor="let action of msg.actions" (click)="onActionClick(action.action)">
+              {{ action.label }}
+            </button>
 
-      <!-- Message text -->
-      <div class="message-line">
-        <span class="message-text">
-          {{ msg.text }}
-        </span>
+          </div>
+          <div class="application-form" *ngIf="msg.form && msg.form.fields">
 
-        <!-- Inline timestamp for simple messages -->
-        <span
-          class="message-time inline-time"
-          *ngIf="!msg.actions?.length && !msg.showLoginButton">
-          {{ msg.time | date:'h:mm a':userTimeZone }}
-        </span>
+            <h3>{{ msg.form.name }}</h3>
+
+            <div class="form-field" *ngFor="let field of msg.form.fields">
+
+              <!-- Label -->
+              <label>
+                {{ field.label }}
+
+                <span *ngIf="field.required" class="required">
+                  *
+                </span>
+              </label>
+
+
+              <!-- TEXT / EMAIL / TEL / NUMBER / DATE -->
+
+              <input *ngIf="
+        field.type === 'text' ||
+        field.type === 'email' ||
+        field.type === 'tel' ||
+        field.type === 'number' ||
+        field.type === 'date'
+      " [type]="field.type" [placeholder]="field.label" [required]="field.required ?? false"
+                [(ngModel)]="applicationFormData[field.name]" />
+
+
+              <!-- SELECT -->
+
+              <select *ngIf="field.type === 'select'" [required]="field.required ?? false"
+                [(ngModel)]="applicationFormData[field.name]">
+
+                <option value="">
+                  Select {{ field.label }}
+                </option>
+
+                <option *ngFor="let option of field.options" [value]="option">
+                  {{ option }}
+                </option>
+
+              </select>
+
+
+              <!-- RADIO -->
+
+              <div class="radio-group" *ngIf="field.type === 'radio'">
+
+                <label *ngFor="let option of field.options" class="radio-option">
+
+                  <input type="radio" [name]="field.name" [value]="option" [required]="field.required ?? false"
+                    [(ngModel)]="applicationFormData[field.name]" />
+
+                  {{ option }}
+
+                </label>
+
+              </div>
+
+            </div>
+
+
+            <!-- SUBMIT APPLICATION -->
+
+            <button type="button" class="application-submit" (click)="submitInsuranceApplication()">
+              Continue
+            </button>
+
+          </div>
+          <button *ngIf="msg.showLoginButton" class="login-btn" (click)="openLogin()">
+            {{ translations[selectedLanguage].loginBtn }}
+          </button>
+        </div>
       </div>
-
-      <!-- Action buttons -->
-      <div
-        class="action-buttons"
-        *ngIf="msg.actions && msg.actions.length">
-
-        <button
-          *ngFor="let action of msg.actions"
-          (click)="onActionClick(action.action)">
-          {{ action.label }}
-        </button>
-
-      </div>
-
-      <!-- Login button -->
-      <button
-        *ngIf="msg.showLoginButton"
-        class="login-btn"
-        (click)="openLogin()">
-
-        {{ translations[selectedLanguage].loginBtn }}
-
-      </button>
-
-      <!-- Bottom timestamp for messages with actions/Login -->
-      <span
-        class="message-time bottom-time"
-        *ngIf="msg.actions?.length || msg.showLoginButton">
-
-        {{ msg.time | date:'h:mm a':userTimeZone }}
-
-      </span>
-
-    </div>
-  </div>
-</ng-container>
+    </ng-container>
 
     <!-- Complaint Form -->
     <div class="complaint-form-card" *ngIf="activeForm === 'complaint'">
@@ -335,8 +366,7 @@
           [disabled]="isSubmittingComplaint">
           {{ translations[selectedLanguage].cancel }}
         </button>
-        <button type="button" class="form-submit-btn" (click)="submitComplaint()"
-          [disabled]="isSubmittingComplaint">
+        <button type="button" class="form-submit-btn" (click)="submitComplaint()" [disabled]="isSubmittingComplaint">
           {{ translations[selectedLanguage].submit }}
         </button>
       </div>

@@ -4,6 +4,19 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { DoCheck } from '@angular/core';
 
+interface FormField {
+  name: string;
+  label: string;
+  type: string;
+  required?: boolean;
+  options?: string[];
+}
+
+interface InsuranceForm {
+  name: string;
+  fields: FormField[];
+}
+
 interface ChatMessage {
   sender: 'user' | 'bot';
   text: string;
@@ -14,6 +27,7 @@ interface ChatMessage {
     action: string;
   }[];
   showLoginButton?: boolean;
+  form?: InsuranceForm;
 }
 
 type QuickAction = 'buyPolicy' | 'rop' | 'renew' | 'complaint' | 'chatWithUs';
@@ -25,6 +39,36 @@ interface ComplaintForm {
   mobile: string;
   product: string;
   message: string;
+}
+interface InsuranceApplication {
+  policyType: string;
+  plan: string;
+
+  fullName: string;
+  civilId: string;
+  dateOfBirth: string;
+  gender: string;
+  mobileNumber: string;
+  email: string;
+
+  coverageAmount?: string;
+  existingMedicalCondition?: string;
+  nationality?: string;
+  area?: string;
+
+  vehicleRegistrationNumber?: string;
+  vehicleMakeModel?: string;
+  manufacturingYear?: string;
+  vehicleType?: string;
+  insuranceType?: string;
+  previousInsurance?: string;
+  policyExpiryDate?: string;
+
+  destinationCountry?: string;
+  travelStartDate?: string;
+  travelEndDate?: string;
+  numberOfTravellers?: string;
+  travelType?: string;
 }
 
 const WELCOME_MESSAGE: ChatMessage = {
@@ -42,7 +86,7 @@ const WELCOME_MESSAGE: ChatMessage = {
 })
 export class Bot implements AfterViewChecked, DoCheck {
   userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-  
+
   email = '';
   password = '';
   isLogginIn: boolean = false;
@@ -53,6 +97,7 @@ export class Bot implements AfterViewChecked, DoCheck {
   // ----- Complaint form state -----
   activeForm: 'complaint' | 'agentConnect' | null = null;
   isSubmittingComplaint: boolean = false;
+  applicationFormData: any = {};
 
   complaintForm: ComplaintForm = {
     subject: '',
@@ -62,6 +107,39 @@ export class Bot implements AfterViewChecked, DoCheck {
     product: '',
     message: ''
   };
+  insuranceApplication: InsuranceApplication = {
+    policyType: '',
+    plan: '',
+
+    fullName: '',
+    civilId: '',
+    dateOfBirth: '',
+    gender: '',
+    mobileNumber: '',
+    email: '',
+
+    coverageAmount: '',
+    existingMedicalCondition: '',
+    nationality: '',
+    area: '',
+
+    vehicleRegistrationNumber: '',
+    vehicleMakeModel: '',
+    manufacturingYear: '',
+    vehicleType: '',
+    insuranceType: '',
+    previousInsurance: '',
+    policyExpiryDate: '',
+
+    destinationCountry: '',
+    travelStartDate: '',
+    travelEndDate: '',
+    numberOfTravellers: '',
+    travelType: ''
+  };
+
+  selectedDocuments: File[] = [];
+  isSubmittingInsurance = false;
 
   complaintProducts: string[] = [
     'Health Insurance',
@@ -94,7 +172,7 @@ export class Bot implements AfterViewChecked, DoCheck {
       next: (res) => {
         this.isConnectingToAgent = false;
         this.activeForm = null;
-        if (res && res.success) this.messages.push({ sender: 'bot', text: 'Connecting you to a live chat support agent...',time: new Date() });
+        if (res && res.success) this.messages.push({ sender: 'bot', text: 'Connecting you to a live chat support agent...', time: new Date() });
         this.cdr.detectChanges();
       },
       error: () => {
@@ -124,7 +202,7 @@ export class Bot implements AfterViewChecked, DoCheck {
             this.messages.push({
               sender: 'bot',
               text: this.translations[this.selectedLanguage].loginSuccess,
-              time:new Date()
+              time: new Date()
             });
             if (this.pendingQuestion) {
               this.userMessage = this.pendingQuestion;
@@ -208,7 +286,7 @@ export class Bot implements AfterViewChecked, DoCheck {
     this.messages.push({
       sender: 'bot',
       text: this.translations[this.selectedLanguage].complaintIntro,
-      time:new Date()
+      time: new Date()
     });
   }
 
@@ -261,14 +339,14 @@ export class Bot implements AfterViewChecked, DoCheck {
           this.messages.push({
             sender: 'bot',
             text: this.translations[this.selectedLanguage].complaintSuccess,
-            time:new Date()
-            
+            time: new Date()
+
           });
         } else {
           this.messages.push({
             sender: 'bot',
             text: this.translations[this.selectedLanguage].complaintError,
-            time:new Date()
+            time: new Date()
           });
         }
 
@@ -281,7 +359,7 @@ export class Bot implements AfterViewChecked, DoCheck {
         this.messages.push({
           sender: 'bot',
           text: this.translations[this.selectedLanguage].complaintError,
-          time:new Date()
+          time: new Date()
         });
         this.cdr.detectChanges();
       }
@@ -359,7 +437,7 @@ export class Bot implements AfterViewChecked, DoCheck {
       loginBtn: 'تسجيل الدخول',
       loginHeader: 'تسجيل دخول العميل',
       welcome:
-         "مرحباً بكم في شركة ABC للتأمين! 😊 يمكنكم الحصول على المساعدة بشأن الخدمات المدرجة أدناه.",
+        "مرحباً بكم في شركة ABC للتأمين! 😊 يمكنكم الحصول على المساعدة بشأن الخدمات المدرجة أدناه.",
       complaintIntro: "يرجى تعبئة النموذج وإرسال بياناتك.",
       complaintFormTitle: "تسجيل شكوى",
       subject: "الموضوع",
@@ -412,7 +490,7 @@ export class Bot implements AfterViewChecked, DoCheck {
       {
         sender: 'bot',
         text: this.translations[lang].welcome,
-        time:new Date()
+        time: new Date()
       }
     ];
   }
@@ -421,7 +499,7 @@ export class Bot implements AfterViewChecked, DoCheck {
     const textToSend = this.userMessage.trim();
     if (!textToSend || this.isLoading) return;
 
-    this.messages.push({ sender: 'user', text: textToSend,time:new Date() });
+    this.messages.push({ sender: 'user', text: textToSend, time: new Date() });
     this.userMessage = '';
     this.isLoading = true;
 
@@ -444,15 +522,16 @@ export class Bot implements AfterViewChecked, DoCheck {
             text: response.reply,
             uiType: response.uiType,
             actions: response.actions,
+            form: response.form,
             showLoginButton: response.requiresLogin || false,
-            time:new Date()
+            time: new Date()
 
           });
           console.log("message", this.messages);
           this.isLoading = false;
           this.cdr.detectChanges();
         } else {
-          this.messages.push({ sender: 'bot', text: ' Backend process succeeded, but returned an invalid data payload format.',time:new Date() });
+          this.messages.push({ sender: 'bot', text: ' Backend process succeeded, but returned an invalid data payload format.', time: new Date() });
           this.isLoading = false;
           this.cdr.detectChanges();
         }
@@ -462,8 +541,8 @@ export class Bot implements AfterViewChecked, DoCheck {
         console.error('Frontend Connection Failure:', err);
         this.messages.push({
           sender: 'bot',
-          text: ' Network Link Offline', 
-          time : new Date()
+          text: ' Network Link Offline',
+          time: new Date()
         });
         this.isLoading = false;
       }
@@ -498,5 +577,128 @@ export class Bot implements AfterViewChecked, DoCheck {
 
     this.userMessage = message;
     this.sendMessage();
+  }
+  onDocumentsSelected(event: any): void {
+    const files: FileList = event.target.files;
+
+    if (!files) {
+      return;
+    }
+
+    this.selectedDocuments = Array.from(files);
+  }
+  submitInsuranceApplication(): void {
+
+    // Copy the dynamically entered form values
+    // into insuranceApplication before submitting
+    this.insuranceApplication = {
+      ...this.insuranceApplication,
+      ...this.applicationFormData
+    };
+
+    // Check required common fields
+    if (
+      !this.applicationFormData.fullName?.trim() ||
+      !this.applicationFormData.civilId?.trim() ||
+      !this.applicationFormData.mobileNumber?.trim() ||
+      !this.applicationFormData.email?.trim()
+    ) {
+      alert('Please fill all required fields.');
+      return;
+    }
+
+    this.isSubmittingInsurance = true;
+
+    const formData = new FormData();
+
+    // Add application data
+    formData.append(
+      'application',
+      JSON.stringify(this.insuranceApplication)
+    );
+
+    // Add uploaded documents
+    this.selectedDocuments.forEach(file => {
+      formData.append('documents', file);
+    });
+
+    // Send to backend
+    this.http.post<any>(
+      'http://localhost:5000/api/insurance-application',
+      formData
+    ).subscribe({
+
+      next: (response) => {
+
+        this.isSubmittingInsurance = false;
+
+        if (response.success) {
+
+          this.messages.push({
+            sender: 'bot',
+            text: 'Your insurance application has been submitted successfully. Our team will review your application and contact you shortly.',
+            time: new Date()
+          });
+
+          // Reset application data
+          this.insuranceApplication = {
+            policyType: '',
+            plan: '',
+            fullName: '',
+            civilId: '',
+            dateOfBirth: '',
+            gender: '',
+            mobileNumber: '',
+            email: '',
+            coverageAmount: '',
+            existingMedicalCondition: '',
+            nationality: '',
+            area: '',
+
+            vehicleRegistrationNumber: '',
+            vehicleMakeModel: '',
+            manufacturingYear: '',
+            vehicleType: '',
+            insuranceType: '',
+            previousInsurance: '',
+            policyExpiryDate: '',
+
+            destinationCountry: '',
+            travelStartDate: '',
+            travelEndDate: '',
+            numberOfTravellers: '',
+            travelType: ''
+          };
+
+          // Reset form data used by HTML
+          this.applicationFormData = {};
+
+          // Clear documents
+          this.selectedDocuments = [];
+
+          this.cdr.detectChanges();
+        }
+
+      },
+
+      error: (err) => {
+
+        console.error(
+          'Insurance Application Error:',
+          err
+        );
+
+        this.isSubmittingInsurance = false;
+
+        this.messages.push({
+          sender: 'bot',
+          text: 'Unable to submit your application. Please try again.',
+          time: new Date()
+        });
+
+        this.cdr.detectChanges();
+      }
+
+    });
   }
 }
