@@ -234,29 +234,63 @@
     </div>
 
     <!-- User/Bot Conversation -->
-    <ng-container *ngFor="let msg of messages.slice(1)">
-      <div class="row" [class.user]="msg.sender === 'user'" [class.bot]="msg.sender === 'bot'">
-        <div class="bubble">
-          <div class="message-line">
-            <span class="message-text">
-              {{ msg.text }}
-            </span>
-            
-            <span class="message-time">
-              {{ msg.time | date:'h:mm a':userTimeZone }}
-            </span>
-          </div>
-          <div class="action-buttons" *ngIf="msg.actions && msg.actions.length">
-            <button *ngFor="let action of msg.actions" (click)="onActionClick(action.action)">
-              {{ action.label }}
-            </button>
-          </div>
-          <button *ngIf="msg.showLoginButton" class="login-btn" (click)="openLogin()">
-            {{ translations[selectedLanguage].loginBtn }}
-          </button>
-        </div>
+   <ng-container *ngFor="let msg of messages.slice(1)">
+  <div
+    class="row"
+    [class.user]="msg.sender === 'user'"
+    [class.bot]="msg.sender === 'bot'">
+
+    <div class="bubble">
+
+      <!-- Message text -->
+      <div class="message-line">
+        <span class="message-text">
+          {{ msg.text }}
+        </span>
+
+        <!-- Inline timestamp for simple messages -->
+        <span
+          class="message-time inline-time"
+          *ngIf="!msg.actions?.length && !msg.showLoginButton">
+          {{ msg.time | date:'h:mm a':userTimeZone }}
+        </span>
       </div>
-    </ng-container>
+
+      <!-- Action buttons -->
+      <div
+        class="action-buttons"
+        *ngIf="msg.actions && msg.actions.length">
+
+        <button
+          *ngFor="let action of msg.actions"
+          (click)="onActionClick(action.action)">
+          {{ action.label }}
+        </button>
+
+      </div>
+
+      <!-- Login button -->
+      <button
+        *ngIf="msg.showLoginButton"
+        class="login-btn"
+        (click)="openLogin()">
+
+        {{ translations[selectedLanguage].loginBtn }}
+
+      </button>
+
+      <!-- Bottom timestamp for messages with actions/Login -->
+      <span
+        class="message-time bottom-time"
+        *ngIf="msg.actions?.length || msg.showLoginButton">
+
+        {{ msg.time | date:'h:mm a':userTimeZone }}
+
+      </span>
+
+    </div>
+  </div>
+</ng-container>
 
     <!-- Complaint Form -->
     <div class="complaint-form-card" *ngIf="activeForm === 'complaint'">
