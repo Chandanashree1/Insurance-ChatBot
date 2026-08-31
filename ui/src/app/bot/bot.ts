@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, AfterViewChecked, ChangeDetectorRef } from '@angular/core';
+import { Component, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -71,6 +71,13 @@ interface InsuranceApplication {
   travelType?: string;
 }
 
+interface HistorySession {
+  SESSION_ID: string;
+  STARTED_AT: string;
+  LAST_MESSAGE_AT: string;
+  PREVIEW: string;
+}
+
 const WELCOME_MESSAGE: ChatMessage = {
   sender: 'bot',
   text: 'Welcome to ABC Insurance ! 😊. You can get help for these functions as mentioned below.',
@@ -84,7 +91,7 @@ const WELCOME_MESSAGE: ChatMessage = {
   templateUrl: './bot.html',
   styleUrls: ['./bot.scss']
 })
-export class Bot implements AfterViewChecked, DoCheck {
+export class Bot implements DoCheck {
   userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   email = '';
@@ -93,6 +100,13 @@ export class Bot implements AfterViewChecked, DoCheck {
   customerId: number | null = null;
   pendingQuestion = '';
   showLoginPopup = false;
+
+  // ----- Session / history state -----
+  sessionId: string = this.generateSessionId();
+  isHistoryOpen: boolean = false;
+  historySessions: HistorySession[] = [];
+  isLoadingHistory: boolean = false;
+  historyError: boolean = false;
 
   // ----- Complaint form state -----
   activeForm: 'complaint' | 'agentConnect' | null = null;
@@ -129,8 +143,8 @@ export class Bot implements AfterViewChecked, DoCheck {
     vehicleType: '',
     insuranceType: '',
     previousInsurance: '',
-    policyExpiryDate: '',
-
+    policyExpiryDate: ''
+    ,
     destinationCountry: '',
     travelStartDate: '',
     travelEndDate: '',
@@ -178,6 +192,75 @@ export class Bot implements AfterViewChecked, DoCheck {
       error: () => {
         this.isConnectingToAgent = false;
         this.activeForm = null;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  // ----- Session helpers -----
+  private generateSessionId(): string {
+    return 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+  }
+
+  toggleHistory(): void {
+    this.isHistoryOpen = !this.isHistoryOpen;
+    if (this.isHistoryOpen && this.isLogginIn && this.customerId) {
+      this.fetchHistorySessions();
+    }
+  }
+
+  closeHistory(): void {
+    this.isHistoryOpen = false;
+  }
+
+  fetchHistorySessions(): void {
+    if (!this.customerId) return;
+    this.isLoadingHistory = true;
+    this.historyError = false;
+
+    this.http.get<any>(`http://localhost:5000/api/history/${this.customerId}`).subscribe({
+      next: (res) => {
+        this.historySessions = res && res.success ? res.sessions : [];
+        this.isLoadingHistory = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Fetch history sessions error:', err);
+        this.historyError = true;
+        this.isLoadingHistory = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  loadSession(sessionId: string): void {
+    if (!this.customerId || this.isLoading) return;
+
+    this.isLoadingHistory = true;
+    this.historyError = false;
+
+    this.http.get<any>(`http://localhost:5000/api/history/${this.customerId}/${sessionId}`).subscribe({
+      next: (res) => {
+        if (res && res.success) {
+          this.messages = [
+            { ...WELCOME_MESSAGE },
+            ...res.messages.map((m: any) => ({
+              sender: (m.ROLE === 'user' ? 'user' : 'bot') as 'user' | 'bot',
+              text: m.CONTENT,
+              time: new Date(m.CREATED_AT)
+            }))
+          ];
+          this.sessionId = sessionId; // keep appending to this same session
+        }
+        this.isHistoryOpen = false;
+        this.isLoadingHistory = false;
+        this.activeForm = null;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Load session error:', err);
+        this.historyError = true;
+        this.isLoadingHistory = false;
         this.cdr.detectChanges();
       }
     });
@@ -250,15 +333,10 @@ export class Bot implements AfterViewChecked, DoCheck {
   ngDoCheck(): void {
     if (this.messages.length !== this.previousLength) {
       this.previousLength = this.messages.length;
-      // console.log('Messages changed:', this.messages);
       setTimeout(() => {
         this.scrollToBottom();
       }, 50);
     }
-  }
-
-  ngAfterViewChecked() {
-    this.scrollToBottom();
   }
 
   toggleOpen(): void {
@@ -269,7 +347,9 @@ export class Bot implements AfterViewChecked, DoCheck {
     if (this.isLoading) return;
     this.userMessage = '';
     this.activeForm = null;
+    this.isHistoryOpen = false;
     this.messages = [{ ...WELCOME_MESSAGE }];
+    this.sessionId = this.generateSessionId(); // start a fresh session
   }
 
   private scrollToBottom(): void {
@@ -422,7 +502,12 @@ export class Bot implements AfterViewChecked, DoCheck {
       quickRop: 'I want to submit ROP',
       quickRenew: 'I want to renew my policy',
       quickComplaint: 'I want to register a complaint',
-      quickChat: 'I want to Connect'
+      quickChat: 'I want to Connect',
+      historyTitle: 'Chat History',
+      historySignInPrompt: 'Sign in to view and save your chat history.',
+      historyEmpty: 'No past conversations yet.',
+      historyLoading: 'Loading...',
+      historyError: 'Could not load history. Please try again.'
     },
 
     ar: {
@@ -461,7 +546,12 @@ export class Bot implements AfterViewChecked, DoCheck {
       quickRop: 'أريد تقديم طلب استرداد',
       quickRenew: 'أريد تجديد وثيقتي',
       quickComplaint: 'أريد تسجيل شكوى',
-      quickChat: 'أريد التواصل'
+      quickChat: 'أريد التواصل',
+      historyTitle: 'سجل المحادثات',
+      historySignInPrompt: 'سجّل الدخول لعرض سجل محادثاتك وحفظه.',
+      historyEmpty: 'لا توجد محادثات سابقة بعد.',
+      historyLoading: 'جارٍ التحميل...',
+      historyError: 'تعذر تحميل السجل. يرجى المحاولة مرة أخرى.'
     }
   };
 
@@ -507,8 +597,8 @@ export class Bot implements AfterViewChecked, DoCheck {
       message: textToSend,
       language: this.selectedLanguage,
       customerId: this.customerId,
-      loggedIn: this.isLogginIn
-      // customerId: Number(this.selectedCustomerId)
+      loggedIn: this.isLogginIn,
+      sessionId: this.sessionId
     };
 
     this.http.post<any>('http://localhost:5000/api/chat', payload).subscribe({
@@ -527,7 +617,6 @@ export class Bot implements AfterViewChecked, DoCheck {
             time: new Date()
 
           });
-          console.log("message", this.messages);
           this.isLoading = false;
           this.cdr.detectChanges();
         } else {
@@ -551,13 +640,11 @@ export class Bot implements AfterViewChecked, DoCheck {
 
   openLogin() {
     this.showLoginPopup = true;
+    this.isHistoryOpen = false;
   }
 
   onActionClick(action: string) {
 
-    console.log("Button clicked:", action);
-
-    // Flow answers
     if (["HEALTH", "MOTOR", "TRAVEL", "SURGERY", "HOSPITALIZATION", "ACCIDENT", "CONSULTATION", "YES", "NO", "BUY_HEALTH", "BUY_MOTOR", "BUY_TRAVEL", "PLAN_BASIC", "PLAN_STANDARD", "PLAN_PREMIUM"].includes(action)) {
 
       this.userMessage = action;
@@ -565,7 +652,6 @@ export class Bot implements AfterViewChecked, DoCheck {
       return;
     }
 
-    // Existing quick actions
     const message =
       this.actionMessages[this.selectedLanguage][
       action as keyof typeof this.actionMessages['en']
@@ -589,14 +675,11 @@ export class Bot implements AfterViewChecked, DoCheck {
   }
   submitInsuranceApplication(): void {
 
-    // Copy the dynamically entered form values
-    // into insuranceApplication before submitting
     this.insuranceApplication = {
       ...this.insuranceApplication,
       ...this.applicationFormData
     };
 
-    // Check required common fields
     if (
       !this.applicationFormData.fullName?.trim() ||
       !this.applicationFormData.civilId?.trim() ||
@@ -611,18 +694,15 @@ export class Bot implements AfterViewChecked, DoCheck {
 
     const formData = new FormData();
 
-    // Add application data
     formData.append(
       'application',
       JSON.stringify(this.insuranceApplication)
     );
 
-    // Add uploaded documents
     this.selectedDocuments.forEach(file => {
       formData.append('documents', file);
     });
 
-    // Send to backend
     this.http.post<any>(
       'http://localhost:5000/api/insurance-application',
       formData
@@ -640,7 +720,6 @@ export class Bot implements AfterViewChecked, DoCheck {
             time: new Date()
           });
 
-          // Reset application data
           this.insuranceApplication = {
             policyType: '',
             plan: '',
@@ -670,10 +749,7 @@ export class Bot implements AfterViewChecked, DoCheck {
             travelType: ''
           };
 
-          // Reset form data used by HTML
           this.applicationFormData = {};
-
-          // Clear documents
           this.selectedDocuments = [];
 
           this.cdr.detectChanges();

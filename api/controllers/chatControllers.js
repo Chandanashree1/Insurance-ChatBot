@@ -1,13 +1,14 @@
 const PROTECTED_INTENTS = ["POLICY", "CLAIM", "PROFILE", "PAYMENT", "DOWNLOAD_POLICY", "RENEW_POLICY"];
-const CHAT_RESPONSES = require("../utils/chatResponses")
+// const CHAT_RESPONSES = require("../utils/chatResponses")
 const { getPolicy, getClaims, getFAQ } = require("../services/oracleService");
 const { askAI } = require("../services/huggingFaceService");
 const { detectIntent } = require("../services/intentService");
 const { retrieveRelevantChunks } = require("../services/ragService");
 const { getHistory, addMessage, clearHistory } = require("../services/conversationservice");
-const { startFlow, getFlow, updateFlow, endFlow } = require("../services/claimEligibilityService");
-const { startFlow: startBuyPolicyFlow, getFlow: getBuyPolicyFlow, updateFlow: updateBuyPolicyFlow, endFlow: endBuyPolicyFlow } = require("../services/buyPoliceService");
-const INSURANCE_FORMS = require("../config/insuranceForms");
+// const { startFlow, getFlow, updateFlow, endFlow } = require("../services/claimEligibilityService");
+// const { startFlow: startBuyPolicyFlow, getFlow: getBuyPolicyFlow, updateFlow: updateBuyPolicyFlow, endFlow: endBuyPolicyFlow } = require("../services/buyPoliceService");
+// const INSURANCE_FORMS = require("../config/insuranceForms");
+const { saveMessage } = require("../services/historyService"); 
 
 // Centralized bilingual out-of-scope reply
 const OUT_OF_SCOPE_REPLIES = {
@@ -35,7 +36,7 @@ const chat = async (req, res) => {
 
     try {
 
-        const { message, customerId, loggedIn = true, language } = req.body;
+       const { message, customerId, loggedIn = true, language, sessionId } = req.body; 
         const t = TEXT[language] || TEXT.en;
         if (!message) {
 
@@ -198,27 +199,29 @@ const chat = async (req, res) => {
 
         }
         // Save latest user message
-        addMessage(userId, "user", message);
+      addMessage(userId, "user", message);
 
-        // Get updated conversation history
-        const history = getHistory(userId);
+if (loggedIn && customerId) {
+    await saveMessage(customerId, sessionId, "user", message, language); // NEW
+}
+
+// Get updated conversation history
+const history = getHistory(userId);
 
         // Detect intent
         const intent = await detectIntent(message);
         const lang = language === "ar" ? "ar" : "en";
         const staticResponse = CHAT_RESPONSES[lang][intent];
 
-        if (staticResponse) {
+       if (staticResponse) {
+    addMessage(userId, "assistant", staticResponse.reply);
 
-            addMessage(userId, "assistant", staticResponse.reply);
+    if (loggedIn && customerId) {
+        await saveMessage(customerId, sessionId, "bot", staticResponse.reply, language); // NEW
+    }
 
-            return res.json({
-                success: true,
-                ...staticResponse,
-                data: []
-            });
-
-        }
+    return res.json({ success: true, ...staticResponse, data: [] });
+}
         // Check whether login is required
         if (PROTECTED_INTENTS.includes(intent) && !loggedIn) {
 
@@ -240,20 +243,16 @@ const chat = async (req, res) => {
         }
 
         // Handle non-insurance questions
-        if (intent === "OUT_OF_SCOPE") {
+       if (intent === "OUT_OF_SCOPE") {
+    const reply = OUT_OF_SCOPE_REPLIES[language] || OUT_OF_SCOPE_REPLIES.en;
+    addMessage(userId, "assistant", reply);
 
-            const reply = OUT_OF_SCOPE_REPLIES[language] || OUT_OF_SCOPE_REPLIES.en;
+    if (loggedIn && customerId) {
+        await saveMessage(customerId, sessionId, "bot", reply, language); // NEW
+    }
 
-            addMessage(userId, "assistant", reply);
-
-            return res.json({
-                // success: true,
-                intent,
-                reply,
-                data: []
-            });
-
-        }
+    return res.json({ intent, reply, data: [] });
+}
 
         let databaseContext = "";
         let data = [];
@@ -371,23 +370,19 @@ const chat = async (req, res) => {
         // Save assistant response
         addMessage(userId, "assistant", aiReply);
 
-        return res.json({
+if (loggedIn && customerId) {
+    await saveMessage(customerId, sessionId, "bot", aiReply, language); // NEW
+}
 
-            success: true,
-
-            intent,
-
-            reply: aiReply,
-
-            requiresLogin: false,
-
-            uiType: "TEXT",
-
-            actions: [],
-
-            data
-
-        });
+return res.json({
+    success: true,
+    intent,
+    reply: aiReply,
+    requiresLogin: false,
+    uiType: "TEXT",
+    actions: [],
+    data
+});
 
     }
 

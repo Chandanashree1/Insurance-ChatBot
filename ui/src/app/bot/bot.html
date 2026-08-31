@@ -24,52 +24,41 @@
     </defs>
 
     <g id="bot2">
-      <!-- Gentle float -->
       <animateTransform attributeName="transform" type="translate" values="0,0; 0,-9; 0,0" keyTimes="0;0.5;1" dur="2.8s"
         repeatCount="indefinite" />
 
-      <!-- Antenna stem -->
       <line x1="200" y1="95" x2="200" y2="65" stroke="#dcb9c9" stroke-width="6" stroke-linecap="round" />
-      <!-- Antenna tip, pulses -->
       <circle cx="200" cy="55" r="12" fill="#ffb84f">
         <animate attributeName="r" values="10;15;10" dur="1.6s" repeatCount="indefinite" />
         <animate attributeName="opacity" values="1;0.6;1" dur="1.6s" repeatCount="indefinite" />
       </circle>
 
-      <!-- Round chubby body -->
       <ellipse cx="200" cy="330" rx="95" ry="80" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2" />
-      <!-- Belly panel -->
       <ellipse cx="200" cy="335" rx="45" ry="35" fill="#612B4C" opacity="0.85" />
       <circle cx="200" cy="335" r="8" fill="#ffe9b8" />
 
-      <!-- Left arm, little wave sway -->
       <g transform-origin="120 320">
         <animateTransform attributeName="transform" type="rotate" values="0 120 320; -12 120 320; 0 120 320"
           keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite" />
         <ellipse cx="105" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2" />
       </g>
 
-      <!-- Right arm, opposite sway -->
       <g transform-origin="280 320">
         <animateTransform attributeName="transform" type="rotate" values="0 280 320; 12 280 320; 0 280 320"
           keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite" />
         <ellipse cx="295" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2" />
       </g>
 
-      <!-- Round chubby head -->
       <circle cx="200" cy="190" r="105" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2" />
 
-      <!-- Ear discs -->
       <circle cx="90" cy="190" r="18" fill="#612B4C" />
       <circle cx="310" cy="190" r="18" fill="#612B4C" />
 
-      <!-- Visor -->
       <path
         d="M115,165 Q115,140 145,140 Q200,135 255,140 Q285,140 285,165 Q285,225 250,240 Q200,255 150,240 Q115,225 115,165 Z"
         fill="url(#visorGrad2)" />
       <path d="M130,155 Q200,130 270,155 Q220,155 200,165 Q170,158 130,155 Z" fill="#ffffff" opacity="0.15" />
 
-      <!-- Eyes, blink -->
       <g id="eyes2" transform-origin="200 190">
         <animateTransform attributeName="transform" type="scale" values="1,1; 1,1; 1,0.1; 1,1; 1,1"
           keyTimes="0;0.85;0.9;0.95;1" additive="sum" dur="3.5s" repeatCount="indefinite" />
@@ -77,7 +66,6 @@
         <circle cx="232" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)" />
       </g>
 
-      <!-- Cute smile -->
       <path d="M180,220 Q200,232 220,220" fill="none" stroke="#ffe9b8" stroke-width="5" stroke-linecap="round" />
     </g>
   </svg>
@@ -93,6 +81,14 @@
 
   <div class="header">
     <div class="header-top">
+      <button class="hamburger-btn" (click)="toggleHistory()" aria-label="View chat history">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+
       <div class="header-text">
         <h1>{{ translations[selectedLanguage].title }}</h1>
       </div>
@@ -104,6 +100,40 @@
     </div>
   </div>
 
+  <!-- History Drawer -->
+  <div class="history-drawer" [class.open]="isHistoryOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <div class="history-drawer-header">
+      <h2>{{ translations[selectedLanguage].historyTitle }}</h2>
+      <button class="history-close-btn" (click)="closeHistory()" aria-label="Close history">✕</button>
+    </div>
+
+    <div class="history-signin-prompt" *ngIf="!isLogginIn">
+      <p>{{ translations[selectedLanguage].historySignInPrompt }}</p>
+      <button class="login-btn" (click)="openLogin()">
+        {{ translations[selectedLanguage].loginBtn }}
+      </button>
+    </div>
+
+    <div class="history-loading" *ngIf="isLogginIn && isLoadingHistory">
+      {{ translations[selectedLanguage].historyLoading }}
+    </div>
+
+    <div class="history-empty" *ngIf="isLogginIn && !isLoadingHistory && !historyError && historySessions.length === 0">
+      {{ translations[selectedLanguage].historyEmpty }}
+    </div>
+
+    <div class="history-empty" *ngIf="isLogginIn && !isLoadingHistory && historyError">
+      {{ translations[selectedLanguage].historyError }}
+    </div>
+
+    <div class="history-list" *ngIf="isLogginIn && !isLoadingHistory && !historyError && historySessions.length > 0">
+      <button class="history-item" *ngFor="let session of historySessions" (click)="loadSession(session.SESSION_ID)">
+        <span class="history-item-preview">{{ session.PREVIEW }}</span>
+        <span class="history-item-date">{{ session.LAST_MESSAGE_AT | date:'MMM d, h:mm a' }}</span>
+      </button>
+    </div>
+  </div>
+
   <div class="messages" #chatContainer>
 
     <!-- Welcome message -->
@@ -111,67 +141,6 @@
       <div class="bubble">
         {{ messages[0].text }}
       </div>
-    </div>
-
-    <!-- Quick Action Buttons -->
-    <div class="quick-grid">
-
-      <button class="quick-tile" (click)="quickAction('buyPolicy')" [disabled]="isLoading">
-        <span class="tile-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-            stroke-linejoin="round">
-            <rect x="3" y="6" width="18" height="12" rx="2" />
-            <path d="M8 12h4" />
-            <path d="M15 15l1.5 1.5L19 14" />
-          </svg>
-        </span>
-        <span class="tile-label">{{ translations[selectedLanguage].buyPolicy }}</span>
-      </button>
-
-      <button class="quick-tile" (click)="quickAction('rop')" [disabled]="isLoading">
-        <span class="tile-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-            stroke-linejoin="round">
-            <path d="M8 3h8a1 1 0 0 1 1 1v16a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
-            <path d="M9 8h6M9 12h6M9 16h3" />
-            <path d="M9 2h6v3H9z" />
-          </svg>
-        </span>
-        <span class="tile-label">{{ translations[selectedLanguage].rop }}</span>
-      </button>
-
-      <button class="quick-tile" (click)="quickAction('renew')" [disabled]="isLoading">
-        <span class="tile-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-            stroke-linejoin="round">
-            <path d="M4 4v6h6" />
-            <path d="M4.5 14a8 8 0 1 0 2-8.5L4 10" />
-          </svg>
-        </span>
-        <span class="tile-label">{{ translations[selectedLanguage].renew }}</span>
-      </button>
-
-      <button class="quick-tile" (click)="quickAction('complaint')" [disabled]="isLoading">
-        <span class="tile-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-            stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            <path d="M9 9h6M9 12h4" />
-          </svg>
-        </span>
-        <span class="tile-label">{{ translations[selectedLanguage].complaint }}</span>
-      </button>
-
-      <button class="quick-tile" (click)="quickAction('chatWithUs')" [disabled]="isLoading">
-        <span class="tile-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"
-            stroke-linejoin="round">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
-        </span>
-        <span class="tile-label">{{ translations[selectedLanguage].chat }}</span>
-      </button>
-
     </div>
 
     <!-- Agent Connect Modal Overlay -->
@@ -237,7 +206,8 @@
               {{ msg.text }}
             </span>
 
-            <span class="message-time">
+            <span class="message-time inline-time"
+                *ngIf="!msg.actions?.length && !msg.showLoginButton">
               {{ msg.time | date:'h:mm a':userTimeZone }}
             </span>
           </div>
@@ -253,7 +223,6 @@
 
             <div class="form-field" *ngFor="let field of msg.form.fields">
 
-              <!-- Label -->
               <label>
                 {{ field.label }}
 
@@ -261,9 +230,6 @@
                   *
                 </span>
               </label>
-
-
-              <!-- TEXT / EMAIL / TEL / NUMBER / DATE -->
 
               <input *ngIf="
         field.type === 'text' ||
@@ -273,9 +239,6 @@
         field.type === 'date'
       " [type]="field.type" [placeholder]="field.label" [required]="field.required ?? false"
                 [(ngModel)]="applicationFormData[field.name]" />
-
-
-              <!-- SELECT -->
 
               <select *ngIf="field.type === 'select'" [required]="field.required ?? false"
                 [(ngModel)]="applicationFormData[field.name]">
@@ -289,9 +252,6 @@
                 </option>
 
               </select>
-
-
-              <!-- RADIO -->
 
               <div class="radio-group" *ngIf="field.type === 'radio'">
 
@@ -307,9 +267,6 @@
               </div>
 
             </div>
-
-
-            <!-- SUBMIT APPLICATION -->
 
             <button type="button" class="application-submit" (click)="submitInsuranceApplication()">
               Continue
