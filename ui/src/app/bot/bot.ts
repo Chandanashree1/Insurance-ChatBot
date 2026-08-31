@@ -108,6 +108,9 @@ export class Bot implements DoCheck {
   isLoadingHistory: boolean = false;
   historyError: boolean = false;
 
+  historySearchQuery: string = '';
+historyTab: 'all' | 'today' = 'all';
+
   // ----- Complaint form state -----
   activeForm: 'complaint' | 'agentConnect' | null = null;
   isSubmittingComplaint: boolean = false;
@@ -175,6 +178,22 @@ export class Bot implements DoCheck {
     this.activeForm = null;
   }
 
+
+  get filteredHistorySessions(): HistorySession[] {
+  let list = this.historySessions;
+
+  if (this.historyTab === 'today') {
+    const today = new Date().toDateString();
+    list = list.filter(s => new Date(s.LAST_MESSAGE_AT).toDateString() === today);
+  }
+
+  const q = this.historySearchQuery.trim().toLowerCase();
+  if (q) {
+    list = list.filter(s => (s.PREVIEW || '').toLowerCase().includes(q));
+  }
+
+  return list;
+}
   submitAgentConnect(): void {
     const f = this.agentForm;
     if (!f.name || !f.email || !f.phone) {
@@ -202,12 +221,14 @@ export class Bot implements DoCheck {
     return 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
   }
 
-  toggleHistory(): void {
-    this.isHistoryOpen = !this.isHistoryOpen;
-    if (this.isHistoryOpen && this.isLogginIn && this.customerId) {
-      this.fetchHistorySessions();
-    }
+toggleHistory(): void {
+  this.isHistoryOpen = !this.isHistoryOpen;
+  if (this.isHistoryOpen && this.isLogginIn && this.customerId) {
+    this.historySearchQuery = '';
+    this.historyTab = 'all';
+    this.fetchHistorySessions();
   }
+}
 
   closeHistory(): void {
     this.isHistoryOpen = false;
