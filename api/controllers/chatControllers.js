@@ -47,157 +47,157 @@ const chat = async (req, res) => {
 
         }
         const userId = customerId || "guest";
-        const buyFlow = getBuyPolicyFlow(userId);
+        // const buyFlow = getBuyPolicyFlow(userId);
 
-        if (buyFlow) {
+        // if (buyFlow) {
 
-            switch (buyFlow.step) {
+        //     switch (buyFlow.step) {
 
-                // -------------------------
-                // STEP 1 - INSURANCE TYPE
-                // -------------------------
-                case 1:
+        //         // -------------------------
+        //         // STEP 1 - INSURANCE TYPE
+        //         // -------------------------
+        //         case 1:
 
-                    const validInsuranceTypes = [
-                        "BUY_HEALTH",
-                        "BUY_MOTOR",
-                        "BUY_TRAVEL"
-                    ];
+        //             const validInsuranceTypes = [
+        //                 "BUY_HEALTH",
+        //                 "BUY_MOTOR",
+        //                 "BUY_TRAVEL"
+        //             ];
 
-                    if (!validInsuranceTypes.includes(message)) {
+        //             if (!validInsuranceTypes.includes(message)) {
 
-                        endBuyPolicyFlow(userId);
+        //                 endBuyPolicyFlow(userId);
 
-                        break;
-                    }
+        //                 break;
+        //             }
 
-                    const insuranceType = message.replace("BUY_", "");
+        //             const insuranceType = message.replace("BUY_", "");
 
-                    updateBuyPolicyFlow(userId, {
-                        insuranceType
-                    });
+        //             updateBuyPolicyFlow(userId, {
+        //                 insuranceType
+        //             });
 
-                    // Health and Travel have Basic/Standard/Premium.
-                    // Motor will be handled separately according to its form.
-                    if (insuranceType === "HEALTH" || insuranceType === "TRAVEL") {
+        //             // Health and Travel have Basic/Standard/Premium.
+        //             // Motor will be handled separately according to its form.
+        //             if (insuranceType === "HEALTH" || insuranceType === "TRAVEL") {
 
-                        return res.json({
+        //                 return res.json({
 
-                            success: true,
+        //                     success: true,
 
-                            uiType: "BUY_POLICY",
+        //                     uiType: "BUY_POLICY",
 
-                            reply: language === "ar"
-                                ? "يرجى اختيار الخطة."
-                                : "Please choose a plan.",
+        //                     reply: language === "ar"
+        //                         ? "يرجى اختيار الخطة."
+        //                         : "Please choose a plan.",
 
-                            actions: [
-                                {
-                                    label: "Basic",
-                                    action: "PLAN_BASIC"
-                                },
-                                {
-                                    label: "Standard",
-                                    action: "PLAN_STANDARD"
-                                },
-                                {
-                                    label: "Premium",
-                                    action: "PLAN_PREMIUM"
-                                }
-                            ],
+        //                     actions: [
+        //                         {
+        //                             label: "Basic",
+        //                             action: "PLAN_BASIC"
+        //                         },
+        //                         {
+        //                             label: "Standard",
+        //                             action: "PLAN_STANDARD"
+        //                         },
+        //                         {
+        //                             label: "Premium",
+        //                             action: "PLAN_PREMIUM"
+        //                         }
+        //                     ],
 
-                            data: []
+        //                     data: []
 
-                        });
+        //                 });
 
-                    }
+        //             }
 
-                    // Motor does not have Basic/Standard/Premium
-                    // in the form you provided.
-                    if (insuranceType === "MOTOR") {
+        //             // Motor does not have Basic/Standard/Premium
+        //             // in the form you provided.
+        //             if (insuranceType === "MOTOR") {
 
-                        const form = INSURANCE_FORMS.MOTOR;
+        //                 const form = INSURANCE_FORMS.MOTOR;
 
-                        endBuyPolicyFlow(userId);
+        //                 endBuyPolicyFlow(userId);
 
-                        return res.json({
+        //                 return res.json({
 
-                            success: true,
+        //                     success: true,
 
-                            uiType: "APPLICATION_FORM",
+        //                     uiType: "APPLICATION_FORM",
 
-                            reply: language === "ar"
-                                ? "يرجى إكمال نموذج تأمين المركبات."
-                                : "Please complete your motor insurance application.",
+        //                     reply: language === "ar"
+        //                         ? "يرجى إكمال نموذج تأمين المركبات."
+        //                         : "Please complete your motor insurance application.",
 
-                            actions: [],
+        //                     actions: [],
 
-                            form,
+        //                     form,
 
-                            data: []
+        //                     data: []
 
-                        });
+        //                 });
 
-                    }
+        //             }
 
-                    break;
+        //             break;
 
 
-                // -------------------------
-                // STEP 2 - PLAN
-                // -------------------------
-                case 2:
+        //         // -------------------------
+        //         // STEP 2 - PLAN
+        //         // -------------------------
+        //         case 2:
 
-                    const validPlans = [
-                        "PLAN_BASIC",
-                        "PLAN_STANDARD",
-                        "PLAN_PREMIUM"
-                    ];
+        //             const validPlans = [
+        //                 "PLAN_BASIC",
+        //                 "PLAN_STANDARD",
+        //                 "PLAN_PREMIUM"
+        //             ];
 
-                    if (!validPlans.includes(message)) {
+        //             if (!validPlans.includes(message)) {
 
-                        endBuyPolicyFlow(userId);
+        //                 endBuyPolicyFlow(userId);
 
-                        break;
-                    }
+        //                 break;
+        //             }
 
-                    const plan = message.replace("PLAN_", "");
+        //             const plan = message.replace("PLAN_", "");
 
-                    updateBuyPolicyFlow(userId, {
-                        plan
-                    });
+        //             updateBuyPolicyFlow(userId, {
+        //                 plan
+        //             });
 
-                    const currentFlow = getBuyPolicyFlow(userId);
+        //             const currentFlow = getBuyPolicyFlow(userId);
 
-                    const selectedInsurance =
-                        currentFlow.answers.insuranceType;
+        //             const selectedInsurance =
+        //                 currentFlow.answers.insuranceType;
 
-                    const form =
-                        INSURANCE_FORMS[selectedInsurance];
+        //             const form =
+        //                 INSURANCE_FORMS[selectedInsurance];
 
-                    endBuyPolicyFlow(userId);
+        //             endBuyPolicyFlow(userId);
 
-                    return res.json({
+        //             return res.json({
 
-                        success: true,
+        //                 success: true,
 
-                        uiType: "APPLICATION_FORM",
+        //                 uiType: "APPLICATION_FORM",
 
-                        reply: language === "ar"
-                            ? "يرجى إكمال نموذج طلب التأمين."
-                            : "Please complete your insurance application form.",
+        //                 reply: language === "ar"
+        //                     ? "يرجى إكمال نموذج طلب التأمين."
+        //                     : "Please complete your insurance application form.",
 
-                        actions: [],
+        //                 actions: [],
 
-                        form,
+        //                 form,
 
-                        data: []
+        //                 data: []
 
-                    });
+        //             });
 
-            }
+        //     }
 
-        }
+        // }
         // Save latest user message
       addMessage(userId, "user", message);
 
@@ -211,17 +211,17 @@ const history = getHistory(userId);
         // Detect intent
         const intent = await detectIntent(message);
         const lang = language === "ar" ? "ar" : "en";
-        const staticResponse = CHAT_RESPONSES[lang][intent];
+//         const staticResponse = CHAT_RESPONSES[lang][intent];
 
-       if (staticResponse) {
-    addMessage(userId, "assistant", staticResponse.reply);
+//        if (staticResponse) {
+//     addMessage(userId, "assistant", staticResponse.reply);
 
-    if (loggedIn && customerId) {
-        await saveMessage(customerId, sessionId, "bot", staticResponse.reply, language); // NEW
-    }
+//     if (loggedIn && customerId) {
+//         await saveMessage(customerId, sessionId, "bot", staticResponse.reply, language); // NEW
+//     }
 
-    return res.json({ success: true, ...staticResponse, data: [] });
-}
+//     return res.json({ success: true, ...staticResponse, data: [] });
+// }
         // Check whether login is required
         if (PROTECTED_INTENTS.includes(intent) && !loggedIn) {
 
@@ -257,85 +257,85 @@ const history = getHistory(userId);
         let databaseContext = "";
         let data = [];
 
-        switch (intent) {
-            case "BUY_POLICY":
+        // switch (intent) {
+        //     // case "BUY_POLICY":
 
-                startBuyPolicyFlow(userId);
+        //     //     startBuyPolicyFlow(userId);
 
-                return res.json({
+        //     //     return res.json({
 
-                    success: true,
+        //     //         success: true,
 
-                    intent,
+        //     //         intent,
 
-                    uiType: "BUY_POLICY",
+        //     //         uiType: "BUY_POLICY",
 
-                    reply: "Which type of insurance would you like to purchase?",
+        //     //         reply: "Which type of insurance would you like to purchase?",
 
-                    actions: [
-                        {
-                            label: "Health Insurance",
-                            action: "BUY_HEALTH"
-                        },
-                        {
-                            label: "Motor Insurance",
-                            action: "BUY_MOTOR"
-                        },
-                        {
-                            label: "Travel Insurance",
-                            action: "BUY_TRAVEL"
-                        }
-                    ],
+        //     //         actions: [
+        //     //             {
+        //     //                 label: "Health Insurance",
+        //     //                 action: "BUY_HEALTH"
+        //     //             },
+        //     //             {
+        //     //                 label: "Motor Insurance",
+        //     //                 action: "BUY_MOTOR"
+        //     //             },
+        //     //             {
+        //     //                 label: "Travel Insurance",
+        //     //                 action: "BUY_TRAVEL"
+        //     //             }
+        //     //         ],
 
-                    data: []
+        //     //         data: []
 
-                });
+        //     //     });
 
-            case "POLICY":
+        //     case "POLICY":
 
-                data = await getPolicy(customerId);
+        //         data = await getPolicy(customerId);
 
-                if (data.length > 0) {
+        //         if (data.length > 0) {
 
-                    const policy = data[0];
+        //             const policy = data[0];
 
-                    databaseContext = `
-                        Customer Name: ${policy.CUSTOMER_NAME}
-                        Email: ${policy.EMAIL}
-                        Phone: ${policy.PHONE}
-                        City: ${policy.CITY}
+        //             databaseContext = `
+        //                 Customer Name: ${policy.CUSTOMER_NAME}
+        //                 Email: ${policy.EMAIL}
+        //                 Phone: ${policy.PHONE}
+        //                 City: ${policy.CITY}
 
-                        Policy Number: ${policy.POLICY_NUMBER}
-                        Policy Type: ${policy.POLICY_TYPE}
-                        Plan Name: ${policy.PLAN_NAME}
-                        Premium: ${policy.PREMIUM}
-                        Sum Insured: ${policy.SUM_INSURED}
-                        Status: ${policy.STATUS}
-                        `;
-                }
+        //                 Policy Number: ${policy.POLICY_NUMBER}
+        //                 Policy Type: ${policy.POLICY_TYPE}
+        //                 Plan Name: ${policy.PLAN_NAME}
+        //                 Premium: ${policy.PREMIUM}
+        //                 Sum Insured: ${policy.SUM_INSURED}
+        //                 Status: ${policy.STATUS}
+        //                 `;
+        //         }
 
-                break;
+        //         break;
 
-            case "CLAIM":
+        //     case "CLAIM":
 
-                data = await getClaims(customerId);
-                databaseContext = JSON.stringify(data, null, 2);
-                break;
+        //         data = await getClaims(customerId);
+        //         databaseContext = JSON.stringify(data, null, 2);
+        //         break;
 
-            case "FAQ":
+        //     case "FAQ":
 
-                data = await getFAQ();
-                databaseContext = JSON.stringify(data, null, 2);
-                break;
+        //         data = await getFAQ();
+        //         databaseContext = JSON.stringify(data, null, 2);
+        //         break;
 
-            case "INSURANCE_GENERAL":
+        //     case "INSURANCE_GENERAL":
 
-            default:
+        //     default:
 
-                databaseContext = "";
-                break;
+        //         databaseContext = "";
+        //         break;
 
-        }
+        // }
 
         // -------------------------
         // RAG Retrieval

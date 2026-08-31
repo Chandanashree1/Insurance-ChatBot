@@ -101,38 +101,56 @@
   </div>
 
   <!-- History Drawer -->
-  <div class="history-drawer" [class.open]="isHistoryOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
-    <div class="history-drawer-header">
-      <h2>{{ translations[selectedLanguage].historyTitle }}</h2>
-      <button class="history-close-btn" (click)="closeHistory()" aria-label="Close history">✕</button>
+ <div class="history-drawer" [class.open]="isHistoryOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+  <div class="history-drawer-header">
+    <h2>{{ translations[selectedLanguage].historyTitle }}</h2>
+    <button class="history-close-btn" (click)="closeHistory()" aria-label="Close history">✕</button>
+  </div>
+
+  <ng-container *ngIf="isLogginIn">
+    <div class="history-search">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+        <circle cx="11" cy="11" r="7"/>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" [(ngModel)]="historySearchQuery" placeholder="Search chats..." />
     </div>
 
-    <div class="history-signin-prompt" *ngIf="!isLogginIn">
-      <p>{{ translations[selectedLanguage].historySignInPrompt }}</p>
-      <button class="login-btn" (click)="openLogin()">
-        {{ translations[selectedLanguage].loginBtn }}
-      </button>
+    <div class="history-tabs">
+      <button class="history-tab" [class.active]="historyTab === 'all'" (click)="historyTab = 'all'">All</button>
+      <button class="history-tab" [class.active]="historyTab === 'today'" (click)="historyTab = 'today'">Today</button>
     </div>
+  </ng-container>
 
-    <div class="history-loading" *ngIf="isLogginIn && isLoadingHistory">
-      {{ translations[selectedLanguage].historyLoading }}
-    </div>
+  <div class="history-signin-prompt" *ngIf="!isLogginIn">
+    <p>{{ translations[selectedLanguage].historySignInPrompt }}</p>
+    <button class="login-btn" (click)="openLogin()">
+      {{ translations[selectedLanguage].loginBtn }}
+    </button>
+  </div>
 
-    <div class="history-empty" *ngIf="isLogginIn && !isLoadingHistory && !historyError && historySessions.length === 0">
-      {{ translations[selectedLanguage].historyEmpty }}
-    </div>
+  <div class="history-loading" *ngIf="isLogginIn && isLoadingHistory">
+    {{ translations[selectedLanguage].historyLoading }}
+  </div>
 
-    <div class="history-empty" *ngIf="isLogginIn && !isLoadingHistory && historyError">
-      {{ translations[selectedLanguage].historyError }}
-    </div>
+  <div class="history-empty" *ngIf="isLogginIn && !isLoadingHistory && !historyError && filteredHistorySessions.length === 0">
+    {{ translations[selectedLanguage].historyEmpty }}
+  </div>
 
-    <div class="history-list" *ngIf="isLogginIn && !isLoadingHistory && !historyError && historySessions.length > 0">
-      <button class="history-item" *ngFor="let session of historySessions" (click)="loadSession(session.SESSION_ID)">
+  <div class="history-empty" *ngIf="isLogginIn && !isLoadingHistory && historyError">
+    {{ translations[selectedLanguage].historyError }}
+  </div>
+
+  <div class="history-list" *ngIf="isLogginIn && !isLoadingHistory && !historyError && filteredHistorySessions.length > 0">
+    <button class="history-item" *ngFor="let session of filteredHistorySessions" (click)="loadSession(session.SESSION_ID)">
+      <span class="history-item-icon">💬</span>
+      <span class="history-item-body">
         <span class="history-item-preview">{{ session.PREVIEW }}</span>
         <span class="history-item-date">{{ session.LAST_MESSAGE_AT | date:'MMM d, h:mm a' }}</span>
-      </button>
-    </div>
+      </span>
+    </button>
   </div>
+</div>
 
   <div class="messages" #chatContainer>
 
