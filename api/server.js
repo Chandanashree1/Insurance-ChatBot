@@ -4,6 +4,8 @@ require("dotenv").config();
 
 const chatRoutes = require("./routes/chatRoutes");
 const loginRoutes = require("./routes/loginRoutes");
+const historyRoutes = require("./routes/history.routes");
+const ratingRoutes = require("./routes/ratingRoutes");
 // const insuranceApplicationRoutes = require("./routes/insuranceApplicationRoutes");
 
 // const connectDB = require("./db"); 
@@ -19,6 +21,10 @@ app.use(express.json());
 app.use("/api", chatRoutes);
 app.use("/api", loginRoutes);
 // app.use("/api", insuranceApplicationRoutes);
+app.use("/api", require("./routes/history.routes"));
+
+app.use("/api", historyRoutes);
+app.use("/api", ratingRoutes);
 
 app.get("/", (req, res) => {
     res.send("Insurance Chatbot Backend is Running");

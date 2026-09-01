@@ -1,74 +1,74 @@
 <button class="launcher" (click)="toggleOpen()" [class.open]="isOpen" aria-label="Toggle policy assistant chat">
 
-  <svg *ngIf="!isOpen" viewBox="70 35 260 380" xmlns="http://www.w3.org/2000/svg">
-    <defs>
-      <radialGradient id="bodyShine2" cx="35%" cy="25%" r="75%">
-        <stop offset="0%" stop-color="#ffffff" />
-        <stop offset="100%" stop-color="#f6e6ee" />
-      </radialGradient>
-      <linearGradient id="visorGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="#612B4C" />
-        <stop offset="100%" stop-color="#3a1731" />
-      </linearGradient>
-      <radialGradient id="eyeGlow2" cx="50%" cy="50%" r="50%">
-        <stop offset="0%" stop-color="#ffe9b8" />
-        <stop offset="100%" stop-color="#ffb84f" />
-      </radialGradient>
-      <filter id="softGlow2" x="-30%" y="-30%" width="500%" height="600%">
-        <feGaussianBlur stdDeviation="5" result="blur" />
-        <feMerge>
-          <feMergeNode in="blur" />
-          <feMergeNode in="SourceGraphic" />
-        </feMerge>
-      </filter>
-    </defs>
+<svg *ngIf="!isOpen" viewBox="70 35 260 380" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="bodyShine2" cx="35%" cy="25%" r="75%">
+      <stop offset="0%" stop-color="#93c5fd" />
+      <stop offset="100%" stop-color="#272e52" />
+    </radialGradient>
+    <linearGradient id="visorGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1a2035" />
+      <stop offset="100%" stop-color="#0b0d17" />
+    </linearGradient>
+    <radialGradient id="eyeGlow2" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#93c5fd" />
+      <stop offset="100%" stop-color="#3b82f6" />
+    </radialGradient>
+    <filter id="softGlow2" x="-30%" y="-30%" width="500%" height="600%">
+      <feGaussianBlur stdDeviation="5" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
 
-    <g id="bot2">
-      <animateTransform attributeName="transform" type="translate" values="0,0; 0,-9; 0,0" keyTimes="0;0.5;1" dur="2.8s"
-        repeatCount="indefinite" />
+  <g id="bot2">
+    <animateTransform attributeName="transform" type="translate" values="0,0; 0,-9; 0,0" keyTimes="0;0.5;1" dur="2.8s"
+      repeatCount="indefinite" />
 
-      <line x1="200" y1="95" x2="200" y2="65" stroke="#dcb9c9" stroke-width="6" stroke-linecap="round" />
-      <circle cx="200" cy="55" r="12" fill="#ffb84f">
-        <animate attributeName="r" values="10;15;10" dur="1.6s" repeatCount="indefinite" />
-        <animate attributeName="opacity" values="1;0.6;1" dur="1.6s" repeatCount="indefinite" />
-      </circle>
+    <line x1="200" y1="95" x2="200" y2="65" stroke="#3b4258" stroke-width="6" stroke-linecap="round" />
+    <circle cx="200" cy="55" r="12" fill="#3b82f6">
+      <animate attributeName="r" values="10;15;10" dur="1.6s" repeatCount="indefinite" />
+      <animate attributeName="opacity" values="1;0.6;1" dur="1.6s" repeatCount="indefinite" />
+    </circle>
 
-      <ellipse cx="200" cy="330" rx="95" ry="80" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2" />
-      <ellipse cx="200" cy="335" rx="45" ry="35" fill="#612B4C" opacity="0.85" />
-      <circle cx="200" cy="335" r="8" fill="#ffe9b8" />
+    <ellipse cx="200" cy="330" rx="95" ry="80" fill="url(#bodyShine2)" stroke="#3b4258" stroke-width="2" />
+    <ellipse cx="200" cy="335" rx="45" ry="35" fill="#0b0d17" opacity="0.85" />
+    <circle cx="200" cy="335" r="8" fill="#60a5fa" />
 
-      <g transform-origin="120 320">
-        <animateTransform attributeName="transform" type="rotate" values="0 120 320; -12 120 320; 0 120 320"
-          keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite" />
-        <ellipse cx="105" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2" />
-      </g>
-
-      <g transform-origin="280 320">
-        <animateTransform attributeName="transform" type="rotate" values="0 280 320; 12 280 320; 0 280 320"
-          keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite" />
-        <ellipse cx="295" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2" />
-      </g>
-
-      <circle cx="200" cy="190" r="105" fill="url(#bodyShine2)" stroke="#ddb9c9" stroke-width="2" />
-
-      <circle cx="90" cy="190" r="18" fill="#612B4C" />
-      <circle cx="310" cy="190" r="18" fill="#612B4C" />
-
-      <path
-        d="M115,165 Q115,140 145,140 Q200,135 255,140 Q285,140 285,165 Q285,225 250,240 Q200,255 150,240 Q115,225 115,165 Z"
-        fill="url(#visorGrad2)" />
-      <path d="M130,155 Q200,130 270,155 Q220,155 200,165 Q170,158 130,155 Z" fill="#ffffff" opacity="0.15" />
-
-      <g id="eyes2" transform-origin="200 190">
-        <animateTransform attributeName="transform" type="scale" values="1,1; 1,1; 1,0.1; 1,1; 1,1"
-          keyTimes="0;0.85;0.9;0.95;1" additive="sum" dur="3.5s" repeatCount="indefinite" />
-        <circle cx="168" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)" />
-        <circle cx="232" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)" />
-      </g>
-
-      <path d="M180,220 Q200,232 220,220" fill="none" stroke="#ffe9b8" stroke-width="5" stroke-linecap="round" />
+    <g transform-origin="120 320">
+      <animateTransform attributeName="transform" type="rotate" values="0 120 320; -12 120 320; 0 120 320"
+        keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite" />
+      <ellipse cx="105" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#3b4258" stroke-width="2" />
     </g>
-  </svg>
+
+    <g transform-origin="280 320">
+      <animateTransform attributeName="transform" type="rotate" values="0 280 320; 12 280 320; 0 280 320"
+        keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite" />
+      <ellipse cx="295" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#3b4258" stroke-width="2" />
+    </g>
+
+    <circle cx="200" cy="190" r="105" fill="url(#bodyShine2)" stroke="#3b4258" stroke-width="2" />
+
+    <circle cx="90" cy="190" r="18" fill="#0b0d17" />
+    <circle cx="310" cy="190" r="18" fill="#0b0d17" />
+
+    <path
+      d="M115,165 Q115,140 145,140 Q200,135 255,140 Q285,140 285,165 Q285,225 250,240 Q200,255 150,240 Q115,225 115,165 Z"
+      fill="url(#visorGrad2)" />
+    <path d="M130,155 Q200,130 270,155 Q220,155 200,165 Q170,158 130,155 Z" fill="#ffffff" opacity="0.08" />
+
+    <g id="eyes2" transform-origin="200 190">
+      <animateTransform attributeName="transform" type="scale" values="1,1; 1,1; 1,0.1; 1,1; 1,1"
+        keyTimes="0;0.85;0.9;0.95;1" additive="sum" dur="3.5s" repeatCount="indefinite" />
+      <circle cx="168" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)" />
+      <circle cx="232" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)" />
+    </g>
+
+    <path d="M180,220 Q200,232 220,220" fill="none" stroke="#60a5fa" stroke-width="5" stroke-linecap="round" />
+  </g>
+</svg>
 
   <svg *ngIf="isOpen" class="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
     <line x1="18" y1="6" x2="6" y2="18"/>
@@ -101,56 +101,56 @@
   </div>
 
   <!-- History Drawer -->
- <div class="history-drawer" [class.open]="isHistoryOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
-  <div class="history-drawer-header">
-    <h2>{{ translations[selectedLanguage].historyTitle }}</h2>
-    <button class="history-close-btn" (click)="closeHistory()" aria-label="Close history">✕</button>
-  </div>
-
-  <ng-container *ngIf="isLogginIn">
-    <div class="history-search">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-        <circle cx="11" cy="11" r="7"/>
-        <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-      </svg>
-      <input type="text" [(ngModel)]="historySearchQuery" placeholder="Search chats..." />
+  <div class="history-drawer" [class.open]="isHistoryOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <div class="history-drawer-header">
+      <h2>{{ translations[selectedLanguage].historyTitle }}</h2>
+      <button class="history-close-btn" (click)="closeHistory()" aria-label="Close history">✕</button>
     </div>
 
-    <div class="history-tabs">
-      <button class="history-tab" [class.active]="historyTab === 'all'" (click)="historyTab = 'all'">All</button>
-      <button class="history-tab" [class.active]="historyTab === 'today'" (click)="historyTab = 'today'">Today</button>
+    <ng-container *ngIf="isLogginIn">
+      <div class="history-search">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <circle cx="11" cy="11" r="7"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" [(ngModel)]="historySearchQuery" placeholder="Search chats..." />
+      </div>
+
+      <div class="history-tabs">
+        <button class="history-tab" [class.active]="historyTab === 'all'" (click)="historyTab = 'all'">All</button>
+        <button class="history-tab" [class.active]="historyTab === 'today'" (click)="historyTab = 'today'">Today</button>
+      </div>
+    </ng-container>
+
+    <div class="history-signin-prompt" *ngIf="!isLogginIn">
+      <p>{{ translations[selectedLanguage].historySignInPrompt }}</p>
+      <button class="login-btn" (click)="openLogin()">
+        {{ translations[selectedLanguage].loginBtn }}
+      </button>
     </div>
-  </ng-container>
 
-  <div class="history-signin-prompt" *ngIf="!isLogginIn">
-    <p>{{ translations[selectedLanguage].historySignInPrompt }}</p>
-    <button class="login-btn" (click)="openLogin()">
-      {{ translations[selectedLanguage].loginBtn }}
-    </button>
-  </div>
+    <div class="history-loading" *ngIf="isLogginIn && isLoadingHistory">
+      {{ translations[selectedLanguage].historyLoading }}
+    </div>
 
-  <div class="history-loading" *ngIf="isLogginIn && isLoadingHistory">
-    {{ translations[selectedLanguage].historyLoading }}
-  </div>
+    <div class="history-empty" *ngIf="isLogginIn && !isLoadingHistory && !historyError && filteredHistorySessions.length === 0">
+      {{ translations[selectedLanguage].historyEmpty }}
+    </div>
 
-  <div class="history-empty" *ngIf="isLogginIn && !isLoadingHistory && !historyError && filteredHistorySessions.length === 0">
-    {{ translations[selectedLanguage].historyEmpty }}
-  </div>
+    <div class="history-empty" *ngIf="isLogginIn && !isLoadingHistory && historyError">
+      {{ translations[selectedLanguage].historyError }}
+    </div>
 
-  <div class="history-empty" *ngIf="isLogginIn && !isLoadingHistory && historyError">
-    {{ translations[selectedLanguage].historyError }}
+    <div class="history-list" *ngIf="isLogginIn && !isLoadingHistory && !historyError && filteredHistorySessions.length > 0">
+      <button class="history-item" *ngFor="let session of filteredHistorySessions" (click)="loadSession(session.SESSION_ID)">
+        <span class="history-item-icon"><i class="bi bi-chat-square-text-fill"></i></span>
+        <span class="history-item-body">
+          <span class="history-item-preview">{{ session.PREVIEW }}</span>
+          <span class="history-item-date">{{ session.LAST_MESSAGE_AT | date:'MMM d, h:mm a' }}</span>
+        </span>
+      </button>
+    </div>
   </div>
-
-  <div class="history-list" *ngIf="isLogginIn && !isLoadingHistory && !historyError && filteredHistorySessions.length > 0">
-    <button class="history-item" *ngFor="let session of filteredHistorySessions" (click)="loadSession(session.SESSION_ID)">
-      <span class="history-item-icon">💬</span>
-      <span class="history-item-body">
-        <span class="history-item-preview">{{ session.PREVIEW }}</span>
-        <span class="history-item-date">{{ session.LAST_MESSAGE_AT | date:'MMM d, h:mm a' }}</span>
-      </span>
-    </button>
-  </div>
-</div>
 
   <div class="messages" #chatContainer>
 
@@ -386,6 +386,48 @@
         <polygon points="22 2 15 22 11 13 2 9 22 2" />
       </svg>
     </button>
+  </div>
+
+  <!-- RATING MODAL — now correctly INSIDE .folder -->
+  <div class="rating-backdrop" *ngIf="showRatingModal" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <div class="rating-modal">
+
+      <button class="rating-close" type="button" (click)="skipRating()">✕</button>
+
+      <h2>
+        {{ selectedLanguage === 'ar' ? 'قيّم تجربتك' : 'Rate Your Experience' }}
+      </h2>
+
+      <p>
+        {{ selectedLanguage === 'ar' ? 'كيف كانت تجربتك مع المساعد؟' : 'How was your experience with our chatbot?' }}
+      </p>
+
+      <!-- STARS -->
+      <div class="rating-stars">
+        <button type="button" *ngFor="let star of [1,2,3,4,5]" [class.selected]="star <= selectedRating"
+          (click)="selectRating(star)" [attr.aria-label]="'Rate ' + star + ' stars'">
+          ★
+        </button>
+      </div>
+
+      <!-- FEEDBACK -->
+      <textarea [(ngModel)]="ratingFeedback" rows="4"
+        [placeholder]="selectedLanguage === 'ar' ? 'أخبرنا عن تجربتك...' : 'Tell us about your experience (optional)...'">
+      </textarea>
+
+      <!-- ACTIONS -->
+      <div class="rating-actions">
+        <button type="button" class="rating-skip-btn" (click)="skipRating()" [disabled]="isSubmittingRating">
+          {{ selectedLanguage === 'ar' ? 'تخطي' : 'Skip' }}
+        </button>
+
+        <button type="button" class="rating-submit-btn" (click)="submitRating()"
+          [disabled]="isSubmittingRating || selectedRating === 0">
+          {{ isSubmittingRating ? 'Submitting...' : (selectedLanguage === 'ar' ? 'إرسال' : 'Submit') }}
+        </button>
+      </div>
+
+    </div>
   </div>
 
 </div>

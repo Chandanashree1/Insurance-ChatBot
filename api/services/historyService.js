@@ -13,55 +13,117 @@ async function saveMessage(customerId, sessionId, role, content, language = "en"
             { customerId, sessionId, role, content, language },
             { autoCommit: true }
         );
-    } catch (err) {
-        console.error("Failed to save chat history:", err);
-    } finally {
+    }
+    catch (err) {
+         console.error("Failed to save chat history:", err);
+    throw err;
+}
+finally {
         if (connection) await connection.close();
     }
 }
 
 async function getSessionList(customerId) {
     let connection;
+
     try {
         connection = await getConnection();
-        const result = await connection.execute(
-            `SELECT SESSION_ID,
-                    MIN(CREATED_AT) AS STARTED_AT,
-                    MAX(CREATED_AT) AS LAST_MESSAGE_AT,
-                    (SELECT CONTENT FROM CHAT_HISTORY c2
-                     WHERE c2.SESSION_ID = c1.SESSION_ID
-                       AND c2.ROLE = 'user'
-                       AND ROWNUM = 1
-                     ORDER BY c2.CREATED_AT ASC) AS PREVIEW
-             FROM CHAT_HISTORY c1
+
+        const sessionResult = await connection.execute(
+            `SELECT
+                SESSION_ID,
+                MIN(CREATED_AT) AS STARTED_AT,
+                MAX(CREATED_AT) AS LAST_MESSAGE_AT
+             FROM CHAT_HISTORY
              WHERE CUSTOMER_ID = :customerId
              GROUP BY SESSION_ID
              ORDER BY MAX(CREATED_AT) DESC`,
-            { customerId },
-            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+            {
+                customerId
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
         );
-        return result.rows;
+
+        const sessions = sessionResult.rows;
+
+        for (const session of sessions) {
+
+            const previewResult = await connection.execute(
+                `SELECT DBMS_LOB.SUBSTR(CONTENT, 500, 1) AS PREVIEW
+                 FROM (
+                     SELECT CONTENT
+                     FROM CHAT_HISTORY
+                     WHERE CUSTOMER_ID = :customerId
+                       AND SESSION_ID = :sessionId
+                       AND ROLE = 'user'
+                     ORDER BY CREATED_AT ASC
+                 )
+                 WHERE ROWNUM = 1`,
+                {
+                    customerId,
+                    sessionId: session.SESSION_ID
+                },
+                {
+                    outFormat: oracledb.OUT_FORMAT_OBJECT
+                }
+            );
+
+            if (previewResult.rows.length > 0) {
+                session.PREVIEW = previewResult.rows[0].PREVIEW;
+            } else {
+                session.PREVIEW = "New conversation";
+            }
+        }
+
+        return sessions;
+
+    } catch (err) {
+        console.error("getSessionList Oracle error:", err);
+        throw err;
+
     } finally {
-        if (connection) await connection.close();
+        if (connection) {
+            await connection.close();
+        }
     }
 }
-
 async function getSessionMessages(customerId, sessionId) {
     let connection;
+
     try {
         connection = await getConnection();
+
         const result = await connection.execute(
-            `SELECT ROLE, CONTENT, LANGUAGE, CREATED_AT
+            `SELECT
+                ROLE,
+                DBMS_LOB.SUBSTR(CONTENT, 4000, 1) AS CONTENT,
+                LANGUAGE,
+                CREATED_AT
              FROM CHAT_HISTORY
-             WHERE CUSTOMER_ID = :customerId AND SESSION_ID = :sessionId
+             WHERE CUSTOMER_ID = :customerId
+               AND SESSION_ID = :sessionId
              ORDER BY CREATED_AT ASC`,
-            { customerId, sessionId },
-            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+            {
+                customerId,
+                sessionId
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
         );
+
         return result.rows;
+
+    } catch (err) {
+        console.error("getSessionMessages Oracle error:", err);
+        throw err;
+
     } finally {
-        if (connection) await connection.close();
+        if (connection) {
+            await connection.close();
+        }
     }
 }
-
 module.exports = { saveMessage, getSessionList, getSessionMessages };

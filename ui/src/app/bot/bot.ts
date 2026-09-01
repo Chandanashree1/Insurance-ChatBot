@@ -115,6 +115,84 @@ historyTab: 'all' | 'today' = 'all';
   activeForm: 'complaint' | 'agentConnect' | null = null;
   isSubmittingComplaint: boolean = false;
   applicationFormData: any = {};
+showRatingModal = false;
+
+selectedRating = 0;
+
+ratingFeedback = "";
+
+isSubmittingRating = false;
+hasUserMessaged: boolean = false;
+
+selectRating(rating: number): void {
+  this.selectedRating = rating;
+}
+
+submitRating(): void {
+
+  if (this.isSubmittingRating) {
+    return;
+  }
+
+  // Already rated this session — don't hit the API again, just close
+  if (this.hasRatedSession) {
+    this.showRatingModal = false;
+    this.isOpen = false;
+    this.selectedRating = 0;
+    this.ratingFeedback = '';
+    return;
+  }
+
+  if (this.selectedRating === 0) {
+    alert(
+      this.selectedLanguage === 'ar'
+        ? 'يرجى اختيار تقييم.'
+        : 'Please select a rating.'
+    );
+    return;
+  }
+
+  this.isSubmittingRating = true;
+
+  const payload = {
+    customerId: this.customerId ?? null,
+    sessionId: this.sessionId,
+    rating: Number(this.selectedRating),
+    feedback: this.ratingFeedback?.trim() || null,
+    language: this.selectedLanguage || 'en'
+  };
+
+  this.http.post<any>('http://localhost:5000/api/rating', payload).subscribe({
+   next: (response) => {
+  console.log('Rating response:', response);
+  this.isSubmittingRating = false;
+
+  if (response?.success) {
+    this.hasRatedSession = true;
+    this.showRatingModal = false;
+    // this.isOpen = false;   
+    this.selectedRating = 0;
+    this.ratingFeedback = '';
+    this.cdr.detectChanges();
+  }
+},
+    error: (err) => {
+      console.error('Rating submission error:', err);
+      this.isSubmittingRating = false;
+      const backendMessage =
+        err?.error?.message || err?.error?.error || 'Unable to submit rating. Please try again.';
+      alert(backendMessage);
+      this.cdr.detectChanges();
+    }
+  });
+}
+
+skipRating(): void {
+  this.showRatingModal = false;
+  this.selectedRating = 0;
+  this.ratingFeedback = "";
+  // this.isOpen = false;   // REMOVED — keep chat open
+}
 
   complaintForm: ComplaintForm = {
     subject: '',
@@ -360,18 +438,32 @@ toggleHistory(): void {
     }
   }
 
-  toggleOpen(): void {
-    this.isOpen = !this.isOpen;
+hasRatedSession: boolean = false;
+
+toggleOpen(): void {
+  if (!this.isOpen) {
+    this.isOpen = true;
+    return;
   }
 
-  goHome(): void {
-    if (this.isLoading) return;
-    this.userMessage = '';
-    this.activeForm = null;
-    this.isHistoryOpen = false;
-    this.messages = [{ ...WELCOME_MESSAGE }];
-    this.sessionId = this.generateSessionId(); // start a fresh session
+  // No messages sent this session — just close, nothing to rate
+  if (!this.hasUserMessaged) {
+    this.isOpen = false;
+    return;
   }
+
+  this.showRatingModal = true;
+}
+goHome(): void {
+  if (this.isLoading) return;
+  this.userMessage = '';
+  this.activeForm = null;
+  this.isHistoryOpen = false;
+  this.messages = [{ ...WELCOME_MESSAGE }];
+  this.sessionId = this.generateSessionId();
+  this.hasRatedSession = false;
+  this.hasUserMessaged = false;  
+}
 
   private scrollToBottom(): void {
     try {
@@ -611,6 +703,7 @@ toggleHistory(): void {
     if (!textToSend || this.isLoading) return;
 
     this.messages.push({ sender: 'user', text: textToSend, time: new Date() });
+      this.hasUserMessaged = true; 
     this.userMessage = '';
     this.isLoading = true;
 
