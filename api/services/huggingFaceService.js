@@ -1,109 +1,350 @@
-// const OpenAI = require("openai");
-// const insurancePrompt = require("../prompts/insurancePrompt");
-
-// const client = new OpenAI({
-//     apiKey: process.env.HF_TOKEN,
-//     baseURL: "https://router.huggingface.co/v1"
-// });
 const axios = require("axios");
+const { callLLM } = require("./llmService");
 const insurancePrompt = require("../prompts/insurancePrompt");
 
-async function callLLM(messages) {
 
-    const response = await axios.post(
+/*
+|--------------------------------------------------------------------------
+| GENERAL AI RESPONSE
+|--------------------------------------------------------------------------
+*/
 
-        process.env.LLM_API_URL,
-
-        {
-            model: process.env.LLM_MODEL,
-            messages,
-            stream: false
-        },
-
-        {
-            headers: {
-                Authorization: `Bearer ${process.env.LLM_API_KEY}`,
-                "Content-Type": "application/json"
-            }
-        }
-
-    );
-
-    return response.data.message.content;
-    // console.log("LLM URL:", process.env.LLM_API_URL);
-
-}
-async function askAI(message, databaseContext = "", ragContext = "", history = [], language = "en") {
+async function askAI(
+    message,
+    databaseContext = "",
+    ragContext = "",
+    history = [],
+    language = "en"
+) {
 
     try {
 
-       const languageInstruction = language === "ar"
-    ? "You must respond ENTIRELY in Arabic. Never switch to English, Chinese, or any other language mid-response, even in long answers. Translate any English content you use from documents or data into Arabic — never copy English text as-is."
-    : "You must respond ENTIRELY in English. Never switch to Arabic, Chinese, or any other language mid-response, even in long answers.";
+        const languageInstruction =
+            language === "ar"
+                ? `
+Respond entirely in Arabic.
 
-const messages = [
+Do not mix Arabic with English unless:
+- a proper name requires it
+- a policy number requires it
+- a vehicle number requires it
+- a technical value cannot reasonably be translated.
 
-    {
-        role: "system",
-        content:
-            `LANGUAGE RULE (highest priority, overrides everything below): ${languageInstruction}
+All explanations must be Arabic.
+`
+                : `
+Respond entirely in English.
+Do not switch to Arabic or another language.
+`;
+
+        const conversationContext =
+            history && history.length > 0
+                ? history
+                : [];
+
+        const messages = [
+
+            {
+                role: "system",
+
+                content: `
+${languageInstruction}
 
 ${insurancePrompt}
 
-Reminder: your entire reply, from first word to last, must be in ${language === "ar" ? "Arabic" : "English"} only.`
-    }
+==================================================
+CONVERSATIONAL INSURANCE ASSISTANT
+==================================================
 
-];
+You are not a menu-driven bot.
 
-        // Customer Information from Oracle
-        if (databaseContext && databaseContext.trim() !== "") {
+Your job is to have a natural conversation with the customer.
+
+IMPORTANT:
+
+Do NOT immediately present insurance product options simply because
+the customer mentions:
+
+- insurance
+- policy
+- buying insurance
+- getting insurance
+- family insurance
+- vehicle insurance
+- protection
+- coverage
+
+First understand what the customer actually wants.
+
+--------------------------------------------------
+CONVERSATION EXAMPLES
+--------------------------------------------------
+
+Example 1:
+
+User:
+"I am thinking about getting insurance for my family of 5.
+What would be suitable?"
+
+Good response:
+
+"Absolutely. I can help you understand what type of coverage
+might suit your family. Could you tell me whether you're mainly
+looking for medical/health coverage, financial protection for
+your family, or something else?"
+
+Do NOT immediately display:
+
+Health
+Travel
+Motor
+Life
+
+--------------------------------------------------
+
+Example 2:
+
+User:
+"I want insurance for my family."
+
+Continue the conversation naturally.
+
+Ask a useful clarification question.
+
+Do not immediately start an application.
+
+--------------------------------------------------
+
+Example 3:
+
+User:
+"I need insurance for my car."
+
+Now the user has clearly indicated MOTOR insurance.
+
+You may acknowledge that and move toward the motor quotation flow.
+
+--------------------------------------------------
+
+Example 4:
+
+User:
+"I want to get a motor insurance quote."
+
+This is a clear purchase/quote request.
+
+The application/quote flow can now be started.
+
+--------------------------------------------------
+
+Example 5:
+
+User:
+"Can you explain the difference between health and life
+insurance?"
+
+This is an educational question.
+
+Explain the difference.
+
+Do NOT start a purchase flow.
+
+--------------------------------------------------
+
+Example 6:
+
+User:
+"Which insurance is best for my family?"
+
+This is advice-seeking.
+
+Have a conversation and ask relevant questions.
+
+Do NOT automatically display product buttons.
+
+--------------------------------------------------
+PURCHASE INTENT
+--------------------------------------------------
+
+Only consider the customer ready for a purchase flow when the
+customer clearly indicates an intention such as:
+
+- wants to get a quote
+- wants to apply
+- wants to purchase a specific insurance
+- wants to buy a specific insurance
+- wants to start an application
+- wants coverage for a specific asset/person and clearly wants
+  to proceed
+
+A vague statement about insurance is NOT enough.
+
+--------------------------------------------------
+CONTEXT
+--------------------------------------------------
+
+Always use previous conversation messages.
+
+For example:
+
+User:
+"I need insurance for my family."
+
+Assistant:
+"What kind of protection are you looking for?"
+
+User:
+"Mostly medical expenses."
+
+The second message should be interpreted together with the first.
+
+Do not treat the second message as an unrelated question.
+
+--------------------------------------------------
+PERSONAL INFORMATION
+--------------------------------------------------
+
+If customer information is provided, use it when relevant.
+
+Never invent customer information.
+
+--------------------------------------------------
+DATABASE INFORMATION
+--------------------------------------------------
+
+If database information is provided, use it as the source of truth
+for customer-specific information.
+
+--------------------------------------------------
+RAG INFORMATION
+--------------------------------------------------
+
+If insurance documents are provided, use them for policy,
+coverage, exclusions, claims, renewal and product explanations.
+
+Never invent information that is not available.
+
+--------------------------------------------------
+OUT OF SCOPE
+--------------------------------------------------
+
+If the user asks something unrelated to insurance, politely explain
+that you can only help with insurance-related matters.
+
+--------------------------------------------------
+STYLE
+--------------------------------------------------
+
+Be:
+
+- conversational
+- friendly
+- professional
+- concise
+- helpful
+
+Do not sound like a rigid menu.
+
+Do not repeatedly ask the same question.
+
+Do not dump all insurance products unless the customer specifically
+asks what products are available.
+
+`
+            }
+
+        ];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CUSTOMER DATABASE CONTEXT
+        |--------------------------------------------------------------------------
+        */
+
+        if (databaseContext && databaseContext.trim()) {
 
             messages.push({
 
                 role: "system",
 
-                content: `Customer Information
+                content: `
+CUSTOMER INFORMATION:
 
+${databaseContext}
 
-                ${databaseContext}
+Use this information when relevant.
 
-                 Use this customer information whenever applicable.
-  If customer information is available, answer using it.
-  Do not say you cannot access customer information.
-  Translate any field values into ${language === "ar" ? "Arabic" : "English"} when presenting them in your reply — do not output raw English field values inside an Arabic response.`
+Never say that customer information is unavailable when it has
+actually been provided.
 
+Respond in ${language === "ar" ? "Arabic" : "English"}.
+`
             });
-
         }
 
-        // RAG Context from PDF documents
-        if (ragContext && ragContext.trim() !== "") {
+
+        /*
+        |--------------------------------------------------------------------------
+        | RAG DOCUMENT CONTEXT
+        |--------------------------------------------------------------------------
+        */
+
+        if (ragContext && ragContext.trim()) {
 
             messages.push({
 
                 role: "system",
 
-                content: `Insurance Documents
+                content: `
+INSURANCE DOCUMENT INFORMATION:
 
-                ${ragContext}
+${ragContext}
 
- Use ONLY this document information whenever it helps answer the user's insurance question.
-  Fully translate any content you use into ${language === "ar" ? "Arabic" : "English"} — do not copy English sentences or phrases directly into an Arabic reply.
-  If the answer is not present in these documents, say you couldn't find it in the available insurance documents.`
+Use this information when it is relevant to the customer's
+question.
 
+Do not invent information outside these documents when answering
+document-specific questions.
+
+Respond in ${language === "ar" ? "Arabic" : "English"}.
+`
+            });
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | PREVIOUS CONVERSATION
+        |--------------------------------------------------------------------------
+        */
+
+        if (conversationContext.length > 0) {
+
+            messages.push({
+
+                role: "system",
+
+                content: `
+PREVIOUS CONVERSATION:
+
+Use the previous conversation to understand the customer's
+current intent and context.
+
+Do not repeat questions that the customer has already answered.
+`
             });
 
+            messages.push(...conversationContext);
         }
 
-        // Previous Conversation
-        if (history && history.length > 0) {
 
-            messages.push(...history);
+        /*
+        |--------------------------------------------------------------------------
+        | CURRENT USER MESSAGE
+        |--------------------------------------------------------------------------
+        */
 
-        }
-
-        // Current User Question
-        
         messages.push({
 
             role: "user",
@@ -112,545 +353,457 @@ Reminder: your entire reply, from first word to last, must be in ${language === 
 
         });
 
-        // const response = await client.chat.completions.create({
 
-        //     model: process.env.HF_MODEL,
+        const result = await callLLM(messages);
 
-        //     messages,
+        return result.trim();
 
-        //     temperature: 0.3,
+    } catch (error) {
 
-        //     max_tokens: 500
-
-        // });
-
-        // return response.choices[0].message.content.trim();
-        return await callLLM(messages);
-        console.log("===== Messages Sent to LLM =====");
-        console.log(JSON.stringify(messages, null, 2));
-    }
-
-    catch (err) {
-
-        console.error("AI Error:", err);
+        console.error("AI Response Error:", error);
 
         throw new Error("Unable to get AI response.");
 
     }
-
 }
 
 
-async function detectIntentAI(userMessage) {
+/*
+|--------------------------------------------------------------------------
+| AI INTENT DETECTION
+|--------------------------------------------------------------------------
+*/
+
+async function detectIntentAI(userMessage, history = []) {
 
     try {
 
-        // const response = await client.chat.completions.create({
+        const intentPrompt = `
+You are the intent understanding engine for ABC Insurance.
 
-        //     model: process.env.HF_MODEL,
+Your job is to understand the customer's CURRENT intention.
 
-        //     messages: [
+You MUST consider the conversation history.
 
-        //         {
+Do not rely only on exact keywords.
 
-        //             role: "system",
+Understand natural language, paraphrasing, incomplete sentences,
+indirect requests, advanced wording and conversational context.
 
-        //             content: `You are an AI Intent Classifier for ABC Insurance.
+==================================================
+ALLOWED INTENTS
+==================================================
 
-        //             Your ONLY job is to classify the user's message.
+GREETING
 
-        //             Return ONLY valid JSON.
+THANKS
 
-        //             Allowed intents:
+GOODBYE
 
-        //             GREETING
-        //             THANKS
-        //             GOODBYE
-        //             HELP
+HELP
 
-        //             POLICY
-        //             CLAIM
-        //             CLAIM_ELIGIBILITY
-        //             CLAIM_DOCUMENTS
-        //             RENEW_POLICY
-        //             BUY_POLICY
-        //             PREMIUM
-        //             PAYMENT
+POLICY
 
-        //             FAQ
-        //             INSURANCE_GENERAL
+CLAIM
 
-        //             OUT_OF_SCOPE
+CLAIM_ELIGIBILITY
 
-        //             Definitions:
+CLAIM_DOCUMENTS
 
-        //             GREETING
-        //             - hi
-        //             - hello
-        //             - good morning
-        //             - good evening
+RENEW_POLICY
 
-        //             THANKS
-        //             - thanks
-        //             - thank you
-        //             - appreciate it
+BUY_POLICY
 
-        //             GOODBYE
-        //             - bye
-        //             - goodbye
-        //             - see you later
+PREMIUM
 
-        //             HELP
-        //             - help
-        //             - what can you do
-        //             - assist me
+PAYMENT
 
-        //             POLICY
-        //             User wants:
-        //             - my policy
-        //             - policy details
-        //             - policy status
-        //             - policy number
-        //             - coverage
-        //             - benefits
-        //             - renewal date
+FAQ
 
-        //             CLAIM
-        //             User wants:
-        //             - claim status
-        //             - track my claim
-        //             - existing claim
-        //             - claim amount
-        //             - claim history
-        //             - claim approval
-        //             - claim rejection
+INSURANCE_GENERAL
 
-        //             CLAIM_ELIGIBILITY
-        //             User wants to know whether something is covered or whether they can make a claim.
+OUT_OF_SCOPE
 
-        //             Examples:
-        //             - Can I claim?
-        //             - Am I eligible?
-        //             - Will insurance cover this?
-        //             - Can I claim for surgery?
-        //             - Can I claim after hospitalization?
-        //             - Can I claim for an accident?
-        //             - Will my insurance pay?
-        //             - Is my treatment covered?
-        //             - Is this covered under my policy?
-        //             - Can I get reimbursement?
+==================================================
+IMPORTANT BUY POLICY RULE
+==================================================
 
-        //             CLAIM_DOCUMENTS
-        //             User asks about documents.
+BUY_POLICY should ONLY be returned when the customer is clearly
+ready to purchase, apply for, or obtain a quote for insurance.
 
-        //             Examples:
-        //             - What documents do I need?
-        //             - Required documents
-        //             - Documents for claim
-        //             - Claim checklist
-        //             - What should I upload?
+Do NOT return BUY_POLICY for general discussion or advice.
 
-        //             RENEW_POLICY
-        //             User wants to renew an existing policy.
+Examples:
 
-        //             BUY_POLICY
-        //             User wants to purchase insurance.
+"I am thinking about getting insurance for my family."
 
-        //             Examples:
-        //             - Buy insurance
-        //             - New policy
-        //             - Purchase health insurance
-        //             - Suggest a policy
+=> INSURANCE_GENERAL
 
-        //             PREMIUM
-        //             Questions about premium.
+"Which insurance would be suitable for my family?"
 
-        //             Examples:
-        //             - Premium amount
-        //             - EMI
-        //             - Monthly payment
-        //             - Policy cost
+=> INSURANCE_GENERAL
 
-        //             PAYMENT
-        //             Payment related.
+"Can you explain health and life insurance?"
 
-        //             Examples:
-        //             - Pay premium
-        //             - Payment failed
-        //             - Payment status
-        //             - Payment receipt
+=> INSURANCE_GENERAL
 
-        //             FAQ
-        //             General insurance FAQs.
+"I am interested in insurance for my family."
 
-        //             Examples:
-        //             - How long does claim approval take?
-        //             - How can I contact customer support?
-        //             - What is the waiting period?
+=> INSURANCE_GENERAL
 
-        //             INSURANCE_GENERAL
-        //             General insurance education.
+"I want to understand what insurance I should get."
 
-        //             Examples:
-        //             - What is insurance?
-        //             - Difference between health and life insurance.
-        //             - Explain deductible.
-        //             - Explain co-payment.
+=> INSURANCE_GENERAL
 
-        //             OUT_OF_SCOPE
+"I want health insurance for my family."
 
-        //             Return OUT_OF_SCOPE for ANY message that is NOT related to insurance.
+=> BUY_POLICY
 
-        //             Examples include:
+"I want to buy motor insurance."
 
-        //             - Weather
-        //             - News
-        //             - Politics
-        //             - Religion
-        //             - Sports
-        //             - Movies
-        //             - Music
-        //             - Celebrities
-        //             - Programming
-        //             - Java
-        //             - Python
-        //             - SQL
-        //             - Cooking
-        //             - Travel
-        //             - Shopping
-        //             - Banking
-        //             - Mathematics
-        //             - Science
-        //             - Homework
-        //             - General knowledge
-        //             - Jokes
-        //             - Casual conversation
-        //             - Greetings with unrelated follow-up
-        //             - Abusive language
-        //             - Offensive language
-        //             - Sensitive topics
-        //             - Harmful requests
-        //             - Personal advice
-        //             - Medical advice
-        //             - Legal advice
-        //             - Relationship advice
+=> BUY_POLICY
 
-        //             Rules:
+"I need a quote for my car."
 
-        //             1. Never invent new intent names.
-        //             2. Always return exactly one intent.
-        //             3. Return ONLY JSON.
-        //             4. Do not explain your reasoning.
+=> BUY_POLICY
 
-        //             Example:
+"I want to apply for motor insurance."
 
-        //             {
-        //             "intent":"POLICY",
-        //             "confidence":0.99
-        //             }
-        //             User: Show my policy
-        //             Output:
-        //             {"intent":"POLICY","confidence":0.99}
+=> BUY_POLICY
 
-        //             User: Track my claim
-        //             Output:
-        //             {"intent":"CLAIM","confidence":0.99}
+"How much will motor insurance cost?"
 
-        //             User: Can I claim for surgery?
-        //             Output:
-        //             {"intent":"CLAIM_ELIGIBILITY","confidence":0.99}
+=> BUY_POLICY
 
-        //             User: What documents are required for a claim?
-        //             Output:
-        //             {"intent":"CLAIM_DOCUMENTS","confidence":0.99}
+==================================================
+CONVERSATIONAL CONTEXT
+==================================================
 
-        //             User: Renew my policy
-        //             Output:
-        //             {"intent":"RENEW_POLICY","confidence":0.99}
+The same sentence can have different meanings depending on the
+previous conversation.
 
-        //             User: My payment failed
-        //             Output:
-        //             {"intent":"PAYMENT","confidence":0.99}`
-        //         },
+Example:
 
-        //         {
+Assistant:
+"What type of insurance are you interested in?"
 
-        //             role: "user",
+User:
+"Something for my car."
 
-        //             content: userMessage
+=> BUY_POLICY
 
-        //         }
+But:
 
-        //     ],
+User:
+"What types of insurance do you offer?"
 
-        //     temperature: 0,
+=> INSURANCE_GENERAL
 
-        //     max_tokens: 50
+==================================================
+POLICY
+==================================================
 
-        // });
+Use POLICY when the customer asks about an existing policy.
 
-        // const content = response.choices[0].message.content;
-        const content = await callLLM([
+Examples:
+
+"Show my policy."
+
+"What is my policy number?"
+
+"Is my policy active?"
+
+"When does my policy expire?"
+
+==================================================
+CLAIM
+==================================================
+
+Use CLAIM for an existing claim.
+
+Examples:
+
+"Track my claim."
+
+"What is my claim status?"
+
+"Show my claim."
+
+==================================================
+CLAIM_ELIGIBILITY
+==================================================
+
+Use CLAIM_ELIGIBILITY when asking whether something is covered
+or whether they can make a claim.
+
+Examples:
+
+"Can I claim for an accident?"
+
+"Will insurance cover surgery?"
+
+"Is this covered?"
+
+==================================================
+CLAIM_DOCUMENTS
+==================================================
+
+Use CLAIM_DOCUMENTS when asking what documents are required
+for a claim.
+
+==================================================
+RENEW_POLICY
+==================================================
+
+Use RENEW_POLICY when the customer wants to renew an existing
+policy.
+
+==================================================
+PREMIUM
+==================================================
+
+Use PREMIUM for questions specifically about premium/cost when
+there is no clear new-policy purchase action.
+
+==================================================
+PAYMENT
+==================================================
+
+Use PAYMENT for payment status, payment failure, receipts,
+or paying an existing premium.
+
+==================================================
+FAQ
+==================================================
+
+Use FAQ for common insurance questions.
+
+==================================================
+INSURANCE_GENERAL
+==================================================
+
+Use INSURANCE_GENERAL for insurance education, comparison,
+recommendations, general discussion, and advice.
+
+==================================================
+OUT_OF_SCOPE
+==================================================
+
+Use OUT_OF_SCOPE when the request is unrelated to insurance.
+
+==================================================
+RULES
+==================================================
+
+1. Return exactly ONE intent.
+
+2. Never create a new intent.
+
+3. Return ONLY valid JSON.
+
+4. Include confidence from 0 to 1.
+
+5. Consider previous conversation.
+
+6. Do not classify every mention of "insurance" as BUY_POLICY.
+
+7. Advice/discussion = INSURANCE_GENERAL.
+
+8. Clear purchase/quote/application request = BUY_POLICY.
+
+9. Existing customer policy questions = POLICY.
+
+10. Existing claims = CLAIM.
+
+==================================================
+OUTPUT
+==================================================
+
+Return exactly:
+
+{
+  "intent": "INTENT_NAME",
+  "confidence": 0.95
+}
+`;
+
+
+        const messages = [
+
             {
                 role: "system",
-                content: `You are an AI Intent Classifier for ABC Insurance.
-
-                    Your ONLY job is to classify the user's message.
-
-                    Return ONLY valid JSON.
-
-                    Allowed intents:
-
-                    GREETING
-                    THANKS
-                    GOODBYE
-                    HELP
-
-                    POLICY
-                    CLAIM
-                    CLAIM_ELIGIBILITY
-                    CLAIM_DOCUMENTS
-                    RENEW_POLICY
-                    BUY_POLICY
-                    PREMIUM
-                    PAYMENT
-
-                    FAQ
-                    INSURANCE_GENERAL
-
-                    OUT_OF_SCOPE
-
-                    Definitions:
-
-                    GREETING
-                    - hi
-                    - hello
-                    - good morning
-                    - good evening
-
-                    THANKS
-                    - thanks
-                    - thank you
-                    - appreciate it
-
-                    GOODBYE
-                    - bye
-                    - goodbye
-                    - see you later
-
-                    HELP
-                    - help
-                    - what can you do
-                    - assist me
-
-                    POLICY
-                    User wants:
-                    - my policy
-                    - policy details
-                    - policy status
-                    - policy number
-                    - coverage
-                    - benefits
-                    - renewal date
-
-                    CLAIM
-                    User wants:
-                    - claim status
-                    - track my claim
-                    - existing claim
-                    - claim amount
-                    - claim history
-                    - claim approval
-                    - claim rejection
-
-                    CLAIM_ELIGIBILITY
-                    User wants to know whether something is covered or whether they can make a claim.
-
-                    Examples:
-                    - Can I claim?
-                    - Am I eligible?
-                    - Will insurance cover this?
-                    - Can I claim for surgery?
-                    - Can I claim after hospitalization?
-                    - Can I claim for an accident?
-                    - Will my insurance pay?
-                    - Is my treatment covered?
-                    - Is this covered under my policy?
-                    - Can I get reimbursement?
-
-                    CLAIM_DOCUMENTS
-                    User asks about documents.
-
-                    Examples:
-                    - What documents do I need?
-                    - Required documents
-                    - Documents for claim
-                    - Claim checklist
-                    - What should I upload?
-
-                    RENEW_POLICY
-                    User wants to renew an existing policy.
-
-                    BUY_POLICY
-                    User wants to purchase insurance.
-
-                    Examples:
-                    - Buy insurance
-                    - New policy
-                    - Purchase health insurance
-                    - Suggest a policy
-
-                    PREMIUM
-                    Questions about premium.
-
-                    Examples:
-                    - Premium amount
-                    - EMI
-                    - Monthly payment
-                    - Policy cost
-
-                    PAYMENT
-                    Payment related.
-
-                    Examples:
-                    - Pay premium
-                    - Payment failed
-                    - Payment status
-                    - Payment receipt
-
-                    FAQ
-                    General insurance FAQs.
-
-                    Examples:
-                    - How long does claim approval take?
-                    - How can I contact customer support?
-                    - What is the waiting period?
-
-                    INSURANCE_GENERAL
-                    General insurance education.
-
-                    Examples:
-                    - What is insurance?
-                    - Difference between health and life insurance.
-                    - Explain deductible.
-                    - Explain co-payment.
-
-                    OUT_OF_SCOPE
-
-                    Return OUT_OF_SCOPE for ANY message that is NOT related to insurance.
-
-                    Examples include:
-
-                    - Weather
-                    - News
-                    - Politics
-                    - Religion
-                    - Sports
-                    - Movies
-                    - Music
-                    - Celebrities
-                    - Programming
-                    - Java
-                    - Python
-                    - SQL
-                    - Cooking
-                    - Travel
-                    - Shopping
-                    - Banking
-                    - Mathematics
-                    - Science
-                    - Homework
-                    - General knowledge
-                    - Jokes
-                    - Casual conversation
-                    - Greetings with unrelated follow-up
-                    - Abusive language
-                    - Offensive language
-                    - Sensitive topics
-                    - Harmful requests
-                    - Personal advice
-                    - Medical advice
-                    - Legal advice
-                    - Relationship advice
-
-                    Rules:
-
-                    1. Never invent new intent names.
-                    2. Always return exactly one intent.
-                    3. Return ONLY JSON.
-                    4. Do not explain your reasoning.
-
-                    Example:
-
-                    {
-                    "intent":"POLICY",
-                    "confidence":0.99
-                    }
-                    User: Show my policy
-                    Output:
-                    {"intent":"POLICY","confidence":0.99}
-
-                    User: Track my claim
-                    Output:
-                    {"intent":"CLAIM","confidence":0.99}
-
-                    User: Can I claim for surgery?
-                    Output:
-                    {"intent":"CLAIM_ELIGIBILITY","confidence":0.99}
-
-                    User: What documents are required for a claim?
-                    Output:
-                    {"intent":"CLAIM_DOCUMENTS","confidence":0.99}
-
-                    User: Renew my policy
-                    Output:
-                    {"intent":"RENEW_POLICY","confidence":0.99}
-
-                    User: My payment failed
-                    Output:
-                    {"intent":"PAYMENT","confidence":0.99}`
-            },
-            {
-                role: "user",
-                content: userMessage
+                content: intentPrompt
             }
-        ]);
-        const cleanContent = content
-            .replace(/```json/g, "")
+
+        ];
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | ADD HISTORY FOR CONTEXT
+        |--------------------------------------------------------------------------
+        */
+
+        if (history && history.length > 0) {
+
+            messages.push({
+
+                role: "system",
+
+                content: `
+PREVIOUS CONVERSATION:
+
+${history
+    .map(item => `${item.role}: ${item.content}`)
+    .join("\n")}
+`
+            });
+
+        }
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CURRENT MESSAGE
+        |--------------------------------------------------------------------------
+        */
+
+        messages.push({
+
+            role: "user",
+
+            content: userMessage
+
+        });
+
+
+        const content = await callLLM(messages);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | CLEAN JSON
+        |--------------------------------------------------------------------------
+        */
+
+        let cleanContent = content
+            .replace(/```json/gi, "")
             .replace(/```/g, "")
             .trim();
 
-        return JSON.parse(cleanContent);
 
-    }
+        /*
+        |--------------------------------------------------------------------------
+        | HANDLE EXTRA TEXT AROUND JSON
+        |--------------------------------------------------------------------------
+        */
 
-    catch (err) {
-        console.error("Intent Detection Error:", err);
+        const jsonStart = cleanContent.indexOf("{");
+        const jsonEnd = cleanContent.lastIndexOf("}");
 
-        // Temporary fallback while AI service is unavailable
-        const text = userMessage.toLowerCase();
+        if (jsonStart !== -1 && jsonEnd !== -1) {
 
-        if (
-            text.includes("claim") &&
-            (text.includes("eligible") ||
-                text.includes("eligibility") ||
-                text.includes("surgery") ||
-                text.includes("hospital") ||
-                text.includes("accident"))
-        ) {
-            return {
-                intent: "CLAIM_ELIGIBILITY",
-                confidence: 1
-            };
+            cleanContent =
+                cleanContent.substring(
+                    jsonStart,
+                    jsonEnd + 1
+                );
+
         }
 
+
+        const result = JSON.parse(cleanContent);
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | VALIDATE INTENT
+        |--------------------------------------------------------------------------
+        */
+
+        const allowedIntents = [
+
+            "GREETING",
+            "THANKS",
+            "GOODBYE",
+            "HELP",
+
+            "POLICY",
+            "CLAIM",
+            "CLAIM_ELIGIBILITY",
+            "CLAIM_DOCUMENTS",
+
+            "RENEW_POLICY",
+            "BUY_POLICY",
+
+            "PREMIUM",
+            "PAYMENT",
+
+            "FAQ",
+            "INSURANCE_GENERAL",
+
+            "OUT_OF_SCOPE"
+
+        ];
+
+
+        if (!allowedIntents.includes(result.intent)) {
+
+            return {
+
+                intent: "INSURANCE_GENERAL",
+
+                confidence: 0.5
+
+            };
+
+        }
+
+
         return {
-            intent: "OUT_OF_SCOPE",
-            confidence: 0
+
+            intent: result.intent,
+
+            confidence:
+                typeof result.confidence === "number"
+                    ? result.confidence
+                    : 0.8
+
         };
+
+
+    } catch (error) {
+
+        console.error(
+            "Intent Detection Error:",
+            error.response?.data || error.message
+        );
+
+
+        /*
+        |--------------------------------------------------------------------------
+        | SAFE FALLBACK
+        |--------------------------------------------------------------------------
+        */
+
+        return {
+
+            intent: "INSURANCE_GENERAL",
+
+            confidence: 0.3
+
+        };
+
     }
 
 }
+
+
+/*
+|--------------------------------------------------------------------------
+| EXPORTS
+|--------------------------------------------------------------------------
+*/
 
 module.exports = {
 
