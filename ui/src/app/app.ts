@@ -4,7 +4,7 @@ import { Bot } from './bot/bot';
 
 @Component({
   selector: 'app-root',
-  imports: [Bot],
+  imports: [Bot, RouterOutlet],
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })

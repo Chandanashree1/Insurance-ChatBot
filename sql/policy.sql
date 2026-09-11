@@ -59,3 +59,17 @@ SELECT *FROM POLICY;
 SELECT sequence_name
 FROM user_sequences
 WHERE sequence_name = 'POLICY_SEQ';
+
+SELECT object_name, object_type
+FROM user_objects
+WHERE object_name = 'POLICY';
+
+SELECT object_name, object_type, owner
+FROM all_objects
+WHERE object_name IN ('CUSTOMER', 'CUSTOMERS', 'VEHICLE', 'PRODUCT', 'QUOTE', 'QUOTE_OPTION', 'POLICY');
+
+SELECT object_name, object_type
+FROM user_objects
+WHERE object_type = 'TABLE'
+ORDER BY object_name;
+

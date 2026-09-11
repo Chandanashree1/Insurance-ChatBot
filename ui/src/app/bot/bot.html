@@ -79,33 +79,264 @@
 
 <div class="folder" [class.visible]="isOpen" [class.rtl]="selectedLanguage === 'ar'">
 
-  <div class="header">
-    <div class="header-top">
-      <button class="hamburger-btn" (click)="toggleHistory()" aria-label="View chat history">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <line x1="3" y1="6" x2="21" y2="6"/>
-          <line x1="3" y1="12" x2="21" y2="12"/>
-          <line x1="3" y1="18" x2="21" y2="18"/>
-        </svg>
+ <div class="header">
+  <div class="header-top">
+
+    <!-- Support Center Menu Button -->
+    <button
+      class="hamburger-btn"
+      (click)="toggleSupportCenter()"
+      aria-label="Open Support Center">
+
+      <svg viewBox="0 0 24 24" fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round">
+
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <line x1="3" y1="12" x2="21" y2="12"/>
+        <line x1="3" y1="18" x2="21" y2="18"/>
+
+      </svg>
+
+    </button>
+
+    <div class="header-text">
+      <h1>{{ translations[selectedLanguage].title }}</h1>
+    </div>
+
+    <div class="language-switch">
+      <button
+        [class.active]="selectedLanguage === 'en'"
+        (click)="setLanguage('en')">
+        EN
       </button>
 
-      <div class="header-text">
-        <h1>{{ translations[selectedLanguage].title }}</h1>
-      </div>
-
-      <div class="language-switch">
-        <button [class.active]="selectedLanguage === 'en'" (click)="setLanguage('en')">EN</button>
-        <button [class.active]="selectedLanguage === 'ar'" (click)="setLanguage('ar')">العربية</button>
-      </div>
+      <button
+        [class.active]="selectedLanguage === 'ar'"
+        (click)="setLanguage('ar')">
+        العربية
+      </button>
     </div>
+
+  </div>
+</div>
+<!-- SUPPORT CENTER -->
+<div
+  class="support-center"
+  *ngIf="isSupportCenterOpen"
+  [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+
+  <div class="support-center-header">
+
+    <div>
+      <h2>Support Center</h2>
+      <p>How can we help you?</p>
+    </div>
+
+    <button
+      class="support-close-btn"
+      (click)="closeSupportCenter()">
+      ✕
+    </button>
+
   </div>
 
-  <!-- History Drawer -->
-  <div class="history-drawer" [class.open]="isHistoryOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
-    <div class="history-drawer-header">
-      <h2>{{ translations[selectedLanguage].historyTitle }}</h2>
-      <button class="history-close-btn" (click)="closeHistory()" aria-label="Close history">✕</button>
+
+  <!-- Welcome
+  <div class="support-welcome">
+
+    <div class="welcome-icon">
+      👋
     </div>
+
+    <div>
+      <h3>
+        {{ isLogginIn ? 'Welcome back!' : 'Welcome!' }}
+      </h3>
+
+      <p>
+        {{ isLogginIn
+          ? 'Manage your conversations and complaints.'
+          : 'Get quick help from our insurance assistant.'
+        }}
+      </p>
+    </div>
+
+  </div> -->
+
+
+  <!-- New Chat -->
+  <button
+    class="support-menu-item new-chat-item"
+    (click)="startNewChat()">
+
+    <div class="support-item-icon">
+      +
+    </div>
+
+    <div class="support-item-content">
+      <strong>New Chat</strong>
+      <span>Start a new conversation</span>
+    </div>
+
+    <span class="support-arrow">›</span>
+
+  </button>
+
+
+  <!-- Chat History -->
+  <button
+    class="support-menu-item"
+    (click)="openChatHistory()">
+
+    <div class="support-item-icon history-icon">
+    <i class="bi bi-chat-left-text-fill"></i>
+    </div>
+
+    <div class="support-item-content">
+      <strong>Chat History</strong>
+      <span>View your past conversations</span>
+    </div>
+
+    <span class="support-arrow">›</span>
+
+  </button>
+
+
+  <!-- My Complaints -->
+  <button
+    class="support-menu-item"
+    (click)="openMyComplaints()">
+
+    <div class="support-item-icon complaint-icon">
+      <i class="bi bi-file-earmark-text-fill"></i>
+    </div>
+
+    <div class="support-item-content">
+      <strong>My Complaints</strong>
+      <span>View and track your complaints</span>
+    </div>
+
+    <span class="support-arrow">›</span>
+
+  </button>
+
+
+  <!-- Login / Sign In -->
+  <button
+    class="support-menu-item login-item"
+    *ngIf="!isLogginIn"
+    (click)="openLoginFromSupport()">
+
+    <div class="support-item-icon login-icon">
+      <i class="bi bi-lock-fill"></i>
+    </div>
+
+    <div class="support-item-content">
+      <strong>Login / Sign In</strong>
+      <span>Access your account</span>
+    </div>
+
+    <span class="support-arrow">›</span>
+
+  </button>
+
+
+  <!-- Logged in status -->
+  <div
+    class="logged-in-status"
+    *ngIf="isLogginIn">
+
+    ✓ You are signed in
+
+  </div>
+
+</div>
+
+<!-- MY COMPLAINTS -->
+<div
+  class="complaints-drawer"
+  *ngIf="isMyComplaintsOpen"
+  [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+
+ <div class="complaints-header">
+  <button class="login-back-btn" type="button" (click)="goBackFromComplaints()" aria-label="Go back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  </button>
+  <div>
+    <h2>My Complaints</h2>
+    <p>Track your complaints</p>
+  </div>
+  <button class="complaints-close-btn" (click)="isMyComplaintsOpen = false">✕</button>
+</div>
+
+
+  <!-- New / no complaints -->
+  <div
+    class="complaints-empty"
+    *ngIf="isLogginIn">
+
+    <div class="complaints-empty-icon">
+      🎫
+    </div>
+
+    <h3>No complaints yet</h3>
+
+    <p>
+      You haven't registered any complaints with us yet.
+    </p>
+
+    <button
+      class="register-complaint-btn"
+      (click)="openComplaintFromCenter()">
+
+      + Register Complaint
+
+    </button>
+
+  </div>
+
+
+  <!-- Guest user -->
+  <div
+    class="complaints-login"
+    *ngIf="!isLogginIn">
+
+    <div class="complaints-empty-icon">
+      🔐
+    </div>
+
+    <h3>Sign in to view complaints</h3>
+
+    <p>
+      Login to view and track your complaints.
+    </p>
+
+    <button
+      class="login-btn"
+      (click)="openLoginFromComplaints()">
+
+      Login / Sign In
+
+    </button>
+
+  </div>
+
+</div>
+  <!-- History Drawer -->
+ <div class="history-drawer" *ngIf="isHistoryOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+   <div class="history-drawer-header">
+  <button class="login-back-btn" type="button" (click)="goBackFromHistory()" aria-label="Go back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  </button>
+  <h2>{{ translations[selectedLanguage].historyTitle }}</h2>
+  <button class="history-close-btn" (click)="closeHistory()" aria-label="Close history">✕</button>
+</div>
 
     <ng-container *ngIf="isLogginIn">
       <div class="history-search">
@@ -122,12 +353,12 @@
       </div>
     </ng-container>
 
-    <div class="history-signin-prompt" *ngIf="!isLogginIn">
-      <p>{{ translations[selectedLanguage].historySignInPrompt }}</p>
-      <button class="login-btn" (click)="openLogin()">
-        {{ translations[selectedLanguage].loginBtn }}
-      </button>
-    </div>
+<div class="history-signin-prompt" *ngIf="!isLogginIn">
+  <p>{{ translations[selectedLanguage].historySignInPrompt }}</p>
+  <button class="login-btn" (click)="openLogin('history')">
+    {{ translations[selectedLanguage].loginBtn }}
+  </button>
+</div>
 
     <div class="history-loading" *ngIf="isLogginIn && isLoadingHistory">
       {{ translations[selectedLanguage].historyLoading }}
@@ -143,7 +374,7 @@
 
     <div class="history-list" *ngIf="isLogginIn && !isLoadingHistory && !historyError && filteredHistorySessions.length > 0">
       <button class="history-item" *ngFor="let session of filteredHistorySessions" (click)="loadSession(session.SESSION_ID)">
-        <span class="history-item-icon"><i class="bi bi-chat-square-text-fill"></i></span>
+        <!-- <span class="history-item-icon"><i class="bi bi-chat-square-text-fill"></i></span> -->
         <span class="history-item-body">
           <span class="history-item-preview">{{ session.PREVIEW }}</span>
           <span class="history-item-date">{{ session.LAST_MESSAGE_AT | date:'MMM d, h:mm a' }}</span>
@@ -347,14 +578,113 @@
       </div>
     </div>
 
-    <!-- Login popup -->
-    <div class="login-container" *ngIf="showLoginPopup">
-      <h2>{{ translations[selectedLanguage].loginHeader }}</h2>
-      <input type="email" placeholder="Enter Email" [(ngModel)]="email" /><br />
-      <input type="password" placeholder="Enter Password" [(ngModel)]="password" /><br />
-      <button (click)="login()">{{ translations[selectedLanguage].loginBtn }}</button>
+  <!-- LOGIN / SIGN IN -->
+  <!-- LOGIN -->
+  <div
+    class="login-drawer"
+    *ngIf="showLoginPopup"
+    [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+
+<div class="login-header">
+  <button class="login-back-btn" type="button" (click)="goBackFromLogin()" aria-label="Go back">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <polyline points="15 18 9 12 15 6"/>
+    </svg>
+  </button>
+  <div>
+    <h2>Sign In</h2>
+    <p>Access your insurance account</p>
+  </div>
+  <button class="login-close-btn" type="button" (click)="showLoginPopup = false">✕</button>
+</div>
+
+    <div class="login-body">
+      <div class="login-icon-large">🔐</div>
+      <h3>Welcome back!</h3>
+      <p class="login-description">Sign in to view your chat history and manage your complaints.</p>
+
+      <div class="login-field">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="email" placeholder="Enter your email"
+          autocomplete="email" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+      </div>
+
+      <div class="login-field">
+        <label>Password</label>
+        <input type="password" [(ngModel)]="password" placeholder="Enter your password"
+          autocomplete="current-password" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+      </div>
+
+      <button type="button" class="signin-btn" (click)="login()" [disabled]="isLoading">
+        {{ isLoading ? 'Signing in...' : 'Sign In' }}
+      </button>
+
+      <p class="login-help">
+        New here? <a (click)="openSignup()" style="cursor:pointer; color:#3b82f6;">Create an account</a>
+      </p>
     </div>
 
+  </div>
+
+  <!-- SIGNUP -->
+  <!-- SIGNUP -->
+  <div
+    class="login-drawer"
+    *ngIf="showSignupPopup"
+    [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+
+    <div class="login-header">
+      <button class="login-back-btn" type="button" (click)="goBackFromSignup()" aria-label="Go back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6"/>
+        </svg>
+      </button>
+      <div>
+        <h2>Sign Up</h2>
+        <p>Create your insurance account</p>
+      </div>
+      <button class="login-close-btn" type="button" (click)="showSignupPopup = false">✕</button>
+    </div>
+
+    <div class="login-body">
+      <div class="login-icon-large">🔐</div>
+      <h3>Create an account</h3>
+      <p class="login-description">Sign up to save your conversations and track complaints.</p>
+
+      <div class="login-field">
+        <label>Full Name</label>
+        <input type="text" [(ngModel)]="signupName" placeholder="Enter your name"
+          [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+      </div>
+
+      <div class="login-field">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="signupEmail" placeholder="Enter your email"
+          autocomplete="email" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+      </div>
+
+      <div class="login-field">
+        <label>Password</label>
+        <input type="password" [(ngModel)]="signupPassword" placeholder="Enter your password"
+          autocomplete="new-password" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+      </div>
+
+      <div class="login-field">
+        <label>Confirm Password</label>
+        <input type="password" [(ngModel)]="signupConfirmPassword" placeholder="Re-enter your password"
+          [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+      </div>
+
+      <button type="button" class="signin-btn" (click)="signup()" [disabled]="isSigningUp">
+        {{ isSigningUp ? 'Creating account...' : 'Sign Up' }}
+      </button>
+
+      <p class="login-help">
+        Already have an account? <a (click)="openLogin(authReturnTo)" style="cursor:pointer; color:#3b82f6;">Sign in</a>
+      </p>
+    </div>
+
+  </div>
     <!-- Typing indicator -->
     <div class="row bot" *ngIf="isLoading">
       <div class="typing">

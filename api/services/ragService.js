@@ -4,19 +4,33 @@ const cosineSimilarity = require("compute-cosine-similarity");
 
 const { generateEmbedding } = require("./embeddingService");
 
-const embeddingFile = path.join(
-    __dirname,
-    "../embeddings/documentEmbeddings.json"
-);
+async function retrieveRelevantChunks(
+    question,
+    topK = 3,
+    embeddingFileName = "documentEmbeddings.json"
+) {
 
-const documentChunks = JSON.parse(
-    fs.readFileSync(embeddingFile, "utf8")
-);
+    // Select the required embedding JSON
+    const embeddingFile = path.join(
+        __dirname,
+        "../embeddings",
+        embeddingFileName
+    );
 
-async function retrieveRelevantChunks(question, topK = 3) {
+    // Read JSON
+    if (!fs.existsSync(embeddingFile)) {
+        throw new Error(
+            `Embedding file not found: ${embeddingFile}`
+        );
+    }
 
-    // Generate embedding for user question
-    const questionEmbedding = await generateEmbedding(question);
+    const documentChunks = JSON.parse(
+        fs.readFileSync(embeddingFile, "utf8")
+    );
+
+    // Generate embedding for question
+    const questionEmbedding =
+        await generateEmbedding(question);
 
     // Calculate similarity
     const scoredChunks = documentChunks.map(chunk => {
@@ -33,19 +47,20 @@ async function retrieveRelevantChunks(question, topK = 3) {
 
     });
 
-    // Sort by score
-    scoredChunks.sort((a, b) => b.score - a.score);
+    // Sort by similarity
+    scoredChunks.sort(
+        (a, b) => b.score - a.score
+    );
 
     // Return top K
     return scoredChunks
-    .slice(0, topK)
-    .map(chunk => ({
-        fileName: chunk.fileName,
-        chunkId: chunk.chunkId,
-        text: chunk.text,
-        score: chunk.score
-    }));
-
+        .slice(0, topK)
+        .map(chunk => ({
+            fileName: chunk.fileName,
+            chunkId: chunk.chunkId,
+            text: chunk.text,
+            score: chunk.score
+        }));
 }
 
 module.exports = {

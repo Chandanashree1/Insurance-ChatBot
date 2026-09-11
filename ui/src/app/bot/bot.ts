@@ -100,6 +100,82 @@ export class Bot implements DoCheck {
   customerId: number | null = null;
   pendingQuestion = '';
   showLoginPopup = false;
+  showSignupPopup = false;
+
+    // ----- Auth mode -----
+  authMode: 'login' | 'signup' = 'login';
+
+  signupName = '';
+  signupEmail = '';
+  signupPassword = '';
+  signupConfirmPassword = '';
+  isSigningUp = false;
+
+  switchToSignup(): void {
+    this.authMode = 'signup';
+    this.signupEmail = this.email;
+    this.signupName = '';
+    this.signupPassword = '';
+    this.signupConfirmPassword = '';
+  }
+
+  switchToLogin(): void {
+    this.authMode = 'login';
+  }
+  signup(): void {
+    if (!this.signupName || !this.signupEmail || !this.signupPassword || !this.signupConfirmPassword) {
+      alert(this.selectedLanguage === 'ar' ? 'يرجى تعبئة جميع الحقول.' : 'Please fill all fields.');
+      return;
+    }
+
+    if (this.signupPassword !== this.signupConfirmPassword) {
+      alert(this.selectedLanguage === 'ar' ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.');
+      return;
+    }
+
+    this.isSigningUp = true;
+
+    const body = {
+      name: this.signupName,
+      email: this.signupEmail,
+      password: this.signupPassword
+    };
+
+    this.http.post<any>('http://localhost:5000/api/signup', body).subscribe({
+      next: (res) => {
+        this.isSigningUp = false;
+
+        if (res.success) {
+          this.isLogginIn = true;
+          this.customerId = res.customerId;
+          this.showSignupPopup = false;
+
+          this.messages.push({
+            sender: 'bot',
+            text: this.translations[this.selectedLanguage].loginSuccess,
+            time: new Date()
+          });
+
+          if (this.pendingQuestion) {
+            this.userMessage = this.pendingQuestion;
+            this.pendingQuestion = '';
+            setTimeout(() => this.sendMessage(), 500);
+          }
+        } else if (res.userExists) {
+          alert(res.message || 'Account already exists. Please sign in.');
+          this.email = this.signupEmail;
+          this.openLogin(this.authReturnTo);
+        } else {
+          alert(res.message || 'Signup failed. Please try again.');
+        }
+      },
+      error: (err) => {
+        this.isSigningUp = false;
+        console.error('Signup error:', err);
+        alert('Something went wrong. Please try again.');
+      }
+    });
+  }
 
   // ----- Session / history state -----
   sessionId: string = this.generateSessionId();
@@ -110,6 +186,11 @@ export class Bot implements DoCheck {
 
   historySearchQuery: string = '';
 historyTab: 'all' | 'today' = 'all';
+
+// ----- Support Center -----
+isSupportCenterOpen: boolean = false;
+
+isMyComplaintsOpen: boolean = false;
 
   // ----- Complaint form state -----
   activeForm: 'complaint' | 'agentConnect' | null = null;
@@ -187,6 +268,122 @@ submitRating(): void {
   });
 }
 
+// ===============================
+// SUPPORT CENTER
+// ===============================
+
+toggleSupportCenter(): void {
+  this.isSupportCenterOpen = !this.isSupportCenterOpen;
+
+  if (this.isSupportCenterOpen) {
+    this.isHistoryOpen = false;
+    this.isMyComplaintsOpen = false;
+  }
+}
+
+   openSignup(returnTo: 'supportCenter' | 'history' | 'complaints' | 'chat' = 'chat'): void {
+    this.authReturnTo = returnTo;
+    this.showSignupPopup = true;
+    this.showLoginPopup = false;
+    this.signupEmail = this.email;
+    this.signupName = '';
+    this.signupPassword = '';
+    this.signupConfirmPassword = '';
+  }
+
+  
+
+closeSupportCenter(): void {
+  this.isSupportCenterOpen = false;
+}
+
+
+// ===============================
+// NEW CHAT
+// ===============================
+
+startNewChat(): void {
+
+  if (this.isLoading) {
+    return;
+  }
+
+  this.userMessage = '';
+  this.activeForm = null;
+  this.isHistoryOpen = false;
+  this.isMyComplaintsOpen = false;
+  this.isSupportCenterOpen = false;
+
+  this.messages = [
+    { ...WELCOME_MESSAGE }
+  ];
+
+  this.sessionId = this.generateSessionId();
+
+  this.hasRatedSession = false;
+  this.hasUserMessaged = false;
+
+  this.cdr.detectChanges();
+}
+
+
+// ===============================
+// CHAT HISTORY
+// ===============================
+
+openChatHistory(): void {
+
+  this.isSupportCenterOpen = false;
+
+  this.isHistoryOpen = true;
+
+  if (this.isLogginIn && this.customerId) {
+
+    this.historySearchQuery = '';
+    this.historyTab = 'all';
+
+    this.fetchHistorySessions();
+  }
+}
+
+
+// ===============================
+// MY COMPLAINTS
+// ===============================
+
+openMyComplaints(): void {
+
+  this.isSupportCenterOpen = false;
+
+  this.isHistoryOpen = false;
+
+  this.isMyComplaintsOpen = true;
+}
+
+openComplaintFromCenter(): void {
+
+  this.isMyComplaintsOpen = false;
+
+  this.openComplaintForm();
+}
+
+
+  openLoginFromComplaints(): void {
+    this.isMyComplaintsOpen = false;
+    this.openLogin('complaints');
+  }
+
+
+// ===============================
+// LOGIN FROM SUPPORT CENTER
+// ===============================
+
+  openLoginFromSupport(): void {
+    this.isSupportCenterOpen = false;
+    this.isHistoryOpen = false;
+    this.openLogin('supportCenter');
+  }
+
 skipRating(): void {
   this.showRatingModal = false;
   this.selectedRating = 0;
@@ -243,6 +440,8 @@ skipRating(): void {
     'Travel Insurance'
   ];
 
+    authReturnTo: 'supportCenter' | 'history' | 'complaints' | 'chat' = 'chat';
+
   // ----- Agent connect state -----
   isConnectingToAgent: boolean = false;
   agentForm = { name: '', email: '', phone: '' };
@@ -256,6 +455,39 @@ skipRating(): void {
     this.activeForm = null;
   }
 
+   goBackFromLogin(): void {
+    this.showLoginPopup = false;
+
+    switch (this.authReturnTo) {
+      case 'supportCenter':
+        this.isSupportCenterOpen = true;
+        break;
+      case 'history':
+        this.isHistoryOpen = true;
+        break;
+      case 'complaints':
+        this.isMyComplaintsOpen = true;
+        break;
+      case 'chat':
+      default:
+        break;
+    }
+  }
+
+    goBackFromSignup(): void {
+    this.showSignupPopup = false;
+    this.showLoginPopup = true; // keeps authReturnTo as-is, so Login's own back arrow still works correctly
+  }
+
+    goBackFromHistory(): void {
+    this.isHistoryOpen = false;
+    this.isSupportCenterOpen = true;
+  }
+
+  goBackFromComplaints(): void {
+    this.isMyComplaintsOpen = false;
+    this.isSupportCenterOpen = true;
+  }
 
   get filteredHistorySessions(): HistorySession[] {
   let list = this.historySessions;
@@ -393,9 +625,16 @@ toggleHistory(): void {
                 this.sendMessage();
               }, 500);
             }
-          } else {
+          } 
+            else {
             this.isLogginIn = false;
-            alert(res.message);
+            if (res.userNotFound) {
+              alert(res.message || 'No account found with this email.');
+              this.signupEmail = this.email;
+               this.openSignup(this.authReturnTo);
+            } else {
+              alert(res.message);
+            }
           }
 
         }
@@ -752,8 +991,10 @@ goHome(): void {
     });
   }
 
-  openLogin() {
+    openLogin(returnTo: 'supportCenter' | 'history' | 'complaints' | 'chat' = 'chat') {
+    this.authReturnTo = returnTo;
     this.showLoginPopup = true;
+    this.showSignupPopup = false;
     this.isHistoryOpen = false;
   }
 
