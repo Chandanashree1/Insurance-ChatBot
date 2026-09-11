@@ -5,15 +5,43 @@ const axios = require("axios");
 PURCHASE FLOW SERVICE
 =========================================================
 
-Responsibilities:
+FLOW:
 
-1. Maintain purchase conversation state.
-2. Remember information already provided by the user.
-3. Dynamically understand the user's message.
-4. Decide the next conversational stage.
-5. Support English + Arabic.
-6. Never force insurance-type selection when the user
-   is still exploring / asking for advice.
+BUY_POLICY
+    ↓
+Purchase LLM
+    ↓
+Extract information only
+    ↓
+Backend validation
+    ↓
+Determine missing information
+    ↓
+Ask next question
+    ↓
+READY_FOR_QUOTE
+    ↓
+Controller -> Oracle API
+    ↓
+QUOTE_OPTIONS
+    ↓
+PAYMENT
+    ↓
+COMPLETED
+
+
+IMPORTANT:
+
+The LLM is NOT the source of truth for the purchase stage.
+
+LLM:
+    Understands the user's message
+    Extracts information
+
+Backend:
+    Maintains state
+    Validates information
+    Determines next stage
 =========================================================
 */
 
@@ -21,12 +49,6 @@ Responsibilities:
 /*
 =========================================================
 IN-MEMORY PURCHASE FLOWS
-=========================================================
-
-For Demo 2 this is enough.
-
-Later, if required, this can be moved to Redis / Oracle
-so the flow survives server restarts.
 =========================================================
 */
 
@@ -42,6 +64,7 @@ DEFAULT FLOW
 function createDefaultFlow(userId) {
 
     return {
+
         userId,
 
         active: true,
@@ -63,7 +86,9 @@ function createDefaultFlow(userId) {
         lastUserMessage: null,
 
         updatedAt: new Date().toISOString()
+
     };
+
 }
 
 
@@ -82,6 +107,7 @@ function getPurchaseFlow(userId) {
     }
 
     return purchaseFlows.get(userId);
+
 }
 
 
@@ -93,7 +119,8 @@ START PURCHASE FLOW
 
 function startPurchaseFlow(userId) {
 
-    const existingFlow = getPurchaseFlow(userId);
+    const existingFlow =
+        getPurchaseFlow(userId);
 
     if (existingFlow) {
 
@@ -101,11 +128,171 @@ function startPurchaseFlow(userId) {
 
     }
 
-    const flow = createDefaultFlow(userId);
+    const flow =
+        createDefaultFlow(userId);
 
-    purchaseFlows.set(userId, flow);
+    purchaseFlows.set(
+        userId,
+        flow
+    );
 
     return flow;
+
+}
+
+
+/*
+=========================================================
+REMOVE UNKNOWN VALUES
+=========================================================
+*/
+
+function removeUnknownValues(data) {
+
+    const cleaned = {};
+
+    if (
+        !data ||
+        typeof data !== "object"
+    ) {
+
+        return cleaned;
+
+    }
+
+
+    for (
+        const [key, value]
+        of Object.entries(data)
+    ) {
+
+        if (
+            value !== null &&
+            value !== undefined &&
+            value !== "" &&
+            value !== "UNKNOWN"
+        ) {
+
+            cleaned[key] = value;
+
+        }
+
+    }
+
+
+    return cleaned;
+
+}
+
+
+/*
+=========================================================
+NORMALIZE INSURANCE TYPE
+=========================================================
+*/
+
+function normalizeInsuranceType(value) {
+
+    if (!value) {
+
+        return null;
+
+    }
+
+    const normalized =
+        String(value)
+            .trim()
+            .toUpperCase()
+            .replace(/-/g, "_")
+            .replace(/\s+/g, "_");
+
+
+    const aliases = {
+
+        MOTOR: "MOTOR",
+
+        CAR: "MOTOR",
+
+        AUTO: "MOTOR",
+
+        VEHICLE: "MOTOR",
+
+        "CAR_INSURANCE": "MOTOR",
+
+        "MOTOR_INSURANCE": "MOTOR",
+
+
+        HEALTH: "HEALTH",
+
+        MEDICAL: "HEALTH",
+
+        "HEALTH_INSURANCE": "HEALTH",
+
+        "MEDICAL_INSURANCE": "HEALTH",
+
+
+        TRAVEL: "TRAVEL",
+
+        "TRAVEL_INSURANCE": "TRAVEL",
+
+
+        LIFE: "LIFE",
+
+        "LIFE_INSURANCE": "LIFE"
+
+    };
+
+
+    return aliases[normalized] || null;
+
+}
+
+
+/*
+=========================================================
+NORMALIZE PRODUCT TYPE
+=========================================================
+*/
+
+function normalizeProductType(value) {
+
+    if (!value) {
+
+        return null;
+
+    }
+
+    const normalized =
+        String(value)
+            .trim()
+            .toUpperCase()
+            .replace(/-/g, "_")
+            .replace(/\s+/g, "_");
+
+
+    if (
+        normalized === "THIRD_PARTY" ||
+        normalized === "THIRD"
+    ) {
+
+        return "THIRD_PARTY";
+
+    }
+
+
+    if (
+        normalized === "COMPREHENSIVE" ||
+        normalized === "FULL_COVERAGE" ||
+        normalized === "FULL"
+    ) {
+
+        return "COMPREHENSIVE";
+
+    }
+
+
+    return null;
+
 }
 
 
@@ -113,58 +300,83 @@ function startPurchaseFlow(userId) {
 =========================================================
 UPDATE PURCHASE FLOW
 =========================================================
+
+This function ONLY updates state.
+
+It does NOT blindly trust the LLM stage.
+=========================================================
 */
 
-function updatePurchaseFlow(userId, decision = {}) {
+function updatePurchaseFlow(
+    userId,
+    decision = {}
+) {
 
-    let flow = getPurchaseFlow(userId);
+    let flow =
+        getPurchaseFlow(userId);
+
 
     if (!flow) {
 
-        flow = createDefaultFlow(userId);
+        flow =
+            createDefaultFlow(userId);
 
     }
 
 
     /*
     -----------------------------------------------------
-    BASIC STATE
+    INSURANCE TYPE
     -----------------------------------------------------
     */
 
-    if (decision.stage) {
+    const insuranceType =
+        normalizeInsuranceType(
+            decision.insuranceType
+        );
 
-        flow.stage = decision.stage;
 
-    }
+    if (insuranceType) {
 
-
-    if (
-        decision.insuranceType &&
-        decision.insuranceType !== "UNKNOWN"
-    ) {
-
-        flow.insuranceType = decision.insuranceType;
+        flow.insuranceType =
+            insuranceType;
 
     }
 
 
-    if (
-        decision.productType &&
-        decision.productType !== "UNKNOWN"
-    ) {
+    /*
+    -----------------------------------------------------
+    PRODUCT TYPE
+    -----------------------------------------------------
+    */
 
-        flow.productType = decision.productType;
+    const productType =
+        normalizeProductType(
+            decision.productType
+        );
+
+
+    if (productType) {
+
+        flow.productType =
+            productType;
 
     }
 
+
+    /*
+    -----------------------------------------------------
+    PLAN
+    -----------------------------------------------------
+    */
 
     if (
         decision.plan &&
         decision.plan !== "UNKNOWN"
     ) {
 
-        flow.plan = decision.plan;
+        flow.plan =
+            decision.plan;
 
     }
 
@@ -173,30 +385,6 @@ function updatePurchaseFlow(userId, decision = {}) {
     -----------------------------------------------------
     MERGE EXTRACTED DATA
     -----------------------------------------------------
-
-    Very important.
-
-    We DO NOT replace collectedData.
-
-    We merge new information into existing information.
-
-    Example:
-
-    First message:
-        Toyota Corolla 2011
-
-    Second message:
-        Registration number 741852963
-
-    Final state:
-
-        {
-            vehicleMake: Toyota,
-            vehicleModel: Corolla,
-            vehicleYear: 2011,
-            registrationNumber: 741852963
-        }
-    -----------------------------------------------------
     */
 
     if (
@@ -204,9 +392,18 @@ function updatePurchaseFlow(userId, decision = {}) {
         typeof decision.extractedData === "object"
     ) {
 
+        const cleaned =
+            removeUnknownValues(
+                decision.extractedData
+            );
+
+
         flow.collectedData = {
+
             ...flow.collectedData,
-            ...removeUnknownValues(decision.extractedData)
+
+            ...cleaned
+
         };
 
     }
@@ -218,7 +415,11 @@ function updatePurchaseFlow(userId, decision = {}) {
     -----------------------------------------------------
     */
 
-    if (Array.isArray(decision.missingInformation)) {
+    if (
+        Array.isArray(
+            decision.missingInformation
+        )
+    ) {
 
         flow.missingInformation =
             decision.missingInformation;
@@ -240,40 +441,32 @@ function updatePurchaseFlow(userId, decision = {}) {
     }
 
 
-    flow.updatedAt = new Date().toISOString();
+    /*
+    -----------------------------------------------------
+    LAST INTENT
+    -----------------------------------------------------
+    */
 
-    purchaseFlows.set(userId, flow);
+    if (decision.lastIntent) {
 
-    return flow;
-}
-
-
-/*
-=========================================================
-REMOVE UNKNOWN / NULL VALUES
-=========================================================
-*/
-
-function removeUnknownValues(data) {
-
-    const cleaned = {};
-
-    for (const [key, value] of Object.entries(data)) {
-
-        if (
-            value !== null &&
-            value !== undefined &&
-            value !== "" &&
-            value !== "UNKNOWN"
-        ) {
-
-            cleaned[key] = value;
-
-        }
+        flow.lastIntent =
+            decision.lastIntent;
 
     }
 
-    return cleaned;
+
+    flow.updatedAt =
+        new Date().toISOString();
+
+
+    purchaseFlows.set(
+        userId,
+        flow
+    );
+
+
+    return flow;
+
 }
 
 
@@ -307,55 +500,56 @@ function clearPurchaseFlow(userId) {
 =========================================================
 LLM CALL
 =========================================================
-
-We keep this separate from askAI() because this is not
-a normal customer response.
-
-This call is ONLY responsible for understanding the
-purchase conversation.
-=========================================================
 */
 
 async function callPurchaseLLM(messages) {
 
-    const response = await axios.post(
+    const response =
+        await axios.post(
 
-        process.env.LLM_API_URL,
+            process.env.LLM_API_URL,
 
-        {
-            model: process.env.LLM_MODEL,
+            {
 
-            messages,
+                model:
+                    process.env.LLM_MODEL,
 
-            stream: false,
+                messages,
 
-            temperature: 0.1
-        },
+                stream: false,
 
-        {
-            headers: {
-                Authorization:
-                    `Bearer ${process.env.LLM_API_KEY}`,
+                temperature: 0.1
 
-                "Content-Type":
-                    "application/json"
             },
 
-            timeout: 60000
-        }
+            {
 
-    );
+                headers: {
+
+                    Authorization:
+                        `Bearer ${process.env.LLM_API_KEY}`,
+
+                    "Content-Type":
+                        "application/json"
+
+                },
+
+                timeout: 60000
+
+            }
+
+        );
+
+
+    const data =
+        response.data;
 
 
     /*
     -----------------------------------------------------
-    Different LLM providers sometimes return different
-    response formats.
+    OLLAMA / MESSAGE FORMAT
     -----------------------------------------------------
     */
-
-    const data = response.data;
-
 
     if (
         data &&
@@ -367,6 +561,12 @@ async function callPurchaseLLM(messages) {
 
     }
 
+
+    /*
+    -----------------------------------------------------
+    OPENAI-COMPATIBLE FORMAT
+    -----------------------------------------------------
+    */
 
     if (
         data &&
@@ -383,12 +583,20 @@ async function callPurchaseLLM(messages) {
     throw new Error(
         "Unexpected LLM response format."
     );
+
 }
 
 
 /*
 =========================================================
-BUILD PURCHASE DECISION PROMPT
+PURCHASE EXTRACTION PROMPT
+=========================================================
+
+VERY IMPORTANT:
+
+The LLM does NOT decide the final stage.
+
+It only extracts information.
 =========================================================
 */
 
@@ -398,142 +606,52 @@ function buildPurchaseSystemPrompt(language) {
         language === "ar"
 
             ? `
-You MUST return the "reply" field entirely in Arabic.
+The customer-facing "reply" MUST be completely in Arabic.
 
-Do not mix Arabic and English in the reply.
-
-JSON keys and enum values MUST remain in English.
-Only the customer-facing "reply" must be Arabic.
+JSON keys and enum values remain in English.
 `
 
             : `
-You MUST return the "reply" field entirely in English.
+The customer-facing "reply" MUST be completely in English.
 `;
 
 
     return `
-You are the Purchase Conversation Intelligence
+
+You are the Purchase Information Extraction Assistant
 for ABC Insurance.
 
-Your job is NOT to sell a policy immediately.
+Your responsibility is to understand the customer's
+latest message and extract any insurance purchase
+information they provided.
 
-Your job is to understand the customer's conversation,
-remember information already provided, identify what they
-are trying to achieve, and decide the appropriate NEXT
-STEP.
+You are NOT responsible for deciding the final purchase
+stage.
+
+The backend will decide the stage.
 
 ${languageRule}
 
 
 =========================================================
-VERY IMPORTANT CONVERSATION RULE
+IMPORTANT
 =========================================================
 
-NEVER assume that:
+Do NOT assume that BUY_POLICY means the customer has
+provided all required information.
 
-BUY_POLICY = SHOW INSURANCE TYPES.
+Do NOT force the customer to select an insurance type
+unless the customer actually gives enough information
+to identify one.
 
-BUY_POLICY only means the customer is discussing,
-considering, exploring, or attempting to purchase insurance.
-
-The customer may need a conversation first.
-
-For example:
-
-User:
-"I am thinking about getting insurance for my family
-of five. What would be useful?"
-
-Correct behavior:
-
-DO NOT immediately show:
-
-Health
-Motor
-Travel
-Life
-
-Instead continue the conversation and ask a useful
-clarifying question.
-
-The customer may be looking for advice rather than
-ready to select a product.
-
-
-=========================================================
-CONVERSATION CONTINUITY
-=========================================================
-
-The PURCHASE FLOW STATE is authoritative for information
-already collected.
-
-Never ask the customer again for information that already
-exists in the purchase flow.
-
-Example:
-
-Previous state:
-
-insuranceType = MOTOR
-productType = THIRD_PARTY
-
-collectedData:
-
-vehicleMake = Toyota
-vehicleModel = Corolla
-vehicleYear = 2011
-
-User:
-"I am ready to proceed."
-
-Do NOT ask:
-
-"What type of insurance do you need?"
-
-Do NOT ask:
-
-"What vehicle do you have?"
-
-Continue from the next missing step.
-
-
-=========================================================
-DYNAMIC LANGUAGE UNDERSTANDING
-=========================================================
-
-Do NOT depend on exact keywords.
-
-Understand:
-
-- different wording
-- advanced wording
-- informal wording
-- incomplete sentences
-- spelling variations
-- conversational language
-- indirect requests
-- Arabic
-- English
-
-Examples that can mean purchase discussion:
-
-"I am thinking of getting coverage."
-"I want to protect my family."
-"I may need insurance for my car."
-"Can you recommend something for my family?"
-"I am planning to insure my vehicle."
-"I'd like to get covered."
-"What kind of protection would suit my family?"
-"I am interested in getting a policy."
-
-Do not require the exact phrase "buy policy".
+Understand natural conversation.
 
 
 =========================================================
 INSURANCE TYPES
 =========================================================
 
-Allowed insuranceType values:
+Allowed values:
 
 MOTOR
 HEALTH
@@ -546,131 +664,53 @@ UNKNOWN
 MOTOR PRODUCT TYPES
 =========================================================
 
-For motor insurance:
+Allowed values:
 
 THIRD_PARTY
 COMPREHENSIVE
 UNKNOWN
 
+
 Examples:
 
 "third party"
-"third-party cover"
-"basic legal liability"
-"only third party"
+"third-party"
+"basic cover"
 
 => THIRD_PARTY
 
-"full coverage"
+
 "comprehensive"
-"complete protection"
+"full coverage"
+"full cover"
 
 => COMPREHENSIVE
 
 
 =========================================================
-PURCHASE STAGES
+DATA TO EXTRACT
 =========================================================
 
-Use exactly one of these:
+Extract whatever the customer gives.
 
-DISCOVERY
-
-TYPE_IDENTIFICATION
-
-PRODUCT_IDENTIFICATION
-
-VEHICLE_DETAILS
-
-CUSTOMER_DETAILS
-
-PLAN_SELECTION
-
-READY_FOR_QUOTE
-
-QUOTE_OPTIONS
-
-PAYMENT
-
-COMPLETED
-
-
-=========================================================
-DISCOVERY
-=========================================================
-
-Use DISCOVERY when the customer is still explaining their
-need or asking for advice.
-
-Example:
-
-"I want insurance for my family of five. What would you
-recommend?"
-
-Do NOT force them to choose an insurance type immediately.
-
-Ask a natural question that helps understand their need.
-
-
-=========================================================
-TYPE_IDENTIFICATION
-=========================================================
-
-Use this when the customer has clearly expressed a need
-but the insurance type is still unclear.
-
-Example:
-
-"I want some insurance for my family."
-
-The customer may need clarification about what they want
-to protect.
-
-
-=========================================================
-PRODUCT_IDENTIFICATION
-=========================================================
-
-Use this when insurance type is known but the specific
-product / coverage is not.
-
-Example:
-
-"I need motor insurance for my car."
-
-Ask whether they want third-party or comprehensive only
-when appropriate.
-
-
-=========================================================
-VEHICLE_DETAILS
-=========================================================
-
-Use this for motor insurance when vehicle information is
-needed.
-
-Potential vehicle information:
+Possible fields:
 
 vehicleMake
 vehicleModel
 vehicleYear
+
 registrationNumber
 plateNumber
 plateCode
 plateType
+
 chassisNumber
 bodyType
 usageType
 vehicleValue
 
-
-=========================================================
-CUSTOMER_DETAILS
-=========================================================
-
-Use this when customer information is needed to continue.
-
-Potential information:
+coverFrom
+coverTo
 
 fullName
 mobileNumber
@@ -678,127 +718,104 @@ email
 civilIdLicenseNo
 address
 
+familyMembers
+primaryNeed
+
+travelDestination
+travelDate
+
+age
+dateOfBirth
 
 =========================================================
-PLAN_SELECTION
+EXAMPLES
 =========================================================
 
-Use this only when the customer must choose among available
-plans.
+User:
 
-Do NOT automatically use this stage for every purchase.
+"I want to insure my Toyota Corolla 2011."
 
+Return:
 
-=========================================================
-READY_FOR_QUOTE
-=========================================================
-
-Use when enough information has been collected to call the
-backend quotation APIs.
-
-
-=========================================================
-QUOTE_OPTIONS
-=========================================================
-
-Use after the backend has generated quote options and the
-customer needs to choose one.
+{
+  "insuranceType": "MOTOR",
+  "productType": "UNKNOWN",
+  "extractedData": {
+    "vehicleMake": "Toyota",
+    "vehicleModel": "Corolla",
+    "vehicleYear": 2011
+  },
+  "reply": "..."
+}
 
 
-=========================================================
-PAYMENT
-=========================================================
+User:
 
-Use when the selected quote is ready for payment.
+"I have a Toyota Corolla 2011 and only want third party."
 
+Return:
 
-=========================================================
-COMPLETED
-=========================================================
-
-Use after the purchase has successfully completed.
-
-
-=========================================================
-IMPORTANT DATA EXTRACTION RULE
-=========================================================
-
-Extract information even if the user gives it naturally.
-
-Example:
-
-"I have a Toyota Corolla, 2011 model, and I only need
-third party."
-
-Extract:
-
-insuranceType = MOTOR
-
-productType = THIRD_PARTY
-
-vehicleMake = Toyota
-
-vehicleModel = Corolla
-
-vehicleYear = 2011
+{
+  "insuranceType": "MOTOR",
+  "productType": "THIRD_PARTY",
+  "extractedData": {
+    "vehicleMake": "Toyota",
+    "vehicleModel": "Corolla",
+    "vehicleYear": 2011
+  },
+  "reply": "..."
+}
 
 
-Another example:
+User:
 
-"There are five of us in my family and I mainly want
-protection against medical expenses."
+"I need insurance for my family of five mainly for medical expenses."
 
-Extract:
+Return:
 
-insuranceType = HEALTH
+{
+  "insuranceType": "HEALTH",
+  "productType": "UNKNOWN",
+  "extractedData": {
+    "familyMembers": 5,
+    "primaryNeed": "medical expenses"
+  },
+  "reply": "..."
+}
 
-familyMembers = 5
 
-primaryNeed = medical expenses
+User:
 
+"I want insurance."
 
-Do not ask for information that the customer has already
-provided.
+Do NOT invent:
+
+MOTOR
+HEALTH
+TRAVEL
+LIFE
+
+Return UNKNOWN.
 
 
 =========================================================
-READY / PROCEED MESSAGES
+CONTINUATION MESSAGES
 =========================================================
 
-Messages such as:
+If the user says:
 
-"yes"
-"okay"
-"sure"
-"continue"
-"proceed"
-"I am ready"
-"let's continue"
-"go ahead"
+yes
+okay
+ok
+sure
+continue
+proceed
+go ahead
+ready
 
-must be interpreted using the existing purchase flow.
+Do NOT invent information.
 
-Never interpret them in isolation.
-
-
-=========================================================
-RESPONSE STYLE
-=========================================================
-
-The reply must sound like a real insurance assistant.
-
-Do not expose:
-
-- intent classification
-- internal stages
-- JSON
-- confidence
-- internal system information
-
-Ask only the NEXT useful question.
-
-Do not ask many questions at once unless necessary.
-
+Use the existing purchase flow supplied by the backend.
 
 =========================================================
 OUTPUT
@@ -806,207 +823,785 @@ OUTPUT
 
 Return ONLY valid JSON.
 
-Use exactly this structure:
+Exactly:
 
 {
-  "stage": "DISCOVERY",
   "insuranceType": "UNKNOWN",
   "productType": "UNKNOWN",
   "plan": "UNKNOWN",
   "extractedData": {},
-  "missingInformation": [],
-  "needsClarification": true,
-  "readyForQuote": false,
-  "reply": "customer-facing response"
+  "reply": ""
 }
-
 
 =========================================================
 RULES
 =========================================================
 
-1. Never invent insurance products.
-2. Never invent customer information.
-3. Never invent vehicle information.
-4. Preserve information from the existing flow.
-5. Extract new information from the current message.
-6. Do not repeat questions already answered.
-7. Do not immediately show insurance types for vague
-   purchase requests.
-8. Continue the conversation naturally.
-9. Return ONLY JSON.
+1. Never invent customer information.
+2. Never invent vehicle information.
+3. Never invent insurance type.
+4. Extract only information supported by the conversation.
+5. Preserve existing information through the supplied flow.
+6. Do not decide the backend purchase stage.
+7. Return ONLY JSON.
+
 `;
+
 }
 
 
 /*
 =========================================================
-NORMALIZE LLM DECISION
+NORMALIZE LLM RESPONSE
 =========================================================
 */
 
-function normalizeDecision(decision, userMessage) {
-
-    const validInsuranceTypes = [
-        "MOTOR",
-        "HEALTH",
-        "TRAVEL",
-        "LIFE",
-        "UNKNOWN"
-    ];
-
-    const validProductTypes = [
-        "THIRD_PARTY",
-        "COMPREHENSIVE",
-        "UNKNOWN"
-    ];
-
-    const validStages = [
-        "DISCOVERY",
-        "TYPE_IDENTIFICATION",
-        "PRODUCT_IDENTIFICATION",
-        "VEHICLE_DETAILS",
-        "CUSTOMER_DETAILS",
-        "PLAN_SELECTION",
-        "READY_FOR_QUOTE",
-        "QUOTE_OPTIONS",
-        "PAYMENT",
-        "COMPLETED"
-    ];
-
+function normalizeExtraction(
+    decision,
+    userMessage
+) {
 
     const insuranceType =
-        validInsuranceTypes.includes(
+        normalizeInsuranceType(
             decision.insuranceType
-        )
-            ? decision.insuranceType
-            : "UNKNOWN";
+        );
 
 
     const productType =
-        validProductTypes.includes(
+        normalizeProductType(
             decision.productType
-        )
-            ? decision.productType
-            : "UNKNOWN";
-
-
-    const stage =
-        validStages.includes(
-            decision.stage
-        )
-            ? decision.stage
-            : "DISCOVERY";
+        );
 
 
     return {
 
-        stage,
+        insuranceType:
+            insuranceType || null,
 
-        insuranceType,
-
-        productType,
+        productType:
+            productType || null,
 
         plan:
-            decision.plan || "UNKNOWN",
+            decision.plan &&
+            decision.plan !== "UNKNOWN"
+
+                ? decision.plan
+
+                : null,
 
         extractedData:
-            decision.extractedData &&
-            typeof decision.extractedData === "object"
-
-                ? removeUnknownValues(
-                    decision.extractedData
-                )
-
-                : {},
-
-        missingInformation:
-            Array.isArray(
-                decision.missingInformation
-            )
-                ? decision.missingInformation
-                : [],
-
-        needsClarification:
-            Boolean(
-                decision.needsClarification
-            ),
-
-        readyForQuote:
-            Boolean(
-                decision.readyForQuote
+            removeUnknownValues(
+                decision.extractedData
             ),
 
         reply:
             typeof decision.reply === "string"
+
                 ? decision.reply.trim()
+
                 : "",
 
-        lastUserMessage: userMessage
+        lastUserMessage:
+            userMessage
+
     };
+
 }
 
 
 /*
 =========================================================
-FALLBACK DECISION
-=========================================================
-
-This is intentionally conservative.
-
-If the LLM fails, we DO NOT guess an insurance type.
-
-We continue discovery instead.
+PARSE LLM JSON
 =========================================================
 */
 
-function fallbackDecision(
-    userMessage,
-    flow,
-    language
-) {
+function parseLLMJson(rawResponse) {
 
-    const reply =
-        language === "ar"
+    let cleanResponse =
+        String(rawResponse || "")
+            .replace(/```json/gi, "")
+            .replace(/```/g, "")
+            .trim();
 
-            ? "بالتأكيد، يمكنني مساعدتك في اختيار التغطية المناسبة. أخبرني أكثر عن الشيء الذي تريد حمايته وما الذي تحتاج إلى تغطيته."
 
-            : "Absolutely, I can help you figure out what coverage may suit your needs. Could you tell me a little more about what you would like to protect and what you want the insurance to cover?";
+    const firstBrace =
+        cleanResponse.indexOf("{");
+
+
+    const lastBrace =
+        cleanResponse.lastIndexOf("}");
+
+
+    if (
+        firstBrace === -1 ||
+        lastBrace === -1
+    ) {
+
+        throw new Error(
+            "LLM did not return valid JSON."
+        );
+
+    }
+
+
+    cleanResponse =
+        cleanResponse.substring(
+            firstBrace,
+            lastBrace + 1
+        );
+
+
+    return JSON.parse(
+        cleanResponse
+    );
+
+}
+
+
+/*
+=========================================================
+BACKEND VALIDATION
+=========================================================
+
+THIS IS THE MOST IMPORTANT PART.
+
+The backend decides what is missing.
+
+LLM does NOT decide READY_FOR_QUOTE.
+=========================================================
+*/
+
+function validatePurchaseFlow(flow) {
+
+    const missing = [];
+
+
+    /*
+    -----------------------------------------------------
+    INSURANCE TYPE
+    -----------------------------------------------------
+    */
+
+    if (!flow.insuranceType) {
+
+        missing.push(
+            "insuranceType"
+        );
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    MOTOR
+    -----------------------------------------------------
+    */
+
+    if (
+        flow.insuranceType === "MOTOR"
+    ) {
+
+        /*
+        Product type is required.
+        */
+
+        if (!flow.productType) {
+
+            missing.push(
+                "productType"
+            );
+
+        }
+
+
+        /*
+        Plate number / registration number.
+        */
+
+        const data =
+            flow.collectedData || {};
+
+
+        const plateNumber =
+            data.plateNumber ||
+            data.registrationNumber;
+
+
+        if (!plateNumber) {
+
+            missing.push(
+                "plateNumber"
+            );
+
+        }
+
+
+        /*
+        Plate code.
+        */
+
+        if (!data.plateCode) {
+
+            missing.push(
+                "plateCode"
+            );
+
+        }
+
+
+        /*
+        Cover dates.
+        */
+
+        if (!data.coverFrom) {
+
+            missing.push(
+                "coverFrom"
+            );
+
+        }
+
+
+        if (!data.coverTo) {
+
+            missing.push(
+                "coverTo"
+            );
+
+        }
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    HEALTH
+    -----------------------------------------------------
+    */
+
+    if (
+        flow.insuranceType === "HEALTH"
+    ) {
+
+        const data =
+            flow.collectedData || {};
+
+
+        if (!data.familyMembers) {
+
+            missing.push(
+                "familyMembers"
+            );
+
+        }
+
+
+        if (!data.coverFrom) {
+
+            missing.push(
+                "coverFrom"
+            );
+
+        }
+
+
+        if (!data.coverTo) {
+
+            missing.push(
+                "coverTo"
+            );
+
+        }
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    TRAVEL
+    -----------------------------------------------------
+    */
+
+    if (
+        flow.insuranceType === "TRAVEL"
+    ) {
+
+        const data =
+            flow.collectedData || {};
+
+
+        if (!data.travelDestination) {
+
+            missing.push(
+                "travelDestination"
+            );
+
+        }
+
+
+        if (!data.travelDate) {
+
+            missing.push(
+                "travelDate"
+            );
+
+        }
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    LIFE
+    -----------------------------------------------------
+    */
+
+    if (
+        flow.insuranceType === "LIFE"
+    ) {
+
+        const data =
+            flow.collectedData || {};
+
+
+        if (!data.dateOfBirth) {
+
+            missing.push(
+                "dateOfBirth"
+            );
+
+        }
+
+    }
 
 
     return {
 
+        valid:
+            missing.length === 0,
+
+        missing
+
+    };
+
+}
+
+
+/*
+=========================================================
+GET NEXT STAGE
+=========================================================
+*/
+
+function determineNextStage(flow) {
+
+    const validation =
+        validatePurchaseFlow(
+            flow
+        );
+
+
+    if (
+        validation.valid
+    ) {
+
+        return {
+
+            stage:
+                "READY_FOR_QUOTE",
+
+            missingInformation: []
+
+        };
+
+    }
+
+
+    const missing =
+        validation.missing;
+
+
+    /*
+    -----------------------------------------------------
+    INSURANCE TYPE
+    -----------------------------------------------------
+    */
+
+    if (
+        missing.includes(
+            "insuranceType"
+        )
+    ) {
+
+        return {
+
+            stage:
+                "TYPE_IDENTIFICATION",
+
+            missingInformation:
+                missing
+
+        };
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    MOTOR PRODUCT
+    -----------------------------------------------------
+    */
+
+    if (
+        missing.includes(
+            "productType"
+        )
+    ) {
+
+        return {
+
+            stage:
+                "PRODUCT_IDENTIFICATION",
+
+            missingInformation:
+                missing
+
+        };
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    VEHICLE
+    -----------------------------------------------------
+    */
+
+    if (
+        missing.includes(
+            "plateNumber"
+        ) ||
+        missing.includes(
+            "plateCode"
+        )
+    ) {
+
+        return {
+
+            stage:
+                "VEHICLE_DETAILS",
+
+            missingInformation:
+                missing
+
+        };
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    CUSTOMER
+    -----------------------------------------------------
+    */
+
+    if (
+        missing.includes(
+            "fullName"
+        ) ||
+        missing.includes(
+            "mobileNumber"
+        ) ||
+        missing.includes(
+            "email"
+        )
+    ) {
+
+        return {
+
+            stage:
+                "CUSTOMER_DETAILS",
+
+            missingInformation:
+                missing
+
+        };
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    DATES
+    -----------------------------------------------------
+    */
+
+    if (
+        missing.includes(
+            "coverFrom"
+        ) ||
+        missing.includes(
+            "coverTo"
+        )
+    ) {
+
+        return {
+
+            stage:
+                "CUSTOMER_DETAILS",
+
+            missingInformation:
+                missing
+
+        };
+
+    }
+
+
+    /*
+    -----------------------------------------------------
+    FALLBACK
+    -----------------------------------------------------
+    */
+
+    return {
+
         stage:
-            flow.stage || "DISCOVERY",
+            flow.stage ||
+            "DISCOVERY",
+
+        missingInformation:
+            missing
+
+    };
+
+}
+
+
+/*
+=========================================================
+GENERATE NEXT QUESTION
+=========================================================
+*/
+
+function generateNextQuestion(
+    flow,
+    language
+) {
+
+    const missing =
+        flow.missingInformation || [];
+
+
+    const firstMissing =
+        missing[0];
+
+
+    if (language === "ar") {
+
+        switch (firstMissing) {
+
+            case "insuranceType":
+
+                return "بالتأكيد. هل تحتاج إلى تأمين للسيارة أو التأمين الصحي أو تأمين السفر أو التأمين على الحياة؟";
+
+
+            case "productType":
+
+                return "ما نوع تغطية السيارة التي تفضلها: تأمين ضد الغير أم تأمين شامل؟";
+
+
+            case "plateNumber":
+
+                return "يرجى تزويدي برقم تسجيل المركبة أو رقم اللوحة.";
+
+
+            case "plateCode":
+
+                return "يرجى تزويدي برمز اللوحة.";
+
+
+            case "coverFrom":
+
+                return "ما هو تاريخ بدء التغطية المطلوبة؟";
+
+
+            case "coverTo":
+
+                return "ما هو تاريخ انتهاء التغطية المطلوبة؟";
+
+
+            case "familyMembers":
+
+                return "كم عدد أفراد العائلة الذين ترغب في تغطيتهم؟";
+
+
+            case "travelDestination":
+
+                return "إلى أي دولة ستسافر؟";
+
+
+            case "travelDate":
+
+                return "ما هو تاريخ السفر؟";
+
+
+            case "dateOfBirth":
+
+                return "ما هو تاريخ الميلاد؟";
+
+
+            case "fullName":
+
+                return "يرجى تزويدي بالاسم الكامل.";
+
+
+            case "mobileNumber":
+
+                return "يرجى تزويدي برقم الهاتف.";
+
+
+            case "email":
+
+                return "يرجى تزويدي بعنوان البريد الإلكتروني.";
+
+
+            default:
+
+                return "بالتأكيد، دعنا نكمل. ما هي المعلومات الإضافية المطلوبة للمتابعة؟";
+
+        }
+
+    }
+
+
+    switch (firstMissing) {
+
+        case "insuranceType":
+
+            return "Absolutely. What would you like to insure: your car, health, travel, or life?";
+
+
+        case "productType":
+
+            return "For your car insurance, would you prefer third-party or comprehensive coverage?";
+
+
+        case "plateNumber":
+
+            return "Could you provide the vehicle registration number or plate number?";
+
+
+        case "plateCode":
+
+            return "Could you provide the plate code?";
+
+
+        case "coverFrom":
+
+            return "What date would you like the insurance coverage to start?";
+
+
+        case "coverTo":
+
+            return "What date should the insurance coverage end?";
+
+
+        case "familyMembers":
+
+            return "How many family members would you like to cover?";
+
+
+        case "travelDestination":
+
+            return "Which country are you travelling to?";
+
+
+        case "travelDate":
+
+            return "What is your travel date?";
+
+
+        case "dateOfBirth":
+
+            return "What is your date of birth?";
+
+
+        case "fullName":
+
+            return "Could you provide your full name?";
+
+
+        case "mobileNumber":
+
+            return "Could you provide your mobile number?";
+
+
+        case "email":
+
+            return "Could you provide your email address?";
+
+
+        default:
+
+            return "Absolutely. Let's continue. Could you provide the next required detail?";
+
+    }
+
+}
+
+
+/*
+=========================================================
+FALLBACK EXTRACTION
+=========================================================
+*/
+
+function fallbackExtraction(
+    message,
+    flow,
+    language
+) {
+
+    return {
 
         insuranceType:
-            flow.insuranceType || "UNKNOWN",
+            flow.insuranceType,
 
         productType:
-            flow.productType || "UNKNOWN",
+            flow.productType,
 
         plan:
-            flow.plan || "UNKNOWN",
+            flow.plan,
 
         extractedData:
             flow.collectedData || {},
 
-        missingInformation: [],
+        reply:
+            "",
 
-        needsClarification: true,
+        lastUserMessage:
+            message
 
-        readyForQuote: false,
-
-        reply,
-
-        lastUserMessage: userMessage
     };
+
 }
 
 
 /*
 =========================================================
 DECIDE PURCHASE STAGE
+=========================================================
+
+THIS IS THE MAIN FUNCTION USED BY CONTROLLER.
+
+IMPORTANT:
+
+1. LLM extracts.
+2. State is updated.
+3. Backend validates.
+4. Backend determines stage.
+5. Backend generates next question.
 =========================================================
 */
 
@@ -1022,90 +1617,111 @@ async function decidePurchaseStage({
 
 }) {
 
-    try {
-
-        /*
-        -------------------------------------------------
-        Create flow if it doesn't exist.
-        -------------------------------------------------
-        */
-
-        const flow =
-            purchaseFlow || {
-                ...createDefaultFlow("unknown")
-            };
+    let flow =
+        purchaseFlow;
 
 
-        /*
-        -------------------------------------------------
-        Convert history into readable conversation.
-        -------------------------------------------------
-        */
+    /*
+    -----------------------------------------------------
+    CREATE FLOW
+    -----------------------------------------------------
+    */
 
-        const conversationHistory =
-            Array.isArray(history)
+    if (!flow) {
 
-                ? history
-                    .slice(-12)
-                    .map(item => ({
-                        role:
-                            item.role === "assistant"
-                                ? "assistant"
-                                : "user",
+        flow =
+            createDefaultFlow(
+                "unknown"
+            );
 
-                        content:
-                            item.content || ""
-                    }))
-
-                : [];
+    }
 
 
-        /*
-        -------------------------------------------------
-        Purchase state is explicitly supplied to LLM.
-        -------------------------------------------------
-        */
+    /*
+    -----------------------------------------------------
+    CONVERSATION HISTORY
+    -----------------------------------------------------
+    */
 
-        const purchaseState = {
+    const conversationHistory =
+        Array.isArray(history)
 
-            stage:
-                flow.stage || "DISCOVERY",
+            ? history
+                .slice(-12)
+                .map(item => ({
 
-            insuranceType:
-                flow.insuranceType || "UNKNOWN",
+                    role:
+                        item.role === "assistant"
+                            ? "assistant"
+                            : "user",
 
-            productType:
-                flow.productType || "UNKNOWN",
+                    content:
+                        item.content || ""
 
-            plan:
-                flow.plan || "UNKNOWN",
+                }))
 
-            collectedData:
-                flow.collectedData || {},
-
-            missingInformation:
-                flow.missingInformation || []
-        };
+            : [];
 
 
-        const systemPrompt =
-            buildPurchaseSystemPrompt(language);
+    /*
+    -----------------------------------------------------
+    CURRENT STATE
+    -----------------------------------------------------
+    */
+
+    const purchaseState = {
+
+        insuranceType:
+            flow.insuranceType || "UNKNOWN",
+
+        productType:
+            flow.productType || "UNKNOWN",
+
+        plan:
+            flow.plan || "UNKNOWN",
+
+        collectedData:
+            flow.collectedData || {}
+
+    };
 
 
-        const messages = [
+    /*
+    -----------------------------------------------------
+    SYSTEM PROMPT
+    -----------------------------------------------------
+    */
 
-            {
-                role: "system",
+    const systemPrompt =
+        buildPurchaseSystemPrompt(
+            language
+        );
 
-                content: systemPrompt
-            },
+
+    /*
+    -----------------------------------------------------
+    LLM MESSAGES
+    -----------------------------------------------------
+    */
+
+    const messages = [
+
+        {
+
+            role: "system",
+
+            content:
+                systemPrompt
+
+        },
 
 
-            {
-                role: "system",
+        {
 
-                content: `
-CURRENT PURCHASE FLOW STATE:
+            role: "system",
+
+            content: `
+CURRENT PURCHASE STATE:
 
 ${JSON.stringify(
     purchaseState,
@@ -1113,323 +1729,289 @@ ${JSON.stringify(
     2
 )}
 
-Remember:
+The current state is authoritative.
 
-The customer may be continuing an existing purchase
-conversation.
+Extract only NEW information from the user's latest
+message.
 
-Do NOT restart the conversation.
-
-Do NOT ask for information that already exists above.
+Do not remove existing information.
 `
-            },
+
+        },
 
 
-            ...conversationHistory,
+        ...conversationHistory,
 
 
-            {
-                role: "user",
+        {
 
-                content: message
-            }
+            role: "user",
 
-        ];
+            content:
+                message
 
+        }
 
-        console.log(
-            "\n========== PURCHASE STATE =========="
-        );
-
-        console.log(
-            JSON.stringify(
-                purchaseState,
-                null,
-                2
-            )
-        );
+    ];
 
 
-        /*
-        -------------------------------------------------
-        CALL LLM
-        -------------------------------------------------
-        */
+    /*
+    -----------------------------------------------------
+    CALL PURCHASE LLM
+    -----------------------------------------------------
+    */
+
+    let extraction;
+
+
+    try {
 
         const rawResponse =
-            await callPurchaseLLM(messages);
+            await callPurchaseLLM(
+                messages
+            );
 
 
         console.log(
-            "\n========== RAW PURCHASE DECISION =========="
+            "\n========== PURCHASE LLM =========="
         );
 
-        console.log(rawResponse);
-
-
-        /*
-        -------------------------------------------------
-        CLEAN JSON
-        -------------------------------------------------
-        */
-
-        let cleanResponse =
+        console.log(
             rawResponse
-                .replace(/```json/gi, "")
-                .replace(/```/g, "")
-                .trim();
+        );
 
 
-        /*
-        -------------------------------------------------
-        Sometimes LLM returns extra text before/after JSON.
-        Try to isolate JSON.
-        -------------------------------------------------
-        */
-
-        const firstBrace =
-            cleanResponse.indexOf("{");
-
-        const lastBrace =
-            cleanResponse.lastIndexOf("}");
+        const parsed =
+            parseLLMJson(
+                rawResponse
+            );
 
 
-        if (
-            firstBrace !== -1 &&
-            lastBrace !== -1
-        ) {
-
-            cleanResponse =
-                cleanResponse.substring(
-                    firstBrace,
-                    lastBrace + 1
-                );
-
-        }
-
-
-        const parsedDecision =
-            JSON.parse(cleanResponse);
-
-
-        /*
-        -------------------------------------------------
-        NORMALIZE
-        -------------------------------------------------
-        */
-
-        const decision =
-            normalizeDecision(
-                parsedDecision,
+        extraction =
+            normalizeExtraction(
+                parsed,
                 message
             );
-
-
-        /*
-        -------------------------------------------------
-        PRESERVE EXISTING STATE
-        -------------------------------------------------
-
-        LLM should never accidentally erase information.
-        -------------------------------------------------
-        */
-
-        if (
-            decision.insuranceType === "UNKNOWN" &&
-            flow.insuranceType
-        ) {
-
-            decision.insuranceType =
-                flow.insuranceType;
-
-        }
-
-
-        if (
-            decision.productType === "UNKNOWN" &&
-            flow.productType
-        ) {
-
-            decision.productType =
-                flow.productType;
-
-        }
-
-
-        if (
-            decision.plan === "UNKNOWN" &&
-            flow.plan
-        ) {
-
-            decision.plan =
-                flow.plan;
-
-        }
-
-
-        decision.extractedData = {
-
-            ...(flow.collectedData || {}),
-
-            ...(decision.extractedData || {})
-
-        };
-
-
-        /*
-        -------------------------------------------------
-        SPECIAL CONTINUITY PROTECTION
-        -------------------------------------------------
-
-        If the user says "proceed", "continue", etc.,
-        and the flow already knows the insurance type,
-        do not reset to DISCOVERY.
-        -------------------------------------------------
-        */
-
-        const continuationMessage =
-            message
-                .toLowerCase()
-                .trim();
-
-
-        const continuationWords = [
-            "yes",
-            "okay",
-            "ok",
-            "sure",
-            "continue",
-            "proceed",
-            "go ahead",
-            "i am ready",
-            "i'm ready",
-            "ready to proceed",
-            "let's continue",
-            "lets continue"
-        ];
-
-
-        const isContinuation =
-            continuationWords.includes(
-                continuationMessage
-            );
-
-
-        if (
-            isContinuation &&
-            flow.insuranceType &&
-            flow.insuranceType !== "UNKNOWN"
-        ) {
-
-            decision.insuranceType =
-                flow.insuranceType;
-
-
-            if (
-                flow.productType &&
-                flow.productType !== "UNKNOWN"
-            ) {
-
-                decision.productType =
-                    flow.productType;
-
-            }
-
-
-            decision.extractedData = {
-
-                ...(flow.collectedData || {}),
-
-                ...(decision.extractedData || {})
-
-            };
-
-
-            /*
-            Do not allow a continuation message to
-            accidentally reset an existing stage.
-            */
-
-            if (
-                decision.stage === "DISCOVERY" ||
-                decision.stage === "TYPE_IDENTIFICATION"
-            ) {
-
-                decision.stage =
-                    flow.stage;
-            }
-
-        }
-
-
-        /*
-        -------------------------------------------------
-        FALLBACK REPLY
-        -------------------------------------------------
-        */
-
-        if (!decision.reply) {
-
-            decision.reply =
-                language === "ar"
-
-                    ? "بالتأكيد، دعنا نتابع من حيث توقفنا."
-
-                    : "Absolutely, let's continue from where we left off.";
-
-        }
-
-
-        /*
-        -------------------------------------------------
-        FINAL DECISION LOG
-        -------------------------------------------------
-        */
-
-        console.log(
-            "\n========== NORMALIZED PURCHASE DECISION =========="
-        );
-
-        console.log(
-            JSON.stringify(
-                decision,
-                null,
-                2
-            )
-        );
-
-
-        return decision;
 
     }
 
     catch (error) {
 
         console.error(
-            "\nPurchase Decision Error:",
+            "\nPurchase LLM Error:",
             error.message
         );
 
 
-        /*
-        -------------------------------------------------
-        IMPORTANT:
-        Never destroy the existing purchase state because
-        the LLM failed.
-        -------------------------------------------------
-        */
+        extraction =
+            fallbackExtraction(
+                message,
+                flow,
+                language
+            );
 
-        const safeFlow =
-            purchaseFlow || createDefaultFlow("unknown");
+    }
 
 
-        return fallbackDecision(
-            message,
-            safeFlow,
+    /*
+    =====================================================
+    UPDATE STATE WITH EXTRACTED INFORMATION
+    =====================================================
+    */
+
+    flow =
+        updatePurchaseFlow(
+
+            flow.userId,
+
+            {
+
+                insuranceType:
+                    extraction.insuranceType,
+
+                productType:
+                    extraction.productType,
+
+                plan:
+                    extraction.plan,
+
+                extractedData:
+                    extraction.extractedData,
+
+                lastUserMessage:
+                    message
+
+            }
+
+        );
+
+
+    /*
+    =====================================================
+    BACKEND VALIDATION
+    =====================================================
+    */
+
+    const validation =
+        validatePurchaseFlow(
+            flow
+        );
+
+
+    console.log(
+        "\n========== BACKEND VALIDATION =========="
+    );
+
+    console.log(
+        JSON.stringify(
+            validation,
+            null,
+            2
+        )
+    );
+
+
+    /*
+    =====================================================
+    DETERMINE NEXT STAGE
+    =====================================================
+    */
+
+    const next =
+        determineNextStage(
+            flow
+        );
+
+
+    /*
+    =====================================================
+    UPDATE STAGE
+    =====================================================
+    */
+
+    flow =
+        updatePurchaseFlow(
+
+            flow.userId,
+
+            {
+
+                stage:
+                    next.stage,
+
+                missingInformation:
+                    next.missingInformation,
+
+                lastUserMessage:
+                    message
+
+            }
+
+        );
+
+
+    /*
+    =====================================================
+    READY FOR QUOTE
+    =====================================================
+    */
+
+    if (
+        next.stage ===
+        "READY_FOR_QUOTE"
+    ) {
+
+        return {
+
+            stage:
+                "READY_FOR_QUOTE",
+
+            insuranceType:
+                flow.insuranceType,
+
+            productType:
+                flow.productType,
+
+            plan:
+                flow.plan || "UNKNOWN",
+
+            extractedData:
+                flow.collectedData,
+
+            missingInformation: [],
+
+            needsClarification:
+                false,
+
+            readyForQuote:
+                true,
+
+            reply:
+                "Your information is complete. I can now generate your quote.",
+
+            lastUserMessage:
+                message
+
+        };
+
+    }
+
+
+    /*
+    =====================================================
+    ASK NEXT REQUIRED QUESTION
+    =====================================================
+    */
+
+    const nextQuestion =
+        generateNextQuestion(
+            flow,
             language
         );
 
-    }
+
+    /*
+    =====================================================
+    RETURN FINAL DECISION
+    =====================================================
+    */
+
+    return {
+
+        stage:
+            flow.stage,
+
+        insuranceType:
+            flow.insuranceType ||
+            "UNKNOWN",
+
+        productType:
+            flow.productType ||
+            "UNKNOWN",
+
+        plan:
+            flow.plan ||
+            "UNKNOWN",
+
+        extractedData:
+            flow.collectedData || {},
+
+        missingInformation:
+            flow.missingInformation || [],
+
+        needsClarification:
+            true,
+
+        readyForQuote:
+            false,
+
+        reply:
+            nextQuestion,
+
+        lastUserMessage:
+            message
+
+    };
 
 }
 

@@ -1,33 +1,3 @@
-/*
-=========================================================
-CHAT CONTROLLER
-=========================================================
-
-Responsibilities:
-
-1. Handle normal insurance conversations.
-2. Detect intent.
-3. Handle protected intents.
-4. Handle OUT_OF_SCOPE.
-5. Start purchase flow ONLY when the customer genuinely
-   wants to purchase insurance.
-6. Continue an existing purchase flow regardless of the
-   latest intent classification.
-7. Extract important purchase information deterministically
-   when possible.
-8. Use purchaseFlowService for conversational intelligence.
-9. Use Oracle service for quote / option / payment / policy.
-10. Support English + Arabic.
-=========================================================
-*/
-
-
-/*
-=========================================================
-IMPORTS
-=========================================================
-*/
-
 const {
     getVehicle,
     getProducts,
@@ -40,21 +10,9 @@ const {
     convertQuote
 } = require("../services/oracleservice");
 
-
-const {
-    askAI
-} = require("../services/huggingFaceService");
-
-
-const {
-    detectIntent
-} = require("../services/intentservice");
-
-
-const {
-    retrieveRelevantChunks
-} = require("../services/ragService");
-
+const { askAI } = require("../services/huggingFaceService");
+const { detectIntent } = require("../services/intentservice");
+const { retrieveRelevantChunks } = require("../services/ragService");
 
 const {
     getHistory,
@@ -62,17 +20,7 @@ const {
     clearHistory
 } = require("../services/conversationservice");
 
-
-const {
-    saveMessage
-} = require("../services/historyService");
-
-
-/*
-=========================================================
-PURCHASE FLOW SERVICE
-=========================================================
-*/
+const { saveMessage } = require("../services/historyService");
 
 const {
     startPurchaseFlow,
@@ -83,11 +31,7 @@ const {
 } = require("../services/purchaseFlowService");
 
 
-/*
-=========================================================
-PROTECTED INTENTS
-=========================================================
-*/
+// Protected intents
 
 const PROTECTED_INTENTS = [
     "POLICY",
@@ -99,1343 +43,453 @@ const PROTECTED_INTENTS = [
 ];
 
 
-/*
-=========================================================
-OUT OF SCOPE
-=========================================================
-*/
+// General responses
 
 const OUT_OF_SCOPE_REPLIES = {
-
-    en:
-        "I am ABC Insurance's virtual assistant and can only assist with insurance-related queries.",
-
-    ar:
-        "أنا المساعد الافتراضي لشركة ABC للتأمين، ويمكنني فقط مساعدتك في الاستفسارات المتعلقة بالتأمين."
-
+    en: "I am ABC Insurance's virtual assistant and can only assist with insurance-related queries.",
+    ar: "أنا المساعد الافتراضي لشركة ABC للتأمين، ويمكنني فقط مساعدتك في الاستفسارات المتعلقة بالتأمين."
 };
-
-
-/*
-=========================================================
-TEXT
-=========================================================
-*/
 
 const TEXT = {
-
     en: {
-
-        greeting:
-            "👋 Hello! Welcome to ABC Insurance.\nHow can I assist you today?",
-
-        thanks:
-            "You're welcome! 😊",
-
-        goodbye:
-            "Thank you for choosing ABC Insurance. Have a wonderful day! 👋",
-
-        help:
-            "I can help you with:\n• Policy Details\n• Claim Status\n• Renewals\n• Premiums\n• Claim Documents",
-
-        login:
-            "I'd be happy to help with your personal insurance information. Please log in to continue.",
-
-        loginPurchase:
-            "Please log in before we continue with your insurance purchase.",
-
-        quoteMissing:
-            "I have the information so far, but I still need a few details before I can generate your quote.",
-
-        vehicleNotFound:
-            "I couldn't find a vehicle matching those registration details. Please check the plate number and plate code.",
-
-        productNotFound:
-            "I couldn't find the requested insurance product in our available products.",
-
-        quoteCreated:
-            "Great! Your quote has been generated. Here are the available options.",
-
-        optionSelected:
-            "Great! Your insurance option has been selected.",
-
-        paymentSuccess:
-            "Your payment has been completed successfully.",
-
-        policyCreated:
-            "Your policy has been created successfully."
-
+        greeting: "👋 Hello! Welcome to ABC Insurance.\nHow can I assist you today?",
+        thanks: "You're welcome! 😊",
+        goodbye: "Thank you for choosing ABC Insurance. Have a wonderful day! 👋",
+        help: "I can help you with:\n• Policy Details\n• Claim Status\n• Renewals\n• Premiums\n• Claim Documents",
+        login: "I'd be happy to help with your personal insurance information. Please log in to continue.",
+        loginPurchase: "Please log in before we continue with your insurance purchase.",
+        quoteMissing: "I still need a few details before I can generate your quote.",
+        vehicleNotFound: "I couldn't find a vehicle matching those registration details. Please check the plate number and plate code.",
+        productNotFound: "I couldn't find the requested insurance product in our available products.",
+        quoteCreated: "Great! Your quote has been generated. Here are the available options."
     },
 
-
     ar: {
-
-        greeting:
-            "👋 مرحباً! أهلاً بك في تأمين ABC.\nكيف يمكنني مساعدتك اليوم؟",
-
-        thanks:
-            "على الرحب والسعة! 😊",
-
-        goodbye:
-            "شكراً لاختيارك تأمين ABC. نتمنى لك يوماً رائعاً! 👋",
-
-        help:
-            "يمكنني مساعدتك في:\n• تفاصيل الوثيقة\n• حالة المطالبة\n• تجديد الوثيقة\n• الأقساط\n• مستندات المطالبة",
-
-        login:
-            "سأكون سعيدًا بمساعدتك بمعلومات التأمين الشخصي الخاصة بك. الرجاء تسجيل الدخول للمتابعة.",
-
-        loginPurchase:
-            "يرجى تسجيل الدخول قبل متابعة شراء التأمين.",
-
-        quoteMissing:
-            "لديّ المعلومات التي قدمتها حتى الآن، ولكن ما زلت بحاجة إلى بعض التفاصيل قبل إنشاء عرض السعر.",
-
-        vehicleNotFound:
-            "لم أتمكن من العثور على مركبة تطابق بيانات التسجيل. يرجى التحقق من رقم اللوحة ورمز اللوحة.",
-
-        productNotFound:
-            "لم أتمكن من العثور على منتج التأمين المطلوب ضمن المنتجات المتاحة.",
-
-        quoteCreated:
-            "ممتاز! تم إنشاء عرض السعر الخاص بك. إليك الخيارات المتاحة.",
-
-        optionSelected:
-            "ممتاز! تم اختيار خيار التأمين الخاص بك.",
-
-        paymentSuccess:
-            "تمت عملية الدفع بنجاح.",
-
-        policyCreated:
-            "تم إنشاء وثيقة التأمين الخاصة بك بنجاح."
-
+        greeting: "👋 مرحباً! أهلاً بك في تأمين ABC.\nكيف يمكنني مساعدتك اليوم؟",
+        thanks: "على الرحب والسعة! 😊",
+        goodbye: "شكراً لاختيارك تأمين ABC. نتمنى لك يوماً رائعاً! 👋",
+        help: "يمكنني مساعدتك في:\n• تفاصيل الوثيقة\n• حالة المطالبة\n• تجديد الوثيقة\n• الأقساط\n• مستندات المطالبة",
+        login: "سأكون سعيدًا بمساعدتك بمعلومات التأمين الشخصي الخاصة بك. الرجاء تسجيل الدخول للمتابعة.",
+        loginPurchase: "يرجى تسجيل الدخول قبل متابعة شراء التأمين.",
+        quoteMissing: "ما زلت بحاجة إلى بعض التفاصيل قبل إنشاء عرض السعر الخاص بك.",
+        vehicleNotFound: "لم أتمكن من العثور على مركبة تطابق بيانات التسجيل. يرجى التحقق من رقم اللوحة ورمز اللوحة.",
+        productNotFound: "لم أتمكن من العثور على منتج التأمين المطلوب ضمن المنتجات المتاحة.",
+        quoteCreated: "ممتاز! تم إنشاء عرض السعر الخاص بك. إليك الخيارات المتاحة."
     }
-
 };
 
 
-/*
-=========================================================
-LANGUAGE
-=========================================================
-*/
-
 function getLanguage(language) {
-
-    return language === "ar"
-        ? "ar"
-        : "en";
-
+    return language === "ar" ? "ar" : "en";
 }
 
-
-/*
-=========================================================
-PURCHASE REPLY
-=========================================================
-*/
 
 function purchaseReply(language, en, ar) {
-
-    return language === "ar"
-        ? ar
-        : en;
-
+    return language === "ar" ? ar : en;
 }
 
-
-/*
-=========================================================
-GENERATE QUOTE NUMBER
-=========================================================
-*/
 
 function generateQuoteNumber() {
-
-    const timestamp =
-        Date.now().toString();
-
-    const random =
-        Math.floor(
-            1000 + Math.random() * 9000
-        );
-
-    return `Q-${timestamp}-${random}`;
+    return `Q-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
-
-/*
-=========================================================
-GENERATE POLICY NUMBER
-=========================================================
-*/
 
 function generatePolicyNumber() {
-
-    const timestamp =
-        Date.now().toString();
-
-    const random =
-        Math.floor(
-            1000 + Math.random() * 9000
-        );
-
-    return `POL-${timestamp}-${random}`;
+    return `POL-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
 }
 
 
-/*
-=========================================================
-NORMALIZE PRODUCT TYPE
-=========================================================
-*/
-
 function normalizeProductType(productType) {
+    if (!productType) return null;
 
-    if (!productType) {
-
-        return null;
-
-    }
-
-
-    const value =
-        String(productType)
-            .trim()
-            .toUpperCase()
-            .replace(/-/g, "_");
-
+    const value = String(productType).trim().toUpperCase();
 
     if (
         value === "THIRD_PARTY" ||
-        value === "THIRD PARTY" ||
-        value === "THIRDPARTY"
+        value === "THIRD PARTY"
     ) {
-
         return "THIRD_PARTY";
-
     }
-
 
     if (
         value === "COMPREHENSIVE" ||
         value === "FULL_COVERAGE" ||
-        value === "FULL COVERAGE" ||
-        value === "FULLCOVERAGE"
+        value === "FULL COVERAGE"
     ) {
-
         return "COMPREHENSIVE";
-
     }
-
 
     return value;
 }
 
 
-/*
-=========================================================
-DETERMINE PURCHASE INTENT
-=========================================================
+// Backend decides what information is actually missing.
 
-IMPORTANT:
-
-We do NOT put every insurance-related message into the
-purchase flow.
-
-The purchase flow should start when:
-
-A. detectIntent() says BUY_POLICY
-
-OR
-
-B. The message contains a strong purchase request.
-
-Examples:
-
-"I want to buy insurance"
-"I want insurance for my car"
-"I need motor insurance"
-"I want to insure my vehicle"
-"I would like to purchase a policy"
-
-But:
-
-"What is comprehensive insurance?"
-
-should remain normal insurance conversation.
-=========================================================
-*/
-
-function isStrongPurchaseMessage(message) {
-
-    const text =
-        String(message || "")
-            .trim()
-            .toLowerCase();
-
-
-    if (!text) {
-
-        return false;
-
-    }
-
-
-    const purchasePatterns = [
-
-        /\bi want to buy\b/,
-        /\bi want insurance\b/,
-        /\bi need insurance\b/,
-        /\bi need .* insurance\b/,
-        /\bi want .* insurance\b/,
-        /\bi would like to buy\b/,
-        /\bi would like .* insurance\b/,
-        /\bi'd like to buy\b/,
-        /\bi'd like .* insurance\b/,
-        /\bi want to insure\b/,
-        /\bi need to insure\b/,
-        /\bi would like to insure\b/,
-        /\bi want to purchase\b/,
-        /\bi need to purchase\b/,
-        /\bi am buying insurance\b/,
-        /\bi'm buying insurance\b/,
-        /\bget me insurance\b/,
-        /\bget insurance for\b/,
-        /\binsure my car\b/,
-        /\binsure my vehicle\b/,
-        /\bbuy a policy\b/,
-        /\bpurchase a policy\b/
-
-    ];
-
-
-    return purchasePatterns.some(
-        pattern => pattern.test(text)
-    );
-}
-
-
-/*
-=========================================================
-PURCHASE PRODUCT EXTRACTION
-=========================================================
-
-This is the important fix for:
-
-"I want third party."
-
-The LLM is no longer the ONLY source of truth.
-
-We deterministically recognize the product type.
-=========================================================
-*/
-
-function extractPurchaseHints(message, existingFlow = null) {
-
-    const text =
-        String(message || "")
-            .trim()
-            .toLowerCase();
-
-
-    const hints = {};
-
-
-    /*
-    -----------------------------------------------------
-    MOTOR
-    -----------------------------------------------------
-    */
-
-    if (
-        /\bmotor\b/.test(text) ||
-        /\bcar insurance\b/.test(text) ||
-        /\bvehicle insurance\b/.test(text) ||
-        /\bmy car\b/.test(text) ||
-        /\bmy vehicle\b/.test(text)
-    ) {
-
-        hints.insuranceType = "MOTOR";
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    THIRD PARTY
-    -----------------------------------------------------
-    */
-
-    if (
-        /\bthird[\s-]?party\b/.test(text) ||
-        /\bthirdparty\b/.test(text) ||
-        /\blegal liability\b/.test(text)
-    ) {
-
-        hints.productType = "THIRD_PARTY";
-
-
-        /*
-        If we are already inside a motor purchase flow,
-        third party automatically belongs to MOTOR.
-        */
-
-        if (
-            existingFlow &&
-            existingFlow.insuranceType === "MOTOR"
-        ) {
-
-            hints.insuranceType = "MOTOR";
-
-        }
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    COMPREHENSIVE
-    -----------------------------------------------------
-    */
-
-    if (
-        /\bcomprehensive\b/.test(text) ||
-        /\bfull coverage\b/.test(text) ||
-        /\bfull cover\b/.test(text) ||
-        /\bcomplete coverage\b/.test(text)
-    ) {
-
-        hints.productType = "COMPREHENSIVE";
-
-
-        if (
-            existingFlow &&
-            existingFlow.insuranceType === "MOTOR"
-        ) {
-
-            hints.insuranceType = "MOTOR";
-
-        }
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    PLATE NUMBER
-    -----------------------------------------------------
-    */
-
-    const plateNumberMatch =
-        text.match(
-            /\b(?:plate\s*(?:number|no)?|registration\s*(?:number|no)?|reg(?:istration)?)\s*[:#-]?\s*([a-z0-9]+)\b/i
-        );
-
-
-    if (plateNumberMatch) {
-
-        hints.plateNumber =
-            plateNumberMatch[1];
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    PLATE CODE
-    -----------------------------------------------------
-    */
-
-    const plateCodeMatch =
-        text.match(
-            /\bplate\s*code\s*[:#-]?\s*([a-z0-9]+)\b/i
-        );
-
-
-    if (plateCodeMatch) {
-
-        hints.plateCode =
-            plateCodeMatch[1];
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    VEHICLE YEAR
-    -----------------------------------------------------
-    */
-
-    const yearMatch =
-        text.match(
-            /\b(19|20)\d{2}\b/
-        );
-
-
-    if (yearMatch) {
-
-        hints.vehicleYear =
-            yearMatch[0];
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    VEHICLE MAKE / MODEL
-    -----------------------------------------------------
-
-    We intentionally do not guess make/model from arbitrary
-    text. The purchase LLM can extract those.
-    -----------------------------------------------------
-    */
-
-
-    return hints;
-}
-
-
-/*
-=========================================================
-APPLY PURCHASE HINTS
-=========================================================
-*/
-
-function applyPurchaseHints(
-    decision,
-    message,
-    existingFlow
-) {
-
-    const hints =
-        extractPurchaseHints(
-            message,
-            existingFlow
-        );
-
-
-    /*
-    -----------------------------------------------------
-    INSURANCE TYPE
-    -----------------------------------------------------
-    */
-
-    if (
-        hints.insuranceType &&
-        (
-            !decision.insuranceType ||
-            decision.insuranceType === "UNKNOWN"
-        )
-    ) {
-
-        decision.insuranceType =
-            hints.insuranceType;
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    PRODUCT TYPE
-    -----------------------------------------------------
-    */
-
-    if (
-        hints.productType &&
-        (
-            !decision.productType ||
-            decision.productType === "UNKNOWN"
-        )
-    ) {
-
-        decision.productType =
-            hints.productType;
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    EXTRACTED DATA
-    -----------------------------------------------------
-    */
-
-    decision.extractedData = {
-
-        ...(existingFlow?.collectedData || {}),
-
-        ...(decision.extractedData || {}),
-
-        ...hints
-
-    };
-
-
-    /*
-    -----------------------------------------------------
-    PRESERVE EXISTING INSURANCE TYPE
-    -----------------------------------------------------
-    */
-
-    if (
-        (
-            !decision.insuranceType ||
-            decision.insuranceType === "UNKNOWN"
-        ) &&
-        existingFlow?.insuranceType &&
-        existingFlow.insuranceType !== "UNKNOWN"
-    ) {
-
-        decision.insuranceType =
-            existingFlow.insuranceType;
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    PRESERVE EXISTING PRODUCT
-    -----------------------------------------------------
-    */
-
-    if (
-        (
-            !decision.productType ||
-            decision.productType === "UNKNOWN"
-        ) &&
-        existingFlow?.productType &&
-        existingFlow.productType !== "UNKNOWN"
-    ) {
-
-        decision.productType =
-            existingFlow.productType;
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    PRESERVE PLAN
-    -----------------------------------------------------
-    */
-
-    if (
-        (
-            !decision.plan ||
-            decision.plan === "UNKNOWN"
-        ) &&
-        existingFlow?.plan &&
-        existingFlow.plan !== "UNKNOWN"
-    ) {
-
-        decision.plan =
-            existingFlow.plan;
-
-    }
-
-
-    return decision;
-}
-
-
-/*
-=========================================================
-RESOLVE PURCHASE STAGE
-=========================================================
-
-The LLM can suggest a stage, but critical flow stages
-are resolved using actual collected data.
-
-This prevents:
-
-insuranceType = MOTOR
-productType = THIRD_PARTY
-
-from incorrectly remaining at:
-
-TYPE_IDENTIFICATION
-=========================================================
-*/
-
-function resolvePurchaseStage(
-    decision,
-    flow,
-    customerId
-) {
-
-    const insuranceType =
-        decision.insuranceType ||
-        flow.insuranceType ||
-        "UNKNOWN";
-
-
-    const productType =
-        decision.productType ||
-        flow.productType ||
-        "UNKNOWN";
-
-
-    const data = {
-
-        ...(flow.collectedData || {}),
-
-        ...(decision.extractedData || {})
-
-    };
-
-
-    /*
-    -----------------------------------------------------
-    NO INSURANCE TYPE
-    -----------------------------------------------------
-    */
-
-    if (
-        insuranceType === "UNKNOWN"
-    ) {
-
-        return (
-            decision.stage === "DISCOVERY"
-                ? "DISCOVERY"
-                : "TYPE_IDENTIFICATION"
-        );
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    MOTOR BUT NO PRODUCT
-    -----------------------------------------------------
-    */
-
-    if (
-        insuranceType === "MOTOR" &&
-        productType === "UNKNOWN"
-    ) {
-
-        return "PRODUCT_IDENTIFICATION";
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    MOTOR + PRODUCT BUT NO VEHICLE DETAILS
-    -----------------------------------------------------
-    */
-
-    if (
-        insuranceType === "MOTOR" &&
-        productType !== "UNKNOWN"
-    ) {
-
-        const hasPlateNumber =
-            Boolean(
-                data.plateNumber ||
-                data.registrationNumber
-            );
-
-
-        const hasPlateCode =
-            Boolean(
-                data.plateCode
-            );
-
-
-        if (
-            !hasPlateNumber ||
-            !hasPlateCode
-        ) {
-
-            return "VEHICLE_DETAILS";
-
-        }
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    QUOTE DATA
-    -----------------------------------------------------
-    */
-
-    if (
-        customerId &&
-        insuranceType &&
-        insuranceType !== "UNKNOWN" &&
-        productType &&
-        productType !== "UNKNOWN"
-    ) {
-
-        if (
-            data.coverFrom &&
-            data.coverTo
-        ) {
-
-            return "READY_FOR_QUOTE";
-
-        }
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    KEEP LLM STAGE IF VALID
-    -----------------------------------------------------
-    */
-
-    return (
-        decision.stage ||
-        flow.stage ||
-        "DISCOVERY"
-    );
-}
-
-
-/*
-=========================================================
-VALIDATE QUOTE DATA
-=========================================================
-*/
-
-function validateQuoteData(
-    flow,
-    customerId
-) {
-
-    const data =
-        flow.collectedData || {};
-
+function getPurchaseRequirements(flow) {
+    const data = flow.collectedData || {};
     const missing = [];
 
-
-    /*
-    CUSTOMER
-    */
-
-    if (!customerId) {
-
-        missing.push("customerId");
-
-    }
-
-
-    /*
-    INSURANCE TYPE
-    */
-
-    if (
-        !flow.insuranceType ||
-        flow.insuranceType === "UNKNOWN"
-    ) {
-
+    if (!flow.insuranceType) {
         missing.push("insuranceType");
-
+        return missing;
     }
 
-
-    /*
-    PRODUCT TYPE
-    */
-
     if (
-        !flow.productType ||
-        flow.productType === "UNKNOWN"
+        flow.insuranceType === "MOTOR" &&
+        !flow.productType
     ) {
-
         missing.push("productType");
-
+        return missing;
     }
 
+    if (flow.insuranceType === "MOTOR") {
+        if (!data.plateNumber && !data.registrationNumber) {
+            missing.push("plateNumber");
+        }
 
-    /*
-    MOTOR
-    */
+        if (!data.plateCode) {
+            missing.push("plateCode");
+        }
+    }
+
+    if (!data.coverFrom) {
+        missing.push("coverFrom");
+    }
+
+    if (!data.coverTo) {
+        missing.push("coverTo");
+    }
+
+    return missing;
+}
+
+
+// Backend determines the purchase stage.
+
+function determinePurchaseStage(flow) {
+    const missing = getPurchaseRequirements(flow);
+
+    if (missing.includes("insuranceType")) {
+        return "TYPE_IDENTIFICATION";
+    }
+
+    if (missing.includes("productType")) {
+        return "PRODUCT_IDENTIFICATION";
+    }
 
     if (
+        missing.includes("plateNumber") ||
+        missing.includes("plateCode")
+    ) {
+        return "VEHICLE_DETAILS";
+    }
+
+    if (
+        missing.includes("coverFrom") ||
+        missing.includes("coverTo")
+    ) {
+        return "DATES";
+    }
+
+    return "READY_FOR_QUOTE";
+}
+
+
+// Build the next purchase question.
+
+function buildPurchaseReply(flow, stage, language) {
+    const data = flow.collectedData || {};
+
+    if (stage === "TYPE_IDENTIFICATION") {
+        return purchaseReply(
+            language,
+            "What would you like to insure: your car, health, travel, or life?",
+            "ما الذي ترغب في تأمينه: السيارة أم الصحة أم السفر أم الحياة؟"
+        );
+    }
+
+    if (
+        stage === "PRODUCT_IDENTIFICATION" &&
         flow.insuranceType === "MOTOR"
     ) {
+        return purchaseReply(
+            language,
+            "For your car insurance, would you prefer third-party or comprehensive coverage?",
+            "بالنسبة لتأمين سيارتك، هل تفضل تغطية الطرف الثالث أم التغطية الشاملة؟"
+        );
+    }
 
+    if (stage === "VEHICLE_DETAILS") {
         if (
             !data.plateNumber &&
             !data.registrationNumber
         ) {
-
-            missing.push("plateNumber");
-
+            return purchaseReply(
+                language,
+                "Please provide your vehicle plate number.",
+                "يرجى تزويدي برقم لوحة المركبة."
+            );
         }
-
 
         if (!data.plateCode) {
+            return purchaseReply(
+                language,
+                "Please provide your vehicle plate code.",
+                "يرجى تزويدي برمز لوحة المركبة."
+            );
+        }
+    }
 
-            missing.push("plateCode");
-
+    if (stage === "DATES") {
+        if (!data.coverFrom) {
+            return purchaseReply(
+                language,
+                "What date would you like your insurance coverage to start?",
+                "ما التاريخ الذي ترغب أن تبدأ فيه التغطية التأمينية؟"
+            );
         }
 
+        if (!data.coverTo) {
+            return purchaseReply(
+                language,
+                "What date should your insurance coverage end?",
+                "ما التاريخ الذي ترغب أن تنتهي فيه التغطية التأمينية؟"
+            );
+        }
     }
 
+    return purchaseReply(
+        language,
+        "I have the required information. I can now prepare your quote.",
+        "لدي الآن المعلومات المطلوبة ويمكنني إعداد عرض السعر الخاص بك."
+    );
+}
 
-    /*
-    COVER DATES
-    */
+
+// Find product from Oracle.
+
+async function findProduct(productType) {
+    const products = await getProducts();
+
+    if (!Array.isArray(products) || products.length === 0) {
+        return null;
+    }
+
+    const normalized = normalizeProductType(productType);
+
+    return products.find(product => {
+        const dbType =
+            normalizeProductType(product.PRODUCT_TYPE);
+
+        const dbName = product.PRODUCT_NAME
+            ? String(product.PRODUCT_NAME).toUpperCase()
+            : "";
+
+        return (
+            dbType === normalized ||
+            dbName.includes(normalized)
+        );
+    }) || null;
+}
+
+
+// Validate quote data.
+
+function validateQuoteData(flow, customerId) {
+    const data = flow.collectedData || {};
+    const missing = [];
+
+    if (!customerId) {
+        missing.push("customerId");
+    }
+
+    if (!flow.insuranceType) {
+        missing.push("insuranceType");
+    }
+
+    if (!flow.productType) {
+        missing.push("productType");
+    }
+
+    if (flow.insuranceType === "MOTOR") {
+        if (!data.plateNumber && !data.registrationNumber) {
+            missing.push("plateNumber");
+        }
+
+        if (!data.plateCode) {
+            missing.push("plateCode");
+        }
+    }
 
     if (!data.coverFrom) {
-
         missing.push("coverFrom");
-
     }
-
 
     if (!data.coverTo) {
-
         missing.push("coverTo");
-
     }
 
-
     return {
-
-        valid:
-            missing.length === 0,
-
+        valid: missing.length === 0,
         missing
-
     };
 }
 
 
-/*
-=========================================================
-FIND PRODUCT
-=========================================================
-*/
-
-async function findProduct(productType) {
-
-    const products =
-        await getProducts();
-
-
-    if (
-        !Array.isArray(products) ||
-        products.length === 0
-    ) {
-
-        return null;
-
-    }
-
-
-    const normalized =
-        normalizeProductType(
-            productType
-        );
-
-
-    if (!normalized) {
-
-        return null;
-
-    }
-
-
-    return products.find(
-        product => {
-
-            const dbProductType =
-                normalizeProductType(
-                    product.PRODUCT_TYPE
-                );
-
-
-            const dbProductName =
-                product.PRODUCT_NAME
-                    ? String(
-                        product.PRODUCT_NAME
-                    ).toUpperCase()
-                    : "";
-
-
-            return (
-                dbProductType === normalized ||
-                dbProductName.includes(
-                    normalized
-                )
-            );
-
-        }
-    ) || null;
-}
-
-
-/*
-=========================================================
-PROCESS READY FOR QUOTE
-=========================================================
-*/
+// Create Oracle quote.
 
 async function processReadyForQuote({
-
     customerId,
-
     flow,
-
     language
-
 }) {
-
-    const t =
-        TEXT[language];
-
-
-    /*
-    -----------------------------------------------------
-    VALIDATE
-    -----------------------------------------------------
-    */
+    const t = TEXT[language];
 
     const validation =
-        validateQuoteData(
-            flow,
-            customerId
-        );
-
+        validateQuoteData(flow, customerId);
 
     if (!validation.valid) {
-
-        console.log(
-            "\n========== QUOTE VALIDATION =========="
-        );
-
-        console.log(
-            JSON.stringify(
-                validation,
-                null,
-                2
-            )
-        );
-
-
         return {
-
             success: true,
-
             readyForQuote: false,
-
             uiType: "TEXT",
-
-            reply:
-                t.quoteMissing,
-
+            reply: t.quoteMissing,
             actions: [],
-
             data: [],
-
             missingInformation:
                 validation.missing
-
         };
-
     }
 
-
-    const data =
-        flow.collectedData || {};
-
-
-    /*
-    -----------------------------------------------------
-    VEHICLE
-    -----------------------------------------------------
-    */
+    const data = flow.collectedData || {};
 
     let vehicle = null;
 
-
-    if (
-        flow.insuranceType === "MOTOR"
-    ) {
-
+    if (flow.insuranceType === "MOTOR") {
         const plateNumber =
             data.plateNumber ||
             data.registrationNumber;
 
-
-        vehicle =
-            await getVehicle(
-                plateNumber,
-                data.plateCode
-            );
-
-
-        if (!vehicle) {
-
-            return {
-
-                success: true,
-
-                readyForQuote: false,
-
-                uiType: "TEXT",
-
-                reply:
-                    t.vehicleNotFound,
-
-                actions: [],
-
-                data: []
-
-            };
-
-        }
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    PRODUCT
-    -----------------------------------------------------
-    */
-
-    const product =
-        await findProduct(
-            flow.productType
+        vehicle = await getVehicle(
+            plateNumber,
+            data.plateCode
         );
 
-
-    if (!product) {
-
-        return {
-
-            success: true,
-
-            readyForQuote: false,
-
-            uiType: "TEXT",
-
-            reply:
-                t.productNotFound,
-
-            actions: [],
-
-            data: []
-
-        };
-
+        if (!vehicle) {
+            return {
+                success: true,
+                readyForQuote: false,
+                uiType: "TEXT",
+                reply: t.vehicleNotFound,
+                actions: [],
+                data: []
+            };
+        }
     }
 
+    const product =
+        await findProduct(flow.productType);
 
-    /*
-    -----------------------------------------------------
-    CREATE QUOTE
-    -----------------------------------------------------
-    */
+    if (!product) {
+        return {
+            success: true,
+            readyForQuote: false,
+            uiType: "TEXT",
+            reply: t.productNotFound,
+            actions: [],
+            data: []
+        };
+    }
 
     const quoteNumber =
         generateQuoteNumber();
 
+    const quote = await createQuote({
+        quoteNumber,
+        customerId,
+        vehicleId: vehicle
+            ? vehicle.VEHICLE_ID
+            : data.vehicleId || null,
+        productId: product.PRODUCT_ID,
+        vehicleValue:
+            data.vehicleValue || null,
+        coverFrom: data.coverFrom,
+        coverTo: data.coverTo
+    });
 
-    const quote =
-        await createQuote({
-
-            quoteNumber,
-
-            customerId,
-
-            vehicleId:
-                vehicle
-                    ? vehicle.VEHICLE_ID
-                    : data.vehicleId || null,
-
-            productId:
-                product.PRODUCT_ID,
-
-            vehicleValue:
-                data.vehicleValue || null,
-
-            coverFrom:
-                data.coverFrom,
-
-            coverTo:
-                data.coverTo
-
-        });
-
+    console.log("\n========== QUOTE CREATED ==========");
 
     console.log(
-        "\n========== QUOTE CREATED =========="
+        JSON.stringify(quote, null, 2)
     );
-
-    console.log(
-        JSON.stringify(
-            quote,
-            null,
-            2
-        )
-    );
-
-
-    /*
-    -----------------------------------------------------
-    GET OPTIONS
-    -----------------------------------------------------
-    */
 
     const options =
-        await getQuoteOptions(
-            quote.quoteId
-        );
-
-
-    /*
-    -----------------------------------------------------
-    UPDATE FLOW
-    -----------------------------------------------------
-    */
+        await getQuoteOptions(quote.quoteId);
 
     updatePurchaseFlow(
-
         customerId,
-
         {
-
-            stage:
-                "QUOTE_OPTIONS",
-
+            stage: "QUOTE_OPTIONS",
             extractedData: {
-
-                quoteId:
-                    quote.quoteId,
-
-                quoteNumber:
-                    quote.quoteNumber,
-
-                vehicleId:
-                    vehicle
-                        ? vehicle.VEHICLE_ID
-                        : data.vehicleId || null,
-
-                productId:
-                    product.PRODUCT_ID
-
+                quoteId: quote.quoteId,
+                quoteNumber: quote.quoteNumber,
+                vehicleId: vehicle
+                    ? vehicle.VEHICLE_ID
+                    : null,
+                productId: product.PRODUCT_ID
             },
-
             missingInformation: []
-
         }
-
     );
 
-
     return {
-
         success: true,
-
         readyForQuote: true,
+        uiType: "QUOTE_OPTIONS",
+        reply: t.quoteCreated,
 
-        uiType:
-            "QUOTE_OPTIONS",
+        actions: options.map(option => ({
+            label: option.PLAN_NAME,
+            action:
+                `SELECT_QUOTE_OPTION_${option.OPTION_NUMBER}`
+        })),
 
-        reply:
-            t.quoteCreated,
-
-        actions:
-            options.map(
-                option => ({
-
-                    label:
-                        option.PLAN_NAME,
-
-                    action:
-                        `SELECT_QUOTE_OPTION_${option.OPTION_NUMBER}`
-
-                })
-            ),
-
-        data:
-            options,
+        data: options,
 
         quote: {
-
-            quoteId:
-                quote.quoteId,
-
-            quoteNumber:
-                quote.quoteNumber
-
+            quoteId: quote.quoteId,
+            quoteNumber: quote.quoteNumber
         }
-
     };
 }
 
 
-/*
-=========================================================
-PROCESS QUOTE OPTION SELECTION
-=========================================================
-*/
+// Quote option selection.
 
 async function processQuoteOptionSelection({
-
     customerId,
-
     message,
-
     language
-
 }) {
-
     const flow =
-        getPurchaseFlow(
-            customerId
-        );
+        getPurchaseFlow(customerId);
 
+    if (!flow) return null;
 
-    if (!flow) {
+    const match = String(message)
+        .trim()
+        .toUpperCase()
+        .match(/SELECT_QUOTE_OPTION_(\d+)/);
 
-        return null;
-
-    }
-
-
-    const normalized =
-        String(message)
-            .trim()
-            .toUpperCase();
-
-
-    const match =
-        normalized.match(
-            /SELECT_QUOTE_OPTION_(\d+)/
-        );
-
-
-    if (!match) {
-
-        return null;
-
-    }
-
+    if (!match) return null;
 
     const optionNumber =
         Number(match[1]);
 
-
     const data =
         flow.collectedData || {};
 
-
-    if (!data.quoteId) {
-
-        return null;
-
-    }
-
+    if (!data.quoteId) return null;
 
     const selected =
         await selectQuoteOption(
@@ -1443,760 +497,398 @@ async function processQuoteOptionSelection({
             optionNumber
         );
 
-
     if (!selected) {
-
         return {
-
             success: false,
-
-            uiType:
-                "TEXT",
-
-            reply:
-                purchaseReply(
-
-                    language,
-
-                    "I couldn't select that quote option. Please choose one of the available options.",
-
-                    "لم أتمكن من اختيار خيار عرض السعر هذا. يرجى اختيار أحد الخيارات المتاحة."
-
-                ),
-
+            uiType: "TEXT",
+            reply: purchaseReply(
+                language,
+                "I couldn't select that quote option. Please choose one of the available options.",
+                "لم أتمكن من اختيار خيار عرض السعر هذا. يرجى اختيار أحد الخيارات المتاحة."
+            ),
             actions: [],
-
             data: []
-
         };
-
     }
-
 
     const selectedOption =
         await getSelectedQuoteOption(
             data.quoteId
         );
 
-
     updatePurchaseFlow(
-
         customerId,
-
         {
-
-            stage:
-                "PAYMENT",
-
+            stage: "PAYMENT",
             extractedData: {
-
                 selectedOptionNumber:
                     optionNumber,
-
                 selectedOptionId:
-                    selectedOption
-                        ? selectedOption.OPTION_ID
-                        : null,
-
+                    selectedOption?.OPTION_ID || null,
                 premium:
-                    selectedOption
-                        ? selectedOption.PREMIUM
-                        : null
-
+                    selectedOption?.PREMIUM || null
             },
-
             missingInformation: []
-
         }
-
     );
 
-
     return {
-
         success: true,
+        uiType: "PAYMENT",
 
-        uiType:
-            "PAYMENT",
-
-        reply:
-            purchaseReply(
-
-                language,
-
-                "Great! Your insurance option has been selected. You can proceed with payment.",
-
-                "ممتاز! تم اختيار خيار التأمين الخاص بك. يمكنك الآن المتابعة إلى الدفع."
-
-            ),
+        reply: purchaseReply(
+            language,
+            "Great! Your insurance option has been selected. You can proceed with payment.",
+            "ممتاز! تم اختيار خيار التأمين الخاص بك. يمكنك الآن المتابعة إلى الدفع."
+        ),
 
         actions: [
-
             {
-
-                label:
-                    purchaseReply(
-                        language,
-                        "Pay Now",
-                        "الدفع الآن"
-                    ),
-
-                action:
-                    "PAY_QUOTE"
-
+                label: purchaseReply(
+                    language,
+                    "Pay Now",
+                    "الدفع الآن"
+                ),
+                action: "PAY_QUOTE"
             }
-
         ],
 
-        data:
-            selectedOption
-                ? [selectedOption]
-                : []
-
+        data: selectedOption
+            ? [selectedOption]
+            : []
     };
 }
 
 
-/*
-=========================================================
-PROCESS PAYMENT
-=========================================================
-*/
+// Payment and policy creation.
 
 async function processPayment({
-
     customerId,
-
     message,
-
     language
-
 }) {
-
     const normalized =
         String(message)
             .trim()
             .toUpperCase();
 
-
     if (
         normalized !== "PAY_QUOTE" &&
         normalized !== "PAY"
     ) {
-
         return null;
-
     }
-
 
     const flow =
-        getPurchaseFlow(
-            customerId
-        );
+        getPurchaseFlow(customerId);
 
-
-    if (!flow) {
-
-        return null;
-
-    }
-
+    if (!flow) return null;
 
     const data =
         flow.collectedData || {};
 
+    if (!data.quoteId) return null;
 
-    if (!data.quoteId) {
+    const payment =
+        await updatePaymentStatus(
+            data.quoteId,
+            "PAID"
+        );
 
-        return null;
-
+    if (!payment.success) {
+        return {
+            success: false,
+            uiType: "TEXT",
+            reply: purchaseReply(
+                language,
+                "I couldn't complete the payment process. Please try again.",
+                "لم أتمكن من إكمال عملية الدفع. يرجى المحاولة مرة أخرى."
+            ),
+            actions: [],
+            data: []
+        };
     }
-
-
-    /*
-    -----------------------------------------------------
-    IMPORTANT:
-
-    Verify selected option BEFORE marking payment PAID.
-    -----------------------------------------------------
-    */
 
     const selectedOption =
         await getSelectedQuoteOption(
             data.quoteId
         );
 
-
     if (!selectedOption) {
-
         return {
-
             success: false,
-
-            uiType:
-                "TEXT",
-
-            reply:
-                purchaseReply(
-
-                    language,
-
-                    "I couldn't find the selected quote option. Please select a quote option first.",
-
-                    "لم أتمكن من العثور على خيار عرض السعر المحدد. يرجى اختيار أحد الخيارات أولاً."
-
-                ),
-
+            uiType: "TEXT",
+            reply: purchaseReply(
+                language,
+                "I couldn't find the selected quote option.",
+                "لم أتمكن من العثور على خيار عرض السعر المحدد."
+            ),
             actions: [],
-
             data: []
-
         };
-
     }
 
-
-    /*
-    -----------------------------------------------------
-    DEMO PAYMENT
-    -----------------------------------------------------
-    */
-
-    const payment =
-        await updatePaymentStatus(
-
-            data.quoteId,
-
-            "PAID"
-
-        );
-
-
-    if (!payment.success) {
-
-        return {
-
-            success: false,
-
-            uiType:
-                "TEXT",
-
-            reply:
-                purchaseReply(
-
-                    language,
-
-                    "I couldn't complete the payment process. Please try again.",
-
-                    "لم أتمكن من إكمال عملية الدفع. يرجى المحاولة مرة أخرى."
-
-                ),
-
-            actions: [],
-
-            data: []
-
-        };
-
-    }
-
-
-    /*
-    -----------------------------------------------------
-    CONVERT QUOTE
-    -----------------------------------------------------
-    */
-
-    await convertQuote(
-        data.quoteId
-    );
-
-
-    /*
-    -----------------------------------------------------
-    CREATE POLICY
-    -----------------------------------------------------
-    */
+    await convertQuote(data.quoteId);
 
     const policyNumber =
         generatePolicyNumber();
 
-
-    const policy =
-        await createPolicy({
-
-            policyNumber,
-
-            quoteId:
-                data.quoteId,
-
-            customerId,
-
-            vehicleId:
-                data.vehicleId || null,
-
-            productId:
-                data.productId,
-
-            optionId:
-                selectedOption.OPTION_ID,
-
-            premium:
-                selectedOption.PREMIUM,
-
-            coverFrom:
-                data.coverFrom,
-
-            coverTo:
-                data.coverTo
-
-        });
-
-
-    /*
-    -----------------------------------------------------
-    UPDATE FLOW
-    -----------------------------------------------------
-    */
+    const policy = await createPolicy({
+        policyNumber,
+        quoteId: data.quoteId,
+        customerId,
+        vehicleId:
+            data.vehicleId || null,
+        productId: data.productId,
+        optionId:
+            selectedOption.OPTION_ID,
+        premium:
+            selectedOption.PREMIUM,
+        coverFrom:
+            data.coverFrom,
+        coverTo:
+            data.coverTo
+    });
 
     updatePurchaseFlow(
-
         customerId,
-
         {
-
-            stage:
-                "COMPLETED",
-
+            stage: "COMPLETED",
             extractedData: {
-
                 policyId:
                     policy.policyId,
-
                 policyNumber:
                     policy.policyNumber,
-
-                paymentStatus:
-                    "PAID"
-
+                paymentStatus: "PAID"
             },
-
             missingInformation: []
-
         }
-
     );
 
-
-    return {
-
+    const result = {
         success: true,
+        uiType: "TEXT",
 
-        uiType:
-            "TEXT",
-
-        reply:
-            purchaseReply(
-
-                language,
-
-                `Payment completed successfully. Your policy ${policy.policyNumber} has been created successfully.`,
-
-                `تمت عملية الدفع بنجاح. تم إنشاء وثيقتك رقم ${policy.policyNumber} بنجاح.`
-
-            ),
+        reply: purchaseReply(
+            language,
+            `Payment completed successfully. Your policy ${policy.policyNumber} has been created successfully.`,
+            `تمت عملية الدفع بنجاح. تم إنشاء وثيقتك رقم ${policy.policyNumber} بنجاح.`
+        ),
 
         actions: [],
 
         data: [
-
             {
-
                 policyId:
                     policy.policyId,
-
                 policyNumber:
                     policy.policyNumber,
-
                 paymentStatus:
                     "PAID"
-
             }
-
         ]
-
     };
+
+    // Purchase is finished.
+
+    endPurchaseFlow(customerId);
+
+    return result;
 }
 
 
-/*
-=========================================================
-SAVE ASSISTANT MESSAGE
-=========================================================
-*/
-
-async function saveAssistantMessage({
-
-    userId,
-
-    customerId,
-
-    loggedIn,
-
-    sessionId,
-
-    message,
-
-    language
-
-}) {
-
-    if (!message) {
-
-        return;
-
-    }
-
-
-    addMessage(
-
-        userId,
-
-        "assistant",
-
-        message
-
-    );
-
-
-    if (
-        loggedIn &&
-        customerId
-    ) {
-
-        await saveMessage(
-
-            customerId,
-
-            sessionId,
-
-            "bot",
-
-            message,
-
-            language
-
-        );
-
-    }
-}
-
-
-/*
-=========================================================
-MAIN CHAT
-=========================================================
-*/
+// Main chat controller.
 
 const chat = async (req, res) => {
-
     try {
-
-        /*
-        -------------------------------------------------
-        REQUEST
-        -------------------------------------------------
-        */
-
         const {
-
             message,
-
             customerId,
-
             loggedIn = true,
-
             language,
-
             sessionId
-
         } = req.body;
 
+        const lang = getLanguage(language);
 
-        /*
-        -------------------------------------------------
-        LANGUAGE
-        -------------------------------------------------
-        */
+        // Use sessionId for conversation state.
+        // This prevents different conversations from sharing
+        // the same purchase flow.
+        const flowUserId =
+            sessionId || customerId || "guest";
 
-        const lang =
-            getLanguage(language);
-
-
-        const t =
-            TEXT[lang];
-
-
-        /*
-        -------------------------------------------------
-        VALIDATE MESSAGE
-        -------------------------------------------------
-        */
-
-        if (
-            !message ||
-            !String(message).trim()
-        ) {
-
+        if (!message || !message.trim()) {
             return res.status(400).json({
-
                 success: false,
-
-                message:
-                    "Message is required"
-
+                message: "Message is required"
             });
-
         }
 
+        addMessage(flowUserId, "user", message);
 
-        /*
-        -------------------------------------------------
-        USER ID
-        -------------------------------------------------
-        */
-
-        const userId =
-            customerId || "guest";
-
-
-        /*
-        -------------------------------------------------
-        SAVE USER MESSAGE
-        -------------------------------------------------
-        */
-
-        addMessage(
-
-            userId,
-
-            "user",
-
-            message
-
-        );
-
-
-        if (
-            loggedIn &&
-            customerId
-        ) {
-
+        if (loggedIn && customerId) {
             await saveMessage(
-
                 customerId,
-
                 sessionId,
-
                 "user",
-
                 message,
-
                 lang
-
             );
-
         }
 
+        const history = getHistory(flowUserId);
 
-        /*
-        -------------------------------------------------
-        HISTORY
-        -------------------------------------------------
-        */
+        // --------------------------------------------------
+        // 1. Quote option selection
+        // --------------------------------------------------
 
-        const history =
-            getHistory(
-                userId
-            );
-
-
-        /*
-        =================================================
-        CHECK EXISTING PURCHASE FLOW FIRST
-        =================================================
-
-        THIS IS VERY IMPORTANT.
-
-        If the user is already inside a purchase flow:
-
-            "I need motor insurance."
-                    ↓
-            purchase flow starts
-                    ↓
-            "I want third party."
-
-        We DO NOT call normal chat handling first.
-
-        The existing purchase flow owns the conversation.
-        =================================================
-        */
-
-        const existingPurchaseFlow =
-            getPurchaseFlow(
-                userId
-            );
-
-
-        /*
-        =================================================
-        PURCHASE BUTTON ACTIONS
-        =================================================
-        */
-
-        if (
-            customerId &&
-            existingPurchaseFlow
-        ) {
-
-            /*
-            -------------------------------------------------
-            QUOTE OPTION BUTTON
-            -------------------------------------------------
-            */
-
+        if (customerId) {
             const optionResult =
                 await processQuoteOptionSelection({
-
                     customerId,
-
                     message,
-
-                    language:
-                        lang
-
+                    language: lang
                 });
-
 
             if (optionResult) {
+                if (optionResult.reply) {
+                    addMessage(
+                        flowUserId,
+                        "assistant",
+                        optionResult.reply
+                    );
 
-                await saveAssistantMessage({
+                    if (loggedIn) {
+                        await saveMessage(
+                            customerId,
+                            sessionId,
+                            "bot",
+                            optionResult.reply,
+                            lang
+                        );
+                    }
+                }
 
-                    userId,
-
-                    customerId,
-
-                    loggedIn,
-
-                    sessionId,
-
-                    message:
-                        optionResult.reply,
-
-                    language:
-                        lang
-
-                });
-
-
-                return res.json({
-
-                    ...optionResult,
-
-                    intent:
-                        "BUY_POLICY",
-
-                    purchaseStage:
-                        getPurchaseFlow(
-                            userId
-                        )?.stage || "PAYMENT"
-
-                });
-
+                return res.json(optionResult);
             }
 
-
-            /*
-            -------------------------------------------------
-            PAYMENT BUTTON
-            -------------------------------------------------
-            */
+            // --------------------------------------------------
+            // 2. Payment
+            // --------------------------------------------------
 
             const paymentResult =
                 await processPayment({
-
                     customerId,
-
                     message,
-
-                    language:
-                        lang
-
+                    language: lang
                 });
-
 
             if (paymentResult) {
+                if (paymentResult.reply) {
+                    addMessage(
+                        flowUserId,
+                        "assistant",
+                        paymentResult.reply
+                    );
 
-                await saveAssistantMessage({
+                    if (loggedIn) {
+                        await saveMessage(
+                            customerId,
+                            sessionId,
+                            "bot",
+                            paymentResult.reply,
+                            lang
+                        );
+                    }
+                }
 
-                    userId,
-
-                    customerId,
-
-                    loggedIn,
-
-                    sessionId,
-
-                    message:
-                        paymentResult.reply,
-
-                    language:
-                        lang
-
-                });
-
-
-                return res.json({
-
-                    ...paymentResult,
-
-                    intent:
-                        "BUY_POLICY",
-
-                    purchaseStage:
-                        getPurchaseFlow(
-                            userId
-                        )?.stage || "COMPLETED"
-
-                });
-
+                return res.json(paymentResult);
             }
-
         }
 
+        // --------------------------------------------------
+        // 3. Check active purchase flow FIRST
+        // --------------------------------------------------
+        //
+        // This is the most important part.
+        //
+        // Example:
+        //
+        // User: I want to buy insurance
+        //       -> BUY_POLICY
+        //
+        // User: My car
+        //       -> Purchase LLM
+        //
+        // User: Comprehensive
+        //       -> Purchase LLM
+        //
+        // User: My plate number is 12345 and plate code is M
+        //       -> Purchase LLM
+        //
+        // We MUST NOT run detectIntent() again for these
+        // follow-up messages.
+        // --------------------------------------------------
 
-        /*
-        =================================================
-        INTENT DETECTION
-        =================================================
-        */
+        const existingPurchaseFlow =
+            getPurchaseFlow(flowUserId);
 
-        const intentResult =
-            await detectIntent(
-                message
+        if (
+            existingPurchaseFlow &&
+            existingPurchaseFlow.active !== false
+        ) {
+            console.log(
+                "\n========== ACTIVE PURCHASE FLOW =========="
             );
 
+            console.log(
+                JSON.stringify(
+                    existingPurchaseFlow,
+                    null,
+                    2
+                )
+            );
+
+            return await handlePurchaseFlow({
+                req,
+                res,
+                message,
+                customerId,
+                loggedIn,
+                lang,
+                sessionId,
+                userId: flowUserId,
+                history,
+                purchaseFlow:
+                    existingPurchaseFlow
+            });
+        }
+
+        // --------------------------------------------------
+        // 4. No active purchase flow
+        //    Now detect the user's intent
+        // --------------------------------------------------
+
+        const intentResult =
+            await detectIntent(message);
 
         const intent =
             typeof intentResult === "string"
-
                 ? intentResult
-
                 : intentResult?.intent || "UNKNOWN";
 
+        console.log(
+            "\n========== AI INTENT =========="
+        );
 
         console.log(
-            "\n========== INTENT =========="
+            "Message:",
+            message
+        );
+
+        console.log(
+            "Intent:",
+            intent
         );
 
         console.log(
@@ -2207,489 +899,222 @@ const chat = async (req, res) => {
             )
         );
 
-
-        /*
-        =================================================
-        OUT OF SCOPE
-        =================================================
-
-        Existing purchase flow gets priority over this.
-        =================================================
-        */
+        // --------------------------------------------------
+        // 5. Protected intents
+        // --------------------------------------------------
 
         if (
-            !existingPurchaseFlow &&
-            intent === "OUT_OF_SCOPE"
-        ) {
-
-            const reply =
-                OUT_OF_SCOPE_REPLIES[
-                    lang
-                ];
-
-
-            await saveAssistantMessage({
-
-                userId,
-
-                customerId,
-
-                loggedIn,
-
-                sessionId,
-
-                message:
-                    reply,
-
-                language:
-                    lang
-
-            });
-
-
-            return res.json({
-
-                success: true,
-
-                intent,
-
-                reply,
-
-                requiresLogin:
-                    false,
-
-                uiType:
-                    "TEXT",
-
-                actions: [],
-
-                data: []
-
-            });
-
-        }
-
-        // -------------------------
-// STP - Instant Resolution
-// -------------------------
-
-if (intent === "COMPLAINT") {
-
-    const stpResult = await resolveKnownIssue(message);
-
-    if (stpResult.matched) {
-
-        const stpContext = stpResult.chunks
-            .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
-            .join("\n\n");
-
-        console.log("\n========== STP ISSUE ==========");
-        console.log(stpResult.issueCode);
-
-        console.log("\n========== STP RAG CONTEXT ==========");
-        console.log(stpContext);
-
-        const stpReply = await askAI(
-            message,
-            "",
-            stpContext,
-            history,
-            language
-        );
-
-        // Save assistant response
-        addMessage(userId, "assistant", stpReply);
-
-        if (loggedIn && customerId) {
-            await saveMessage(
-                customerId,
-                sessionId,
-                "bot",
-                stpReply,
-                language
-            );
-        }
-
-        return res.json({
-            success: true,
-            intent,
-            reply: stpReply,
-            requiresLogin: false,
-            uiType: "STP_RESOLUTION",
-            stp: true,
-            issueCode: stpResult.issueCode,
-            actions: [
-                {
-                    label: language === "ar"
-                        ? "تم الحل"
-                        : "Yes, resolved",
-                    action: "STP_RESOLVED"
-                },
-                {
-                    label: language === "ar"
-                        ? "ما زلت بحاجة إلى مساعدة"
-                        : "No, I still need help",
-                    action: "STP_NOT_RESOLVED"
-                }
-            ],
-            data: []
-        });
-    }
-
-    console.log("No known issue matched. Continue with normal complaint flow.");
-}
-
-        // -------------------------
-// STP - Instant Resolution
-// -------------------------
-
-if (intent === "COMPLAINT") {
-
-    const stpResult = await resolveKnownIssue(message);
-
-    if (stpResult.matched) {
-
-        const stpContext = stpResult.chunks
-            .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
-            .join("\n\n");
-
-        console.log("\n========== STP ISSUE ==========");
-        console.log(stpResult.issueCode);
-
-        console.log("\n========== STP RAG CONTEXT ==========");
-        console.log(stpContext);
-
-        const stpReply = await askAI(
-            message,
-            "",
-            stpContext,
-            history,
-            language
-        );
-
-        // Save assistant response
-        addMessage(userId, "assistant", stpReply);
-
-        if (loggedIn && customerId) {
-            await saveMessage(
-                customerId,
-                sessionId,
-                "bot",
-                stpReply,
-                language
-            );
-        }
-
-        return res.json({
-            success: true,
-            intent,
-            reply: stpReply,
-            requiresLogin: false,
-            uiType: "STP_RESOLUTION",
-            stp: true,
-            issueCode: stpResult.issueCode,
-            actions: [
-                {
-                    label: language === "ar"
-                        ? "تم الحل"
-                        : "Yes, resolved",
-                    action: "STP_RESOLVED"
-                },
-                {
-                    label: language === "ar"
-                        ? "ما زلت بحاجة إلى مساعدة"
-                        : "No, I still need help",
-                    action: "STP_NOT_RESOLVED"
-                }
-            ],
-            data: []
-        });
-    }
-
-    console.log("No known issue matched. Continue with normal complaint flow.");
-}
-
-
-        /*
-        =================================================
-        PROTECTED INTENTS
-        =================================================
-        */
-
-        if (
-            !existingPurchaseFlow &&
-            PROTECTED_INTENTS.includes(
-                intent
-            ) &&
+            PROTECTED_INTENTS.includes(intent) &&
             !loggedIn
         ) {
-
             const reply =
-                t.login;
+                TEXT[lang].login;
 
-
-            await saveAssistantMessage({
-
-                userId,
-
-                customerId,
-
-                loggedIn,
-
-                sessionId,
-
-                message:
-                    reply,
-
-                language:
-                    lang
-
-            });
-
-
-            return res.json({
-
-                success: true,
-
-                intent,
-
-                requiresLogin:
-                    true,
-
-                uiType:
-                    "LOGIN_REQUIRED",
-
-                reply,
-
-                actions: [],
-
-                data: []
-
-            });
-
-        }
-
-
-        /*
-        =================================================
-        DETERMINE WHETHER PURCHASE FLOW SHOULD RUN
-        =================================================
-
-        Three possibilities:
-
-        1. Existing purchase flow
-        2. BUY_POLICY intent
-        3. Strong explicit purchase request
-
-        INSURANCE_GENERAL ALONE DOES NOT START PURCHASE FLOW.
-
-        This is the important distinction between:
-
-        "What is comprehensive insurance?"
-                → normal insurance chat
-
-        and
-
-        "I want to buy comprehensive insurance."
-                → purchase flow
-        =================================================
-        */
-
-        const shouldStartPurchaseFlow =
-            Boolean(
-                existingPurchaseFlow ||
-                intent === "BUY_POLICY" ||
-                isStrongPurchaseMessage(message)
+            addMessage(
+                flowUserId,
+                "assistant",
+                reply
             );
 
+            return res.json({
+                success: true,
+                intent,
+                requiresLogin: true,
+                uiType: "LOGIN_REQUIRED",
+                reply,
+                actions: [],
+                data: []
+            });
+        }
 
-        /*
-        =================================================
-        PURCHASE FLOW
-        =================================================
-        */
+        // -------------------------
+// STP - Instant Resolution
+// -------------------------
 
-        if (
-            shouldStartPurchaseFlow
-        ) {
+if (intent === "COMPLAINT") {
 
-            /*
-            -------------------------------------------------
-            GET OR CREATE FLOW
-            -------------------------------------------------
-            */
+    const stpResult = await resolveKnownIssue(message);
 
-            let purchaseFlow =
-                existingPurchaseFlow;
+    if (stpResult.matched) {
 
+        const stpContext = stpResult.chunks
+            .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
+            .join("\n\n");
 
-            if (!purchaseFlow) {
+        console.log("\n========== STP ISSUE ==========");
+        console.log(stpResult.issueCode);
 
-                purchaseFlow =
-                    startPurchaseFlow(
-                        userId
-                    );
+        console.log("\n========== STP RAG CONTEXT ==========");
+        console.log(stpContext);
 
-            }
+        const stpReply = await askAI(
+            message,
+            "",
+            stpContext,
+            history,
+            language
+        );
 
+        // Save assistant response
+        addMessage(userId, "assistant", stpReply);
 
-            /*
-            -------------------------------------------------
-            PURCHASE DECISION
-            -------------------------------------------------
-            */
+        if (loggedIn && customerId) {
+            await saveMessage(
+                customerId,
+                sessionId,
+                "bot",
+                stpReply,
+                language
+            );
+        }
 
-            let purchaseDecision =
-                await decidePurchaseStage({
-
-                    message,
-
-                    history,
-
-                    purchaseFlow,
-
-                    language:
-                        lang
-
-                });
-
-
-            /*
-            -------------------------------------------------
-            APPLY DETERMINISTIC PURCHASE HINTS
-            -------------------------------------------------
-
-            Example:
-
-            User:
-            "I want third party."
-
-            Even if LLM returns:
-
-            productType = UNKNOWN
-
-            we force:
-
-            productType = THIRD_PARTY
-            -------------------------------------------------
-            */
-
-            purchaseDecision =
-                applyPurchaseHints(
-
-                    purchaseDecision,
-
-                    message,
-
-                    purchaseFlow
-
-                );
-
-
-            /*
-            -------------------------------------------------
-            RESOLVE STAGE USING REAL DATA
-            -------------------------------------------------
-            */
-
-            purchaseDecision.stage =
-                resolvePurchaseStage(
-
-                    purchaseDecision,
-
-                    purchaseFlow,
-
-                    customerId
-
-                );
-
-
-            /*
-            -------------------------------------------------
-            READY FOR QUOTE FLAG
-            -------------------------------------------------
-
-            Do not blindly trust the LLM.
-
-            We calculate whether Oracle can actually create
-            the quote.
-            -------------------------------------------------
-            */
-
-            const temporaryFlow = {
-
-                ...purchaseFlow,
-
-                insuranceType:
-                    purchaseDecision.insuranceType ||
-                    purchaseFlow.insuranceType,
-
-                productType:
-                    purchaseDecision.productType ||
-                    purchaseFlow.productType,
-
-                plan:
-                    purchaseDecision.plan ||
-                    purchaseFlow.plan,
-
-                collectedData: {
-
-                    ...(purchaseFlow.collectedData || {}),
-
-                    ...(purchaseDecision.extractedData || {})
-
+        return res.json({
+            success: true,
+            intent,
+            reply: stpReply,
+            requiresLogin: false,
+            uiType: "STP_RESOLUTION",
+            stp: true,
+            issueCode: stpResult.issueCode,
+            actions: [
+                {
+                    label: language === "ar"
+                        ? "تم الحل"
+                        : "Yes, resolved",
+                    action: "STP_RESOLVED"
+                },
+                {
+                    label: language === "ar"
+                        ? "ما زلت بحاجة إلى مساعدة"
+                        : "No, I still need help",
+                    action: "STP_NOT_RESOLVED"
                 }
+            ],
+            data: []
+        });
+    }
 
-            };
+    console.log("No known issue matched. Continue with normal complaint flow.");
+}
+
+        // -------------------------
+// STP - Instant Resolution
+// -------------------------
+
+if (intent === "COMPLAINT") {
+
+    const stpResult = await resolveKnownIssue(message);
+
+    if (stpResult.matched) {
+
+        const stpContext = stpResult.chunks
+            .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
+            .join("\n\n");
+
+        console.log("\n========== STP ISSUE ==========");
+        console.log(stpResult.issueCode);
+
+        console.log("\n========== STP RAG CONTEXT ==========");
+        console.log(stpContext);
+
+        const stpReply = await askAI(
+            message,
+            "",
+            stpContext,
+            history,
+            language
+        );
+
+        // Save assistant response
+        addMessage(userId, "assistant", stpReply);
+
+        if (loggedIn && customerId) {
+            await saveMessage(
+                customerId,
+                sessionId,
+                "bot",
+                stpReply,
+                language
+            );
+        }
+
+        return res.json({
+            success: true,
+            intent,
+            reply: stpReply,
+            requiresLogin: false,
+            uiType: "STP_RESOLUTION",
+            stp: true,
+            issueCode: stpResult.issueCode,
+            actions: [
+                {
+                    label: language === "ar"
+                        ? "تم الحل"
+                        : "Yes, resolved",
+                    action: "STP_RESOLVED"
+                },
+                {
+                    label: language === "ar"
+                        ? "ما زلت بحاجة إلى مساعدة"
+                        : "No, I still need help",
+                    action: "STP_NOT_RESOLVED"
+                }
+            ],
+            data: []
+        });
+    }
+
+    console.log("No known issue matched. Continue with normal complaint flow.");
+}
 
 
-            const quoteValidation =
-                validateQuoteData(
+        // --------------------------------------------------
+        // 6. Out of scope
+        // --------------------------------------------------
+        //
+        // This is reached ONLY when there is no active
+        // purchase flow.
+        //
+        // Therefore a purchase follow-up such as:
+        // "plate number is 12345"
+        // cannot accidentally reach this block.
+        // --------------------------------------------------
 
-                    temporaryFlow,
+        if (intent === "OUT_OF_SCOPE") {
+            const reply =
+                OUT_OF_SCOPE_REPLIES[lang];
 
-                    customerId
+            addMessage(
+                flowUserId,
+                "assistant",
+                reply
+            );
 
-                );
+            return res.json({
+                success: true,
+                intent,
+                reply,
+                requiresLogin: false,
+                uiType: "TEXT",
+                actions: [],
+                data: []
+            });
+        }
 
+        // --------------------------------------------------
+        // 7. Start purchase flow
+        // --------------------------------------------------
 
-            purchaseDecision.readyForQuote =
-                quoteValidation.valid;
+        const isPurchaseRequest =
+            intent === "BUY_POLICY" ||
+            intent === "INSURANCE_GENERAL";
 
-
-            if (
-                purchaseDecision.readyForQuote
-            ) {
-
-                purchaseDecision.stage =
-                    "READY_FOR_QUOTE";
-
-            }
-
-
-            /*
-            -------------------------------------------------
-            UPDATE PURCHASE FLOW
-            -------------------------------------------------
-
-            IMPORTANT:
-
-            This happens AFTER deterministic extraction.
-            -------------------------------------------------
-            */
-
-            purchaseFlow =
-                updatePurchaseFlow(
-
-                    userId,
-
-                    purchaseDecision
-
-                );
-
+        if (isPurchaseRequest) {
+            const purchaseFlow =
+                startPurchaseFlow(flowUserId);
 
             console.log(
-                "\n========== UPDATED PURCHASE FLOW =========="
+                "\n========== START PURCHASE FLOW =========="
             );
 
             console.log(
@@ -2700,516 +1125,326 @@ if (intent === "COMPLAINT") {
                 )
             );
 
-
-            /*
-            =================================================
-            READY FOR QUOTE
-            =================================================
-            */
-
-            if (
-                purchaseDecision.readyForQuote === true
-            ) {
-
-                /*
-                -------------------------------------------------
-                LOGIN REQUIRED
-                -------------------------------------------------
-                */
-
-                if (
-                    !loggedIn ||
-                    !customerId
-                ) {
-
-                    const reply =
-                        t.loginPurchase;
-
-
-                    await saveAssistantMessage({
-
-                        userId,
-
-                        customerId,
-
-                        loggedIn,
-
-                        sessionId,
-
-                        message:
-                            reply,
-
-                        language:
-                            lang
-
-                    });
-
-
-                    return res.json({
-
-                        success: true,
-
-                        intent:
-                            "BUY_POLICY",
-
-                        purchaseStage:
-                            purchaseFlow.stage,
-
-                        reply,
-
-                        requiresLogin:
-                            true,
-
-                        uiType:
-                            "LOGIN_REQUIRED",
-
-                        actions: [],
-
-                        data: []
-
-                    });
-
-                }
-
-
-                /*
-                -------------------------------------------------
-                PROCESS ORACLE QUOTE
-                -------------------------------------------------
-                */
-
-                const quoteResult =
-                    await processReadyForQuote({
-
-                        customerId,
-
-                        flow:
-                            purchaseFlow,
-
-                        language:
-                            lang
-
-                    });
-
-
-                if (
-                    quoteResult.reply
-                ) {
-
-                    await saveAssistantMessage({
-
-                        userId,
-
-                        customerId,
-
-                        loggedIn,
-
-                        sessionId,
-
-                        message:
-                            quoteResult.reply,
-
-                        language:
-                            lang
-
-                    });
-
-                }
-
-
-                return res.json({
-
-                    success:
-                        quoteResult.success,
-
-                    intent:
-                        "BUY_POLICY",
-
-                    purchaseStage:
-                        getPurchaseFlow(
-                            userId
-                        )?.stage ||
-                        purchaseDecision.stage,
-
-                    product:
-                        getPurchaseFlow(
-                            userId
-                        )?.productType ||
-                        null,
-
-                    reply:
-                        quoteResult.reply,
-
-                    requiresLogin:
-                        false,
-
-                    uiType:
-                        quoteResult.uiType,
-
-                    actions:
-                        quoteResult.actions || [],
-
-                    data:
-                        quoteResult.data || [],
-
-                    quote:
-                        quoteResult.quote || null,
-
-                    purchaseData:
-                        getPurchaseFlow(
-                            userId
-                        )?.collectedData || {},
-
-                    missingInformation:
-                        quoteResult.missingInformation || []
-
-                });
-
-            }
-
-
-            /*
-            =================================================
-            NORMAL PURCHASE CONVERSATION
-            =================================================
-            */
-
-            const reply =
-                purchaseDecision.reply ||
-                purchaseReply(
-
-                    lang,
-
-                    "Absolutely. Let's continue from where we left off.",
-
-                    "بالتأكيد، دعنا نتابع من حيث توقفنا."
-
-                );
-
-
-            await saveAssistantMessage({
-
-                userId,
-
+            return await handlePurchaseFlow({
+                req,
+                res,
+                message,
                 customerId,
-
                 loggedIn,
-
+                lang,
                 sessionId,
-
-                message:
-                    reply,
-
-                language:
-                    lang
-
+                userId: flowUserId,
+                history,
+                purchaseFlow
             });
-
-
-            return res.json({
-
-                success: true,
-
-                intent:
-                    "BUY_POLICY",
-
-                purchaseStage:
-                    purchaseFlow.stage,
-
-                product:
-                    purchaseFlow.productType ||
-                    null,
-
-                reply,
-
-                requiresLogin:
-                    false,
-
-                uiType:
-                    "TEXT",
-
-                actions: [],
-
-                data: [],
-
-                purchaseData:
-                    purchaseFlow.collectedData || {},
-
-                missingInformation:
-                    purchaseFlow.missingInformation || []
-
-            });
-
         }
 
+        // --------------------------------------------------
+        // 8. Normal insurance chat
+        // --------------------------------------------------
 
-        /*
-        =================================================
-        NORMAL INSURANCE CHAT
-        =================================================
-        */
+        const retrievedChunks =
+            await retrieveRelevantChunks(message);
 
-        let databaseContext =
-            "";
+        const ragContext =
+            retrievedChunks
+                .map(
+                    chunk =>
+                        `[${chunk.fileName}]\n${chunk.text}`
+                )
+                .join("\n\n");
 
-        const data = [];
+        const aiReply =
+            await askAI(
+                message,
+                "",
+                ragContext,
+                history,
+                lang
+            );
+
+        addMessage(
+            flowUserId,
+            "assistant",
+            aiReply
+        );
+
+        if (loggedIn && customerId) {
+            await saveMessage(
+                customerId,
+                sessionId,
+                "bot",
+                aiReply,
+                lang
+            );
+        }
+
+        return res.json({
+            success: true,
+            intent,
+            reply: aiReply,
+            requiresLogin: false,
+            uiType: "TEXT",
+            actions: [],
+            data: []
+        });
+
+    } catch (err) {
+        console.error(
+            "\n========== CHAT CONTROLLER ERROR =========="
+        );
+
+        console.error(err);
+
+        return res.status(500).json({
+            success: false,
+            message: err.message
+        });
+    }
+};
 
 
-        /*
-        -------------------------------------------------
-        RAG
-        -------------------------------------------------
-        */
+// Purchase flow handler.
 
-        const retrievedChunks = await retrieveRelevantChunks(message);
+async function handlePurchaseFlow({
+    req,
+    res,
+    message,
+    customerId,
+    loggedIn,
+    lang,
+    sessionId,
+    userId,
+    history,
+    purchaseFlow
+}) {
+    // Customer must be logged in before
+    // completing the actual purchase.
 
-        const stpResult = await resolveKnownIssue(message);
+    const decision =
+        await decidePurchaseStage({
+            message,
+            history,
+            purchaseFlow,
+            language: lang
+        });
 
-if (stpResult.matched) {
-
-    console.log("========== STP MATCH ==========");
-    console.log("Issue:", stpResult.issueCode);
-
-    const stpContext = stpResult.chunks
-        .map(chunk =>
-            `[${chunk.fileName}]\n${chunk.text}`
-        )
-        .join("\n\n");
-
-    console.log("STP RAG CONTEXT:");
-    console.log(stpContext);
-
-    const stpReply = await askAI(
-        message,
-        databaseContext,
-        stpContext,
-        history,
-        language
+    console.log(
+        "\n========== PURCHASE LLM =========="
     );
 
-    addMessage(userId, "assistant", stpReply);
+    console.log(
+        JSON.stringify(
+            decision,
+            null,
+            2
+        )
+    );
+
+
+    // Store extracted information.
+    // Backend stage is authoritative.
+
+    const updatedFlow =
+        updatePurchaseFlow(
+            userId,
+            {
+                ...decision,
+                stage: undefined,
+                lastUserMessage: message
+            }
+        );
+
+
+    // Backend decides what is actually missing.
+
+    const missing =
+        getPurchaseRequirements(
+            updatedFlow
+        );
+
+    const stage =
+        determinePurchaseStage(
+            updatedFlow
+        );
+
+
+    // Store final backend stage.
+
+    const finalFlow =
+        updatePurchaseFlow(
+            userId,
+            {
+                stage,
+                missingInformation:
+                    missing
+            }
+        );
+
+
+    console.log(
+        "\n========== BACKEND PURCHASE VALIDATION =========="
+    );
+
+    console.log(
+        JSON.stringify(
+            {
+                stage,
+                missing,
+                collectedData:
+                    finalFlow.collectedData
+            },
+            null,
+            2
+        )
+    );
+
+
+    // Quote can only happen when
+    // backend validation says READY.
+
+    if (stage === "READY_FOR_QUOTE") {
+        if (!loggedIn || !customerId) {
+            const reply =
+                TEXT[lang].loginPurchase;
+
+            return res.json({
+                success: true,
+                intent: "BUY_POLICY",
+                purchaseStage: stage,
+                reply,
+                requiresLogin: true,
+                uiType: "LOGIN_REQUIRED",
+                actions: [],
+                data: [],
+                purchaseData:
+                    finalFlow.collectedData || {},
+                missingInformation: []
+            });
+        }
+
+        const quoteResult =
+            await processReadyForQuote({
+                customerId,
+                flow: finalFlow,
+                language: lang
+            });
+
+        if (quoteResult.reply) {
+            addMessage(
+                userId,
+                "assistant",
+                quoteResult.reply
+            );
+
+            await saveMessage(
+                customerId,
+                sessionId,
+                "bot",
+                quoteResult.reply,
+                lang
+            );
+        }
+
+        return res.json({
+            success: true,
+            intent: "BUY_POLICY",
+            purchaseStage:
+                getPurchaseFlow(userId)?.stage ||
+                stage,
+            product:
+                finalFlow.productType ||
+                null,
+            reply:
+                quoteResult.reply,
+            requiresLogin: false,
+            uiType:
+                quoteResult.uiType,
+            actions:
+                quoteResult.actions || [],
+            data:
+                quoteResult.data || [],
+            quote:
+                quoteResult.quote || null,
+            purchaseData:
+                finalFlow.collectedData || {},
+            missingInformation:
+                quoteResult.missingInformation || []
+        });
+    }
+
+
+    // Continue purchase conversation.
+
+    const reply =
+        buildPurchaseReply(
+            finalFlow,
+            stage,
+            lang
+        );
+
+
+    addMessage(
+        userId,
+        "assistant",
+        reply
+    );
 
     if (loggedIn && customerId) {
         await saveMessage(
             customerId,
             sessionId,
             "bot",
-            stpReply,
-            language
+            reply,
+            lang
         );
     }
 
     return res.json({
         success: true,
-        intent,
-        issueCode: stpResult.issueCode,
-        reply: stpReply,
+        intent: "BUY_POLICY",
+        purchaseStage: stage,
+        product:
+            finalFlow.productType ||
+            null,
+        reply,
         requiresLogin: false,
         uiType: "TEXT",
         actions: [],
-        data: []
+        data: [],
+        purchaseData:
+            finalFlow.collectedData || {},
+        missingInformation:
+            missing
     });
 }
 
-        const ragContext = retrievedChunks
-            .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
-            .join("\n\n");
-        // const ragContext = "";
 
-        // Optional Debug Logs
-        // console.log("\n========== INTENT ==========");
-        // console.log(intent);
-
-        console.log(
-            "\n========== RAG CONTEXT =========="
-        );
-
-        console.log(
-            ragContext
-        );
-
-
-        /*
-        -------------------------------------------------
-        AI
-        -------------------------------------------------
-        */
-
-        const aiReply =
-            await askAI(
-
-                message,
-
-                databaseContext,
-
-                ragContext,
-
-                history,
-
-                lang
-
-            );
-
-
-        /*
-        -------------------------------------------------
-        SAVE
-        -------------------------------------------------
-        */
-
-        await saveAssistantMessage({
-
-            userId,
-
-            customerId,
-
-            loggedIn,
-
-            sessionId,
-
-            message:
-                aiReply,
-
-            language:
-                lang
-
-        });
-
-
-        /*
-        -------------------------------------------------
-        RESPONSE
-        -------------------------------------------------
-        */
-
-        return res.json({
-
-            success: true,
-
-            intent,
-
-            reply:
-                aiReply,
-
-            requiresLogin:
-                false,
-
-            uiType:
-                "TEXT",
-
-            actions: [],
-
-            data
-
-        });
-
-    }
-
-    catch (err) {
-
-        console.error(
-            "\n========== CHAT CONTROLLER ERROR =========="
-        );
-
-        console.error(
-            err
-        );
-
-
-        return res.status(500).json({
-
-            success: false,
-
-            message:
-                err.message
-
-        });
-
-    }
-
-};
-
-
-/*
-=========================================================
-CLEAR CHAT
-=========================================================
-*/
+// Clear chat and purchase flow.
 
 const clearChat = (req, res) => {
-
     try {
-
         const userId =
-            req.body.customerId ||
-            "guest";
+            req.body.customerId || "guest";
 
-
-        /*
-        -------------------------------------------------
-        NORMAL CHAT
-        -------------------------------------------------
-        */
-
-        clearHistory(
-            userId
-        );
-
-
-        /*
-        -------------------------------------------------
-        PURCHASE FLOW
-        -------------------------------------------------
-        */
-
-        endPurchaseFlow(
-            userId
-        );
-
+        clearHistory(userId);
+        endPurchaseFlow(userId);
 
         return res.json({
-
             success: true,
-
-            message:
-                "Conversation cleared."
-
+            message: "Conversation cleared."
         });
 
-    }
-
-    catch (err) {
-
-        console.error(
-            "Clear chat error:",
-            err
-        );
-
-
+    } catch (err) {
         return res.status(500).json({
-
             success: false,
-
-            message:
-                err.message
-
+            message: err.message
         });
-
     }
-
 };
 
 
-/*
-=========================================================
-EXPORTS
-=========================================================
-*/
-
 module.exports = {
-
     chat,
-
     clearChat
-
 };
