@@ -763,6 +763,27 @@ textarea:disabled::placeholder {
   &:hover { color: var(--ink); }
 }
 
+.embedded-buy-policy {
+  ::ng-deep app-buy-policy-chat {
+    .header,
+    .top-strip,
+    .tab-underline,
+    .input-bar {
+      display: none; // bot already provides its own header + composer
+    }
+
+    .widget {
+      max-width: 100%;
+      box-shadow: none;
+    }
+
+    .chat-body {
+      max-height: none;
+      overflow: visible;
+    }
+  }
+}
+
 /* ===== History Drawer — dark chat-list theme ===== */
 .history-drawer {
   position: absolute;

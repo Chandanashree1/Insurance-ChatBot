@@ -1,0 +1,481 @@
+.policy-card {
+  background: #313648;
+  border-radius: 12px;
+  padding: 14px 12px 16px;
+  max-width: 320px;
+  width: 280px;
+  color: #f1f3f8;
+  border: 1px solid #3b4052;
+  box-sizing: border-box;
+}
+
+.policy-card-topbar {
+  display: none;
+}
+
+.policy-card-header {
+  display: none;
+}
+
+.policy-card-subtitle {
+  font-weight: 700;
+  font-size: 15px;
+  color: #ffffff;
+  margin: 0 0 14px;
+}
+
+/* =========================
+   FORM LABEL
+========================= */
+
+.form-label {
+  display: block;
+  font-size: 11px;
+  color: #aeb8d4;
+  margin: 11px 0 5px;
+  font-weight: 500;
+}
+
+.req {
+  color: #ff5c6c;
+}
+
+/* =========================
+   INPUT / SELECT
+========================= */
+
+.form-input,
+.form-select {
+  width: 100%;
+  padding: 9px 10px;
+  border-radius: 7px;
+  border: 1px solid #151821;
+  background: #0f1117;
+  color: #f5f6fa;
+  font-size: 12px;
+  box-sizing: border-box;
+  outline: none;
+
+  &::placeholder {
+    color: #777d91;
+  }
+
+  &:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.15);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}
+
+.form-select {
+  cursor: pointer;
+
+  option {
+    background: #0f1117;
+    color: #f5f6fa;
+  }
+}
+
+.form-input-mt {
+  margin-top: 8px;
+}
+
+/* =========================
+   TWO COLUMN FORM
+========================= */
+
+.form-row-2 {
+  display: flex;
+  gap: 8px;
+
+  .form-col {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+/* =========================
+   SECTION LABEL
+========================= */
+
+.section-label {
+  font-weight: 600;
+  font-size: 12px;
+  color: #ffffff;
+  margin: 15px 0 7px;
+}
+
+/* =========================
+   METHOD TABS
+========================= */
+
+.method-tabs {
+  display: flex;
+  border-radius: 7px;
+  overflow: hidden;
+  border: 1px solid #202431;
+  margin-bottom: 4px;
+}
+
+.method-tab {
+  flex: 1;
+  padding: 8px 4px;
+  font-size: 11px;
+  border: none;
+  background: #0f1117;
+  color: #9ba2b5;
+  cursor: pointer;
+
+  &:not(:last-child) {
+    border-right: 1px solid #292d3a;
+  }
+
+  &.active {
+    background: #3b82f6;
+    color: #ffffff;
+    font-weight: 600;
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+}
+
+/* =========================
+   PRODUCT SELECTION
+========================= */
+
+.product-row {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin: 8px 0 14px;
+}
+
+.product-btn {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid #202431;
+  border-radius: 7px;
+  background: #0f1117;
+  color: #f1f3f8;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+
+  .product-check {
+    width: 15px;
+    height: 15px;
+    border-radius: 50%;
+    background: #303544;
+    color: #ffffff;
+    font-size: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &.selected {
+    border-color: #3b82f6;
+
+    .product-check {
+      background: #3b82f6;
+    }
+  }
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.7;
+  }
+}
+
+/* =========================
+   PLAN LIST
+========================= */
+
+.plan-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.plan-row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: 1px solid #202431;
+  border-radius: 7px;
+  background: #0f1117;
+  color: #f1f3f8;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+
+  .plan-check {
+    width: 17px;
+    height: 17px;
+    border-radius: 50%;
+    background: #303544;
+    color: transparent;
+    font-size: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .plan-row-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .plan-row-name {
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  .plan-row-price {
+    font-size: 12px;
+    font-weight: 700;
+    color: #5b9df9;
+    white-space: nowrap;
+  }
+
+  &.selected {
+    border-color: #3b82f6;
+
+    .plan-check {
+      background: #3b82f6;
+      color: #ffffff;
+    }
+  }
+
+  &:disabled:not(.selected) {
+    opacity: 0.5;
+    cursor: default;
+  }
+}
+
+/* =========================
+   STEP INDICATOR
+========================= */
+
+.step {
+  &.active {
+    background: #3b82f6;
+  }
+
+  &.done {
+    background: #22c55e;
+  }
+}
+
+/* =========================
+   SUCCESS
+========================= */
+
+.success-badge {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #22c55e;
+  color: #ffffff;
+  font-size: 21px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 11px;
+}
+
+/* =========================
+   REDIRECT
+========================= */
+
+.redirect-btn {
+  display: block;
+  text-align: center;
+  margin-top: 13px;
+  color: #4f91f7;
+  font-weight: 600;
+  font-size: 12px;
+  text-decoration: none;
+
+  &:hover {
+    color: #6aa5ff;
+  }
+}
+
+/* =========================
+   EMBEDDED BUY POLICY
+========================= */
+
+.embedded-buy-policy {
+  display: flex;
+  justify-content: flex-start;
+  margin: 5px 0;
+
+  ::ng-deep app-buy-policy-chat {
+    .header,
+    .top-strip,
+    .tab-underline,
+    .input-bar {
+      display: none;
+    }
+
+    .widget {
+      max-width: 100%;
+      box-shadow: none;
+    }
+
+    .chat-body {
+      max-height: none;
+      overflow: visible;
+      padding: 0;
+    }
+  }
+}
+
+/* =========================
+   QUOTE SUMMARY
+========================= */
+
+.quote-summary-card {
+  background: #313648;
+  border-radius: 12px;
+  padding: 14px;
+  width: 280px;
+  max-width: 100%;
+  color: #f1f3f8;
+  border: 1px solid #3b4052;
+  box-sizing: border-box;
+}
+
+.quote-summary-header {
+  font-weight: 700;
+  font-size: 14px;
+  color: #ffffff;
+  margin-bottom: 11px;
+}
+
+/* =========================
+   VEHICLE BANNER
+========================= */
+
+.vehicle-banner {
+  background: #252a3a;
+  border-radius: 8px;
+  padding: 10px 11px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 11px;
+}
+
+.vehicle-banner-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.vehicle-name {
+  font-weight: 700;
+  font-size: 13px;
+  color: #ffffff;
+}
+
+.vehicle-year {
+  font-size: 10px;
+  color: #aeb5c7;
+}
+
+.vehicle-plate-badge {
+  background: #e8edf7;
+  color: #202432;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 5px;
+  white-space: nowrap;
+}
+
+/* =========================
+   SUMMARY
+========================= */
+
+.summary-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.summary-cell {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.summary-label {
+  color: #969daf;
+}
+
+.summary-value {
+  color: #f1f3f8;
+  font-weight: 600;
+}
+
+/* =========================
+   FORM ACTIONS
+========================= */
+
+.form-actions-row {
+  display: flex;
+  gap: 9px;
+  margin-top: 7px;
+}
+
+.form-cancel-btn-policy {
+  flex: 1;
+  padding: 9px 8px;
+  border-radius: 7px;
+  border: 1px solid #202431;
+  background: #0f1117;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 11px;
+  cursor: pointer;
+
+  &:hover {
+    background: #171a23;
+  }
+}
+
+.get-quote-btn {
+  flex: 2;
+  padding: 9px 8px;
+  border: none;
+  border-radius: 7px;
+  background: #3b82f6;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 11px;
+  cursor: pointer;
+
+  &:hover {
+    background: #3478e5;
+  }
+
+  &:disabled {
+    opacity: 0.55;
+    cursor: default;
+  }
+}

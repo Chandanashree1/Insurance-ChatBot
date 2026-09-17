@@ -1,0 +1,354 @@
+<div class="widget">
+  <div class="top-strip"></div>
+
+  <div class="header">
+    <div class="header-left">
+      <div class="menu-icon"><span></span><span></span><span></span></div>
+      <div class="title">Insurance Chatbot</div>
+    </div>
+    <div class="header-right">
+      <div class="lang-badge">EN</div>
+      <div class="lang-ar">العربية</div>
+    </div>
+  </div>
+  <div class="tab-underline"></div>
+
+  <div class="chat-body" #chatBody>
+    <ng-container *ngFor="let msg of messages">
+
+      <!-- plain text bubble -->
+      <div class="row" [ngClass]="msg.from" *ngIf="msg.type === 'text'">
+        <div class="bubble" [ngClass]="msg.from" [innerHTML]="msg.text"></div>
+      </div>
+
+      <!-- typing indicator -->
+      <div class="row bot" *ngIf="msg.type === 'typing'">
+        <div class="typing"><span></span><span></span><span></span></div>
+      </div>
+
+      <!-- quick reply chips -->
+      <div class="row bot" *ngIf="msg.type === 'quick-replies'">
+        <div class="quick-replies">
+          <button
+            class="qr-btn"
+            *ngFor="let opt of msg.options"
+            [disabled]="disabledQuickReplyGroups.has(msg)"
+            (click)="onQuickReply(msg, opt.value, opt.label)">
+            {{ opt.label }}
+          </button>
+        </div>
+      </div>
+
+      <!-- grouped Mulkiya-only fields (used mid-flow when a quote fails, etc.) -->
+      <div class="row bot" *ngIf="msg.type === 'mulkiya-form'">
+        <div class="form-card">
+          <div class="form-card-title">Vehicle Details (Mulkiya)</div>
+
+          <label class="form-label">Plate Number</label>
+          <input
+            class="form-input"
+            [(ngModel)]="msg.formData!.plateNumber"
+            [disabled]="msg.submitted ?? false"
+            placeholder="Enter your plate number">
+
+          <div class="form-row-2">
+            <div class="form-col">
+              <label class="form-label">Plate Code</label>
+              <select class="form-select" [(ngModel)]="msg.formData!.plateCode" [disabled]="msg.submitted">
+                <option value="M">M</option>
+                <option value="A">A</option>
+                <option value="25">25</option>
+                <option value="OTHER">Other</option>
+              </select>
+              <input
+                *ngIf="msg.formData!.plateCode === 'OTHER'"
+                class="form-input form-input-mt"
+                [(ngModel)]="msg.formData!.otherPlateCode"
+                [disabled]="msg.submitted"
+                placeholder="Enter plate code">
+            </div>
+
+            <div class="form-col">
+              <label class="form-label">Plate Type</label>
+              <select class="form-select" [(ngModel)]="msg.formData!.plateType" [disabled]="msg.submitted">
+                <option value="Oman">Oman</option>
+                <option value="UAE">UAE</option>
+                <option value="Qatar">Qatar</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+
+          <button class="form-submit-btn" [disabled]="msg.submitted" (click)="onSubmitMulkiya(msg)">
+            {{ msg.submitted ? 'Submitted ✓' : 'Continue' }}
+          </button>
+        </div>
+      </div>
+
+      <!-- vehicle summary -->
+      <div class="row bot" *ngIf="msg.type === 'summary'">
+        <div class="quote-summary-card">
+          <div class="quote-summary-header">Quote Summary</div>
+
+          <div class="vehicle-banner">
+            <div class="vehicle-banner-info">
+              <div class="vehicle-name">{{ msg.vehicle.make }} {{ msg.vehicle.model }}</div>
+              <div class="vehicle-year">{{ msg.vehicle.year }}</div>
+            </div>
+            <div class="vehicle-plate-badge">{{ msg.vehicle.plateNumber || '' }} {{ msg.vehicle.plateCode || '' }}</div>
+          </div>
+
+          <div class="summary-grid">
+            <div class="summary-cell">
+              <span class="summary-label">Chassis Number</span>
+              <span class="summary-value">{{ msg.vehicle.chassisNumber }}</span>
+            </div>
+            <div class="summary-cell">
+              <span class="summary-label">Body Type</span>
+              <span class="summary-value">{{ msg.vehicle.bodyType }}</span>
+            </div>
+            <div class="summary-cell">
+              <span class="summary-label">Usage Type</span>
+              <span class="summary-value">{{ msg.vehicle.usageType }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- plan option cards -->
+      <div class="row bot" *ngIf="msg.type === 'plans'">
+        <div class="quote-summary-card">
+          <div class="quote-summary-header">Select Plan</div>
+
+          <div class="plan-list">
+            <button
+              class="plan-row"
+              *ngFor="let plan of msg.plans"
+              [class.selected]="disabledPlanGroups.has(msg) && selectedOption?.optionId === plan.optionId"
+              [disabled]="disabledPlanGroups.has(msg)"
+              (click)="onSelectPlan(msg, plan)">
+              <span class="plan-check">✓</span>
+              <span class="plan-row-info">
+                <span class="plan-row-name">{{ plan.planName }}</span>
+              </span>
+              <span class="plan-row-price">OMR {{ plan.premium.toFixed(3) }}</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- payment success -->
+   <!-- payment success -->
+<div class="row bot" *ngIf="msg.type === 'success'">
+  <div class="summary-box success-box">
+    <div class="success-badge">✓</div>
+    <div class="success-title">Payment successful!</div>
+    <div class="row-line" style="width:100%;"><span>Policy No</span><b>{{ msg.policyNumber }}</b></div>
+    <a class="redirect-btn" href="javascript:void(0)" (click)="goToPolicyPage(msg.policyNumber)">View Policy &amp; Download Documents →</a>
+  </div>
+</div>
+
+      <!-- Buy Policy Form (matches Motor Insurance mockup) -->
+          <!-- Buy Policy Wizard (3 steps in one card) -->
+      <div class="row bot" *ngIf="msg.type === 'policy-form'">
+        <div class="policy-card">
+
+          <div class="policy-card-topbar"></div>
+
+          <div class="policy-card-header">
+            <div class="policy-card-title">MOTOR INSURANCE</div>
+            <div class="policy-steps">
+              <div class="step" [class.active]="(msg.step || 1) === 1" [class.done]="(msg.step || 1) > 1">1</div>
+              <div class="step-line"></div>
+              <div class="step" [class.active]="msg.step === 2" [class.done]="(msg.step || 1) > 2">2</div>
+              <div class="step-line"></div>
+              <div class="step" [class.active]="msg.step === 3">3</div>
+              
+            </div>
+          </div>
+
+          <!-- STEP 1: Buy Policy form -->
+          <ng-container *ngIf="(msg.step || 1) === 1">
+
+            <div class="policy-card-subtitle">Buy Policy</div>
+
+            <label class="form-label">Mobile Number <span class="req">*</span></label>
+            <input class="form-input" [(ngModel)]="msg.formData!.mobileNumber" [disabled]="msg.submitted" placeholder="Enter mobile number">
+
+            <div class="section-label">Mulkiya</div>
+            <div class="method-tabs">
+              <button type="button" class="method-tab" [class.active]="msg.formData!.mulkiyaMethod === 'upload'"
+                [disabled]="msg.submitted" (click)="setMulkiyaMethod(msg, 'upload')">Upload</button>
+              <button type="button" class="method-tab" [class.active]="msg.formData!.mulkiyaMethod === 'scan'"
+                [disabled]="msg.submitted" (click)="setMulkiyaMethod(msg, 'scan')">Scan</button>
+              <button type="button" class="method-tab" [class.active]="msg.formData!.mulkiyaMethod === 'enter'"
+                [disabled]="msg.submitted" (click)="setMulkiyaMethod(msg, 'enter')">Enter Details</button>
+            </div>
+
+            <ng-container *ngIf="msg.formData!.mulkiyaMethod === 'enter'">
+              <div class="form-row-2">
+                <div class="form-col">
+                  <label class="form-label">Plate Number <span class="req">*</span></label>
+                  <input class="form-input" [(ngModel)]="msg.formData!.plateNumber" [disabled]="msg.submitted" placeholder="Enter your Plate Number">
+                </div>
+                <div class="form-col">
+                  <label class="form-label">Plate Code <span class="req">*</span></label>
+                  <select class="form-select" [(ngModel)]="msg.formData!.plateCode" [disabled]="msg.submitted">
+                    <option value="" disabled>Select an option</option>
+                    <option value="M">M</option>
+                    <option value="A">A</option>
+                    <option value="25">25</option>
+                    <option value="OTHER">Other</option>
+                  </select>
+                  <input *ngIf="msg.formData!.plateCode === 'OTHER'" class="form-input form-input-mt"
+                    [(ngModel)]="msg.formData!.otherPlateCode" [disabled]="msg.submitted" placeholder="Enter plate code">
+                </div>
+              </div>
+
+              <label class="form-label">Plate Type <span class="req">*</span></label>
+              <select class="form-select" [(ngModel)]="msg.formData!.plateType" [disabled]="msg.submitted">
+                <option value="Oman">Oman</option>
+                <option value="UAE">UAE</option>
+                <option value="Qatar">Qatar</option>
+                <option value="Other">Other</option>
+              </select>
+            </ng-container>
+
+            <div class="section-label">Driving License</div>
+            <div class="method-tabs">
+              <button type="button" class="method-tab" [class.active]="msg.formData!.licenseMethod === 'upload'"
+                [disabled]="msg.submitted" (click)="setLicenseMethod(msg, 'upload')">Upload</button>
+              <button type="button" class="method-tab" [class.active]="msg.formData!.licenseMethod === 'scan'"
+                [disabled]="msg.submitted" (click)="setLicenseMethod(msg, 'scan')">Scan</button>
+              <button type="button" class="method-tab" [class.active]="msg.formData!.licenseMethod === 'enter'"
+                [disabled]="msg.submitted" (click)="setLicenseMethod(msg, 'enter')">Enter Details</button>
+            </div>
+
+            <ng-container *ngIf="msg.formData!.licenseMethod === 'enter'">
+              <label class="form-label">Civil ID / License No <span class="req">*</span></label>
+              <input class="form-input" [(ngModel)]="msg.formData!.civilIdLicenseNo" [disabled]="msg.submitted" placeholder="Enter your Civil ID">
+
+              <label class="form-label">Full Name <span class="req">*</span></label>
+              <input class="form-input" [(ngModel)]="msg.formData!.fullName" [disabled]="msg.submitted" placeholder="Enter your full name">
+            </ng-container>
+
+            <div class="section-label">Select Product</div>
+            <div class="product-row">
+              <button type="button" class="product-btn" [class.selected]="msg.formData!.productId === 'COMPREHENSIVE'"
+                [disabled]="msg.submitted" (click)="selectProduct(msg, 'COMPREHENSIVE')">
+                <span class="product-check">✓</span> Comprehensive Insurance
+              </button>
+              <button type="button" class="product-btn" [class.selected]="msg.formData!.productId === 'THIRD_PARTY'"
+                [disabled]="msg.submitted" (click)="selectProduct(msg, 'THIRD_PARTY')">
+                <span class="product-check">✓</span> Third Party Insurance
+              </button>
+            </div>
+
+            <div class="form-field" *ngIf="msg.formData!.productId === 'COMPREHENSIVE'">
+              <label class="form-label">Vehicle Value (OMR) <span class="req">*</span></label>
+              <input class="form-input" type="number" [(ngModel)]="msg.formData!.vehicleValue" [disabled]="msg.submitted" placeholder="Enter estimated vehicle value">
+            </div>
+
+            <div class="inline-notice" *ngIf="formNotice">{{ formNotice }}</div>
+
+            <div class="form-actions-row">
+              <button type="button" class="form-cancel-btn-policy" [disabled]="msg.submitted" (click)="cancelPolicyForm(msg)">
+                Cancel
+              </button>
+              <button class="get-quote-btn" [disabled]="msg.submitted" (click)="submitPolicyForm(msg)">
+                {{ msg.submitted ? 'Generating...' : 'Get Quote' }}
+              </button>
+            </div>
+
+          </ng-container>
+
+          <!-- STEP 2: Quote Summary + Plan selection -->
+          <ng-container *ngIf="msg.step === 2">
+
+            <div class="policy-card-subtitle">Quote Summary</div>
+
+            <div class="vehicle-banner">
+              <div class="vehicle-banner-info">
+                <div class="vehicle-name">{{ msg.vehicle?.make }} {{ msg.vehicle?.model }}</div>
+                <div class="vehicle-year">{{ msg.vehicle?.year }}</div>
+              </div>
+              <div class="vehicle-plate-badge">{{ msg.vehicle?.plateNumber }} {{ msg.vehicle?.plateCode }}</div>
+            </div>
+
+            <div class="summary-grid">
+              <div class="summary-cell">
+                <span class="summary-label">Chassis Number</span>
+                <span class="summary-value">{{ msg.vehicle?.chassisNumber }}</span>
+              </div>
+              <div class="summary-cell">
+                <span class="summary-label">Body Type</span>
+                <span class="summary-value">{{ msg.vehicle?.bodyType }}</span>
+              </div>
+              <div class="summary-cell">
+                <span class="summary-label">Usage Type</span>
+                <span class="summary-value">{{ msg.vehicle?.usageType }}</span>
+              </div>
+            </div>
+
+            <div class="section-label">Select Plan</div>
+            <div class="plan-list">
+              <button
+                class="plan-row"
+                *ngFor="let plan of msg.plans"
+                [class.selected]="msg.selectedOption?.optionId === plan.optionId"
+                (click)="selectPlanForForm(msg, plan)">
+                <span class="plan-check">✓</span>
+                <span class="plan-row-info">
+                  <span class="plan-row-name">{{ plan.planName }}</span>
+                </span>
+                <span class="plan-row-price">OMR {{ plan.premium.toFixed(3) }}</span>
+              </button>
+            </div>
+
+            <div class="inline-notice" *ngIf="formNotice">{{ formNotice }}</div>
+
+           <button
+  type="button"
+  class="pay-btn"
+  [disabled]="!msg.quoteId || !msg.selectedOption || msg.submitted"
+  (click)="payNowForForm(msg)">
+  Pay Now
+</button>
+
+          </ng-container>
+
+          <!-- STEP 3: Payment success -->
+          <ng-container *ngIf="msg.step === 3">
+
+            <div class="success-badge">✓</div>
+            <div class="policy-card-subtitle" style="text-align:center;">Your premium payment is successful. Thank you!</div>
+
+            <div class="summary-grid" style="margin-top:12px;">
+              <div class="summary-cell">
+                <span class="summary-label">Policy No</span>
+                <span class="summary-value">{{ msg.policyNumber }}</span>
+              </div>
+            </div>
+
+          <a class="redirect-btn" href="javascript:void(0)" (click)="goToPolicyPage(msg.policyNumber)">
+    View Policy &amp; Download Documents →
+  </a>
+
+          </ng-container>
+
+
+        </div>
+      </div>
+    </ng-container>
+  </div>
+
+  <div class="input-bar">
+    <button class="icon-btn" title="Home">⌂</button>
+    <input
+      class="text-input"
+      [(ngModel)]="inputValue"
+      (keydown.enter)="onSend()"
+      placeholder="Type here...">
+    <button class="send-btn" (click)="onSend()">➤</button>
+  </div>
+</div>

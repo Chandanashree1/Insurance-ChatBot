@@ -129,8 +129,15 @@ async function findVehicle(
 
 async function getProduct(
     connection,
-    productId
+    productType
 ) {
+
+    const normalized =
+        String(productType || "")
+            .trim()
+            .toUpperCase()
+            .replace(/-/g, "_")
+            .replace(/\s+/g, "_");
 
     const result = await connection.execute(
         `
@@ -139,10 +146,10 @@ async function getProduct(
             PRODUCT_NAME,
             PRODUCT_TYPE
         FROM PRODUCT
-        WHERE PRODUCT_ID = :productId
+        WHERE UPPER(PRODUCT_TYPE) = :productType
         `,
         {
-            productId
+            productType: normalized
         },
         {
             outFormat: oracledb.OUT_FORMAT_OBJECT
@@ -152,7 +159,9 @@ async function getProduct(
 
     if (result.rows.length === 0) {
 
-        throw new Error("Product not found");
+        throw new Error(
+            `Product not found for type: ${productType}`
+        );
 
     }
 
@@ -160,7 +169,6 @@ async function getProduct(
     return result.rows[0];
 
 }
-
 
 
 // ======================================================
@@ -303,7 +311,6 @@ async function createQuote(data) {
         // This avoids ORA-01722.
         //
         // ==================================================
-
         const quoteInsert = await connection.execute(
             `
             INSERT INTO QUOTE (
@@ -336,7 +343,7 @@ async function createQuote(data) {
                 vehicleId:
                     vehicle.VEHICLE_ID,
 
-                productId,
+                productId:product.PRODUCT_ID,
 
                 vehicleValue:
                     finalVehicleValue,
@@ -571,48 +578,71 @@ async function createQuote(data) {
         // STEP 10 — INSERT 4 QUOTE OPTIONS
         // ==================================================
 
-        for (const option of options) {
+       // ==================================================
+// STEP 10 — INSERT 4 QUOTE OPTIONS
+// ==================================================
 
-            await connection.execute(
-                `
-                INSERT INTO QUOTE_OPTION (
-                    QUOTE_ID,
-                    OPTION_NUMBER,
-                    PLAN_NAME,
-                    PREMIUM,
-                    COVERAGE_DETAILS,
-                    IS_SELECTED
-                )
-                VALUES (
-                    :quoteId,
-                    :optionNumber,
-                    :planName,
-                    :premium,
-                    :coverageDetails,
-                    'N'
-                )
-                `,
-                {
-                    quoteId,
+const savedOptions = [];
 
-                    optionNumber:
-                        option.number,
+for (const option of options) {
 
-                    planName:
-                        option.planName,
+    const optionInsert = await connection.execute(
+        `
+        INSERT INTO QUOTE_OPTION (
+            QUOTE_ID,
+            OPTION_NUMBER,
+            PLAN_NAME,
+            PREMIUM,
+            COVERAGE_DETAILS,
+            IS_SELECTED
+        )
+        VALUES (
+            :quoteId,
+            :optionNumber,
+            :planName,
+            :premium,
+            :coverageDetails,
+            'N'
+        )
+        RETURNING OPTION_ID INTO :optionId
+        `,
+        {
+            quoteId,
 
-                    premium:
-                        option.premium,
+            optionNumber:
+                option.number,
 
-                    coverageDetails:
-                        option.details
-                },
-                {
-                    autoCommit: false
-                }
-            );
+            planName:
+                option.planName,
 
+            premium:
+                option.premium,
+
+            coverageDetails:
+                option.details,
+
+            optionId: {
+                dir: oracledb.BIND_OUT,
+                type: oracledb.NUMBER
+            }
+        },
+        {
+            autoCommit: false
         }
+    );
+
+    savedOptions.push({
+        optionId: optionInsert.outBinds.optionId[0],
+
+        optionNumber: option.number,
+
+        planName: option.planName,
+
+        premium: option.premium,
+
+        details: option.details
+    });
+}
 
 
 
@@ -641,7 +671,7 @@ async function createQuote(data) {
                 vehicleId:
                     vehicle.VEHICLE_ID,
 
-                productId,
+                productId:product.PRODUCT_ID,
 
                 productName:
                     product.PRODUCT_NAME,
@@ -700,7 +730,7 @@ async function createQuote(data) {
             },
 
 
-            options
+            options: savedOptions
 
         };
 

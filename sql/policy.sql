@@ -73,3 +73,8 @@ FROM user_objects
 WHERE object_type = 'TABLE'
 ORDER BY object_name;
 
+CREATE SEQUENCE POLICY_SEQ
+    START WITH 1
+    INCREMENT BY 1
+    NOCACHE
+    NOCYCLE;

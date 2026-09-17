@@ -91,29 +91,21 @@ const getPoliciesByCustomer = async (req, res) => {
 
             count: policies.length,
 
-            data: policies.map(policy => ({
-
-                policyId: policy.POLICY_ID,
-
-                policyNumber: policy.POLICY_NUMBER,
-
-                customerId: policy.CUSTOMER_ID,
-
-                policyType: policy.POLICY_TYPE,
-
-                planName: policy.PLAN_NAME,
-
-                premium: policy.PREMIUM,
-
-                sumInsured: policy.SUM_INSURED,
-
-                startDate: policy.START_DATE,
-
-                endDate: policy.END_DATE,
-
-                status: policy.STATUS
-
-            }))
+          data: policies.map(policy => ({
+    policyId: policy.POLICY_ID,
+    policyNumber: policy.POLICY_NUMBER,
+    quoteId: policy.QUOTE_ID,
+    customerId: policy.CUSTOMER_ID,
+    vehicleId: policy.VEHICLE_ID,
+    policyType: policy.PRODUCT_TYPE,
+    productName: policy.PRODUCT_NAME,
+    planName: policy.PLAN_NAME,
+    premium: policy.PREMIUM,
+    sumInsured: policy.SUM_INSURED,
+    coverFrom: policy.COVER_FROM,
+    coverTo: policy.COVER_TO,
+    status: policy.POLICY_STATUS
+}))
 
         });
 

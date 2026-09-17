@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { DoCheck } from '@angular/core';
+import { BuyPolicyChatComponent } from '../buy_policy/buy_policy.ts.component';
 
 interface FormField {
   name: string;
@@ -87,7 +88,7 @@ const WELCOME_MESSAGE: ChatMessage = {
 @Component({
   selector: 'app-bot', // Matches your component selector tag
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BuyPolicyChatComponent],
   templateUrl: './bot.html',
   styleUrls: ['./bot.scss']
 })
@@ -381,6 +382,7 @@ openComplaintFromCenter(): void {
   openLoginFromSupport(): void {
     this.isSupportCenterOpen = false;
     this.isHistoryOpen = false;
+      this.showLoginPopup = true;
     this.openLogin('supportCenter');
   }
 

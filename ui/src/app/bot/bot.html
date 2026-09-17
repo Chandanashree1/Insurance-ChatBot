@@ -447,8 +447,16 @@
     </div>
 
     <!-- User/Bot Conversation -->
+       <!-- User/Bot Conversation -->
     <ng-container *ngFor="let msg of messages.slice(1)">
-      <div class="row" [class.user]="msg.sender === 'user'" [class.bot]="msg.sender === 'bot'">
+
+      <!-- Buy Policy form: skip the bubble/text entirely, show only the form -->
+      <div class="embedded-buy-policy" *ngIf="msg.uiType === 'BUY_POLICY_FORM'">
+        <app-buy-policy-chat [embedded]="true"></app-buy-policy-chat>
+      </div>
+
+      <!-- Every other message keeps the normal bubble -->
+      <div class="row" [class.user]="msg.sender === 'user'" [class.bot]="msg.sender === 'bot'" *ngIf="msg.uiType !== 'BUY_POLICY_FORM'">
         <div class="bubble">
           <div class="message-line">
             <span class="message-text">
@@ -522,11 +530,13 @@
             </button>
 
           </div>
+
           <button *ngIf="msg.showLoginButton" class="login-btn" (click)="openLogin()">
             {{ translations[selectedLanguage].loginBtn }}
           </button>
         </div>
       </div>
+
     </ng-container>
 
     <!-- Complaint Form -->

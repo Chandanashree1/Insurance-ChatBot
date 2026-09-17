@@ -203,7 +203,7 @@ function buildPurchaseReply(flow, stage, language) {
     if (stage === "TYPE_IDENTIFICATION") {
         return purchaseReply(
             language,
-            "What would you like to insure: your car, health, travel, or life?",
+            "What would you like to insure: your Motor, health, travel, or life?",
             "ما الذي ترغب في تأمينه: السيارة أم الصحة أم السفر أم الحياة؟"
         );
     }
@@ -1218,9 +1218,6 @@ async function handlePurchaseFlow({
     history,
     purchaseFlow
 }) {
-    // Customer must be logged in before
-    // completing the actual purchase.
-
     const decision =
         await decidePurchaseStage({
             message,
@@ -1229,21 +1226,8 @@ async function handlePurchaseFlow({
             language: lang
         });
 
-    console.log(
-        "\n========== PURCHASE LLM =========="
-    );
-
-    console.log(
-        JSON.stringify(
-            decision,
-            null,
-            2
-        )
-    );
-
-
-    // Store extracted information.
-    // Backend stage is authoritative.
+    console.log("\n========== PURCHASE LLM ==========");
+    console.log(JSON.stringify(decision, null, 2));
 
     const updatedFlow =
         updatePurchaseFlow(
@@ -1255,58 +1239,92 @@ async function handlePurchaseFlow({
             }
         );
 
-
-    // Backend decides what is actually missing.
-
     const missing =
-        getPurchaseRequirements(
-            updatedFlow
-        );
+        getPurchaseRequirements(updatedFlow);
 
     const stage =
-        determinePurchaseStage(
-            updatedFlow
-        );
-
-
-    // Store final backend stage.
+        determinePurchaseStage(updatedFlow);
 
     const finalFlow =
         updatePurchaseFlow(
             userId,
             {
                 stage,
-                missingInformation:
-                    missing
+                missingInformation: missing
             }
         );
 
+    console.log("\n========== BACKEND PURCHASE VALIDATION ==========");
+    console.log(JSON.stringify({ stage, missing, collectedData: finalFlow.collectedData }, null, 2));
 
-    console.log(
-        "\n========== BACKEND PURCHASE VALIDATION =========="
-    );
+    // --------------------------------------------------
+    // Hand off MOTOR purchases to the visual Buy Policy
+    // form — it collects productType, plate details, and
+    // dates in one screen, so skip the text slot-filling.
+    // --------------------------------------------------
 
-    console.log(
-        JSON.stringify(
-            {
-                stage,
-                missing,
-                collectedData:
-                    finalFlow.collectedData
-            },
-            null,
-            2
-        )
-    );
+    if (
+        finalFlow.insuranceType === "MOTOR" &&
+        stage !== "READY_FOR_QUOTE"
+    ) {
+        // Require login before showing the purchase form.
+        if (!loggedIn || !customerId) {
+            const loginReply = TEXT[lang].loginPurchase;
 
+            addMessage(userId, "assistant", loginReply);
 
-    // Quote can only happen when
-    // backend validation says READY.
+            return res.json({
+                success: true,
+                intent: "BUY_POLICY",
+                purchaseStage: stage,
+                product: "MOTOR",
+                reply: loginReply,
+                requiresLogin: true,
+                uiType: "LOGIN_REQUIRED",
+                actions: [],
+                data: [],
+                purchaseData: finalFlow.collectedData || {},
+                missingInformation: []
+            });
+        }
+
+        const formHandoffReply = purchaseReply(
+            lang,
+            "Sure — let's get your car insurance details.",
+            "بالتأكيد! دعنا نحصل على تفاصيل تأمين سيارتك."
+        );
+
+        addMessage(userId, "assistant", formHandoffReply);
+
+        await saveMessage(customerId, sessionId, "bot", formHandoffReply, lang);
+
+        // The form owns quote + payment from here via QuoteService,
+        // so clear the LLM-driven flow to avoid stale state.
+        endPurchaseFlow(userId);
+
+        return res.json({
+            success: true,
+            intent: "BUY_POLICY",
+            purchaseStage: "BUY_POLICY_FORM",
+            product: "MOTOR",
+            reply: formHandoffReply,
+            requiresLogin: false,
+            uiType: "BUY_POLICY_FORM",
+            actions: [],
+            data: [],
+            purchaseData: finalFlow.collectedData || {},
+            missingInformation: []
+        });
+    }
+
+    // --------------------------------------------------
+    // Quote can only happen when backend validation
+    // says READY.
+    // --------------------------------------------------
 
     if (stage === "READY_FOR_QUOTE") {
         if (!loggedIn || !customerId) {
-            const reply =
-                TEXT[lang].loginPurchase;
+            const reply = TEXT[lang].loginPurchase;
 
             return res.json({
                 success: true,
@@ -1317,8 +1335,7 @@ async function handlePurchaseFlow({
                 uiType: "LOGIN_REQUIRED",
                 actions: [],
                 data: [],
-                purchaseData:
-                    finalFlow.collectedData || {},
+                purchaseData: finalFlow.collectedData || {},
                 missingInformation: []
             });
         }
@@ -1331,95 +1348,65 @@ async function handlePurchaseFlow({
             });
 
         if (quoteResult.reply) {
-            addMessage(
-                userId,
-                "assistant",
-                quoteResult.reply
-            );
-
-            await saveMessage(
-                customerId,
-                sessionId,
-                "bot",
-                quoteResult.reply,
-                lang
-            );
+            addMessage(userId, "assistant", quoteResult.reply);
+            await saveMessage(customerId, sessionId, "bot", quoteResult.reply, lang);
         }
 
         return res.json({
             success: true,
             intent: "BUY_POLICY",
-            purchaseStage:
-                getPurchaseFlow(userId)?.stage ||
-                stage,
-            product:
-                finalFlow.productType ||
-                null,
-            reply:
-                quoteResult.reply,
+            purchaseStage: getPurchaseFlow(userId)?.stage || stage,
+            product: finalFlow.productType || null,
+            reply: quoteResult.reply,
             requiresLogin: false,
-            uiType:
-                quoteResult.uiType,
-            actions:
-                quoteResult.actions || [],
-            data:
-                quoteResult.data || [],
-            quote:
-                quoteResult.quote || null,
-            purchaseData:
-                finalFlow.collectedData || {},
-            missingInformation:
-                quoteResult.missingInformation || []
+            uiType: quoteResult.uiType,
+            actions: quoteResult.actions || [],
+            data: quoteResult.data || [],
+            quote: quoteResult.quote || null,
+            purchaseData: finalFlow.collectedData || {},
+            missingInformation: quoteResult.missingInformation || []
         });
     }
 
-
-    // Continue purchase conversation.
+    // --------------------------------------------------
+    // Continue purchase conversation (text Q&A for
+    // non-Motor types, or before insurance type is known).
+    // --------------------------------------------------
 
     const reply =
-        buildPurchaseReply(
-            finalFlow,
-            stage,
-            lang
-        );
+        buildPurchaseReply(finalFlow, stage, lang);
 
-
-    addMessage(
-        userId,
-        "assistant",
-        reply
-    );
+    addMessage(userId, "assistant", reply);
 
     if (loggedIn && customerId) {
-        await saveMessage(
-            customerId,
-            sessionId,
-            "bot",
-            reply,
-            lang
-        );
+        await saveMessage(customerId, sessionId, "bot", reply, lang);
+    }
+
+    let actions = [];
+
+    if (stage === "TYPE_IDENTIFICATION") {
+        actions = [
+            { label: purchaseReply(lang, "Car Insurance", "تأمين السيارة"), action: "MOTOR" },
+            { label: purchaseReply(lang, "Health Insurance", "التأمين الصحي"), action: "HEALTH" },
+            { label: purchaseReply(lang, "Travel Insurance", "تأمين السفر"), action: "TRAVEL" },
+            { label: purchaseReply(lang, "Life Insurance", "التأمين على الحياة"), action: "LIFE" }
+        ];
     }
 
     return res.json({
         success: true,
         intent: "BUY_POLICY",
         purchaseStage: stage,
-        product:
-            finalFlow.productType ||
-            null,
+        product: finalFlow.productType || null,
         reply,
         requiresLogin: false,
         uiType: "TEXT",
-        actions: [],
+        actions,
         data: [],
-        purchaseData:
-            finalFlow.collectedData || {},
-        missingInformation:
-            missing
+        purchaseData: finalFlow.collectedData || {},
+        missingInformation: missing
     });
 }
-
-
 // Clear chat and purchase flow.
 
 const clearChat = (req, res) => {

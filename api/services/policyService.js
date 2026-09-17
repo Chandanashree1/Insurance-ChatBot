@@ -170,30 +170,38 @@ async function createPolicyFromQuote(quoteId) {
         // ==================================================
         // 6. CREATE POLICY
         // ==================================================
+        //
+        // POLICY table only stores foreign keys + PREMIUM +
+        // COVER_FROM/COVER_TO + POLICY_STATUS. Everything else
+        // (plan name, product type, sum insured) is derived via
+        // JOINs when reading, not stored redundantly here.
+        // ==================================================
 
         const policyResult =
             await connection.execute(
                 `
                 INSERT INTO POLICY (
                     POLICY_NUMBER,
+                    QUOTE_ID,
                     CUSTOMER_ID,
-                    POLICY_TYPE,
-                    PLAN_NAME,
+                    VEHICLE_ID,
+                    PRODUCT_ID,
+                    OPTION_ID,
                     PREMIUM,
-                    SUM_INSURED,
-                    START_DATE,
-                    END_DATE,
-                    STATUS
+                    COVER_FROM,
+                    COVER_TO,
+                    POLICY_STATUS
                 )
                 VALUES (
                     :policyNumber,
+                    :quoteId,
                     :customerId,
-                    :policyType,
-                    :planName,
+                    :vehicleId,
+                    :productId,
+                    :optionId,
                     :premium,
-                    :sumInsured,
-                    :startDate,
-                    :endDate,
+                    :coverFrom,
+                    :coverTo,
                     'ACTIVE'
                 )
                 RETURNING POLICY_ID INTO :policyId
@@ -201,25 +209,27 @@ async function createPolicyFromQuote(quoteId) {
                 {
                     policyNumber,
 
+                    quoteId,
+
                     customerId:
                         quote.CUSTOMER_ID,
 
-                    policyType:
-                        quote.PRODUCT_TYPE,
+                    vehicleId:
+                        quote.VEHICLE_ID,
 
-                    planName:
-                        selectedOption.PLAN_NAME,
+                    productId:
+                        quote.PRODUCT_ID,
+
+                    optionId:
+                        selectedOption.OPTION_ID,
 
                     premium:
                         selectedOption.PREMIUM,
 
-                    sumInsured:
-                        quote.VEHICLE_VALUE,
-
-                    startDate:
+                    coverFrom:
                         quote.COVER_FROM,
 
-                    endDate:
+                    coverTo:
                         quote.COVER_TO,
 
                     policyId: {
@@ -274,8 +284,16 @@ async function createPolicyFromQuote(quoteId) {
 
                 policyNumber,
 
+                quoteId,
+
                 customerId:
                     quote.CUSTOMER_ID,
+
+                vehicleId:
+                    quote.VEHICLE_ID,
+
+                productId:
+                    quote.PRODUCT_ID,
 
                 policyType:
                     quote.PRODUCT_TYPE,
@@ -292,10 +310,10 @@ async function createPolicyFromQuote(quoteId) {
                 sumInsured:
                     quote.VEHICLE_VALUE,
 
-                startDate:
+                coverFrom:
                     quote.COVER_FROM,
 
-                endDate:
+                coverTo:
                     quote.COVER_TO,
 
                 status:
@@ -382,19 +400,38 @@ async function getCustomerPolicies(customerId) {
 
             `
             SELECT
-                POLICY_ID,
-                POLICY_NUMBER,
-                CUSTOMER_ID,
-                POLICY_TYPE,
-                PLAN_NAME,
-                PREMIUM,
-                SUM_INSURED,
-                START_DATE,
-                END_DATE,
-                STATUS
-            FROM POLICY
-            WHERE CUSTOMER_ID = :customerId
-            ORDER BY START_DATE DESC
+                pol.POLICY_ID,
+                pol.POLICY_NUMBER,
+                pol.QUOTE_ID,
+                pol.CUSTOMER_ID,
+                pol.VEHICLE_ID,
+                pol.PREMIUM,
+                pol.COVER_FROM,
+                pol.COVER_TO,
+                pol.POLICY_STATUS,
+                pol.CREATED_AT,
+
+                prod.PRODUCT_TYPE,
+                prod.PRODUCT_NAME,
+
+                qo.PLAN_NAME,
+
+                q.VEHICLE_VALUE AS SUM_INSURED
+
+            FROM POLICY pol
+
+            JOIN PRODUCT prod
+                ON pol.PRODUCT_ID = prod.PRODUCT_ID
+
+            JOIN QUOTE_OPTION qo
+                ON pol.OPTION_ID = qo.OPTION_ID
+
+            JOIN QUOTE q
+                ON pol.QUOTE_ID = q.QUOTE_ID
+
+            WHERE pol.CUSTOMER_ID = :customerId
+
+            ORDER BY pol.CREATED_AT DESC
             `,
 
             {
@@ -435,18 +472,36 @@ async function getPolicyByNumber(policyNumber) {
 
             `
             SELECT
-                POLICY_ID,
-                POLICY_NUMBER,
-                CUSTOMER_ID,
-                POLICY_TYPE,
-                PLAN_NAME,
-                PREMIUM,
-                SUM_INSURED,
-                START_DATE,
-                END_DATE,
-                STATUS
-            FROM POLICY
-            WHERE POLICY_NUMBER = :policyNumber
+                pol.POLICY_ID,
+                pol.POLICY_NUMBER,
+                pol.QUOTE_ID,
+                pol.CUSTOMER_ID,
+                pol.VEHICLE_ID,
+                pol.PREMIUM,
+                pol.COVER_FROM,
+                pol.COVER_TO,
+                pol.POLICY_STATUS,
+                pol.CREATED_AT,
+
+                prod.PRODUCT_TYPE,
+                prod.PRODUCT_NAME,
+
+                qo.PLAN_NAME,
+
+                q.VEHICLE_VALUE AS SUM_INSURED
+
+            FROM POLICY pol
+
+            JOIN PRODUCT prod
+                ON pol.PRODUCT_ID = prod.PRODUCT_ID
+
+            JOIN QUOTE_OPTION qo
+                ON pol.OPTION_ID = qo.OPTION_ID
+
+            JOIN QUOTE q
+                ON pol.QUOTE_ID = q.QUOTE_ID
+
+            WHERE pol.POLICY_NUMBER = :policyNumber
             `,
 
             {
@@ -470,9 +525,6 @@ async function getPolicyByNumber(policyNumber) {
     }
 
 }
-
-
-
 
 
 module.exports = { createPolicyFromQuote, getCustomerPolicies, getPolicyByNumber };

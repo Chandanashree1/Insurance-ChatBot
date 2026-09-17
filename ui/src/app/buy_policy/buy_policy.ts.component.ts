@@ -1,0 +1,644 @@
+import { Component, ElementRef, ViewChild, AfterViewChecked,Input, OnInit } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
+import { QuoteService, QuoteOption, CreateQuoteResponse } from '../services/quote.service';
+import { Router } from '@angular/router';
+
+
+interface SelectOptionResponse {
+  success: boolean;
+  message: string;
+  data: any;
+}
+
+interface PaymentResponse {
+  success: boolean;
+  message: string;
+  data: {
+    success: boolean;
+    paymentStatus: string;
+    quote: any;
+    selectedOption?: any;
+  };
+}
+
+interface PolicyResponse {
+  success: boolean;
+  message: string;
+  data: {
+    policy: { policyId: number; policyNumber: string; [key: string]: any };
+    quote: any;
+  };
+}
+
+/** Single shared shape for both the Mulkiya-only form and the full Buy-Policy form. */
+interface ChatFormData {
+  mobileNumber?: string;
+  mulkiyaMethod?: 'upload' | 'scan' | 'enter';
+  plateNumber: string;
+  plateCode: string;
+  otherPlateCode: string;
+  plateType: string;
+  licenseMethod?: 'upload' | 'scan' | 'enter';
+  civilIdLicenseNo?: string;
+  fullName?: string;
+  productId?: string;
+  vehicleValue?: number;
+}
+
+interface FlowData {
+  mobileNumber?: string;
+  plateNumber?: string;
+  plateCode?: string;
+  civilIdLicenseNo?: string;
+  fullName?: string;
+  productId?: string;
+  vehicleValue?: number;
+}
+
+type Stage =
+  | 'ASK_MOBILE'
+  | 'ASK_VEHICLE_DETAILS'
+  | 'ASK_CIVIL_ID'
+  | 'ASK_FULL_NAME'
+  | 'ASK_PRODUCT'
+  | 'ASK_VEHICLE_VALUE'
+  | 'ASK_INSURANCE_TYPE'
+  | 'ASK_FORM'
+  | 'GENERATING'
+  | 'PLAN_SELECTION'
+  | 'PAYMENT'
+  | 'DONE';
+interface ChatMessage {
+  from: 'bot' | 'user';
+  type: 'text' | 'typing' | 'quick-replies' | 'plans' | 'summary' | 'success' | 'mulkiya-form' | 'policy-form';
+  text?: string;
+  options?: { label: string; value: string }[];
+  vehicle?: any;
+  plans?: QuoteOption[];
+  policyNumber?: string;
+  formData?: ChatFormData;
+  submitted: boolean;
+  step?: 1 | 2 | 3;
+  quoteId?: number;
+  selectedOption?: QuoteOption;
+}
+
+@Component({
+  selector: 'app-buy-policy-chat',
+  standalone: true,
+  imports: [CommonModule, FormsModule],
+  templateUrl: './buy_policy.component.html',
+  styleUrls: ['./buy_policy.component.scss']
+})
+export class BuyPolicyChatComponent implements AfterViewChecked,OnInit {
+
+    @Input() embedded: boolean = false;
+
+  @ViewChild('chatBody') chatBodyRef!: ElementRef<HTMLDivElement>;
+
+  messages: ChatMessage[] = [];
+  inputValue = '';
+  stage: Stage = 'ASK_MOBILE';
+  data: FlowData = {};
+
+  quoteId: number | null = null;
+  selectedOption: QuoteOption | null = null;
+  formNotice = '';
+  disabledQuickReplyGroups = new Set<ChatMessage>();
+  disabledPlanGroups = new Set<ChatMessage>();
+constructor(private quoteService: QuoteService, private router: Router) {
+    // this.pushBot('text', {
+    //     text: '👋 Hello! I\'m your Insurance Assistant. Type "I want to buy policy" whenever you\'re ready to get started.'
+    // });
+}
+
+goToPolicyPage(policyNumber?: string): void {
+  if (!policyNumber) return;
+
+  this.router.navigate(['/policy-success', policyNumber]);
+}
+
+  ngOnInit(): void {
+    if (this.embedded) {
+      // Already routed here by the main chatbot — skip our own
+      // greeting/"type buy policy" onboarding and show the form directly.
+      this.startBuyPolicyFlow();
+    } else {
+      this.pushBot('text', {
+        text: '👋 Hello! I\'m your Insurance Assistant. Type "I want to buy policy" whenever you\'re ready to get started.'
+      });
+    }
+  }
+
+  private emptyPolicyForm(): ChatFormData {
+    return {
+      mobileNumber: '',
+      mulkiyaMethod: 'enter',
+      plateNumber: '',
+      plateCode: '',
+      otherPlateCode: '',
+      plateType: 'Oman',
+      licenseMethod: 'enter',
+      civilIdLicenseNo: '',
+      fullName: '',
+      productId: '',
+      vehicleValue: 0
+    };
+  }
+
+  ngAfterViewChecked(): void {
+    this.scrollToBottom();
+  }
+
+  private scrollToBottom(): void {
+    try {
+      const el = this.chatBodyRef.nativeElement;
+      el.scrollTop = el.scrollHeight;
+    } catch { /* noop */ }
+  }
+
+  private pushBot(type: ChatMessage['type'], msg: Partial<ChatMessage>): ChatMessage {
+    const full: ChatMessage = {
+      from: 'bot',
+      type,
+      submitted: false,
+      ...msg
+    };
+
+    this.messages.push(full);
+    return full;
+  }
+
+  private pushUser(text: string): void {
+    this.messages.push({
+      from: 'user',
+      type: 'text',
+      text,
+      submitted: false
+    });
+  }
+
+  private async typing(ms = 600): Promise<void> {
+    const t = this.pushBot('typing', {});
+    await this.wait(ms);
+    const idx = this.messages.indexOf(t);
+    if (idx > -1) this.messages.splice(idx, 1);
+  }
+
+  private wait(ms: number): Promise<void> {
+    return new Promise(r => setTimeout(r, ms));
+  }
+
+  onQuickReply(msg: ChatMessage, value: string, label: string): void {
+    if (this.disabledQuickReplyGroups.has(msg)) return;
+    this.disabledQuickReplyGroups.add(msg);
+    this.pushUser(label);
+    this.handlePicked(value);
+  }
+onSend(): void {
+  const val = this.inputValue.trim();
+  if (!val) return;
+  this.pushUser(val);
+  this.inputValue = '';
+
+  if (val.toLowerCase().includes('buy policy')) {
+    this.askInsuranceType();
+    return;
+  }
+
+  this.handleTyped(val);
+}
+
+  private async handleTyped(text: string): Promise<void> {
+    switch (this.stage) {
+
+      case 'ASK_MOBILE': {
+        if (!/^\d{7,9}$/.test(text.replace(/\s/g, ''))) {
+          await this.typing(400);
+          this.pushBot('text', { text: "That doesn't look like a valid mobile number. Could you re-enter it? (e.g. 96222222)" });
+          return;
+        }
+        this.data.mobileNumber = text.trim();
+        this.stage = 'ASK_VEHICLE_DETAILS';
+        await this.typing(500);
+        this.pushBot('text', { text: "Got it. Now let's pull up your vehicle from the Mulkiya (vehicle registration)." });
+        this.pushBot('mulkiya-form', {
+          formData: { plateNumber: '', plateCode: 'M', otherPlateCode: '', plateType: 'Oman' }
+        });
+        break;
+      }
+
+      case 'ASK_VEHICLE_DETAILS': {
+        this.pushBot('text', { text: 'Please fill in the vehicle details above and tap Continue 👆' });
+        break;
+      }
+
+      case 'ASK_CIVIL_ID': {
+        this.data.civilIdLicenseNo = text.trim();
+        this.stage = 'ASK_FULL_NAME';
+        await this.typing(400);
+        this.pushBot('text', { text: "Thanks. What's your full name as it appears on your license?" });
+        break;
+      }
+
+      case 'ASK_FULL_NAME': {
+        this.data.fullName = text.trim();
+        this.stage = 'ASK_PRODUCT';
+        await this.typing(400);
+        this.pushBot('text', { text: 'Perfect. What kind of coverage would you like?' });
+        this.pushBot('quick-replies', {
+          options: [
+            { label: 'Comprehensive Insurance', value: 'COMPREHENSIVE' },
+            { label: 'Third Party Insurance', value: 'THIRD_PARTY' }
+          ]
+        });
+        break;
+      }
+
+      case 'ASK_VEHICLE_VALUE': {
+        const val = Number(text.replace(/[^\d.]/g, ''));
+        if (!val || val <= 0) {
+          await this.typing(300);
+          this.pushBot('text', { text: 'Please enter a valid vehicle value in OMR, e.g. 4500' });
+          return;
+        }
+        this.data.vehicleValue = val;
+        await this.generateQuote();
+        break;
+      }
+
+      case 'ASK_FORM': {
+        this.pushBot('text', { text: 'Please fill in the form above and tap Get Quote 👆' });
+        break;
+      }
+
+      default:
+        this.pushBot('text', { text: "I'm still working on your previous step above 👆" });
+    }
+  }
+
+  onSubmitMulkiya(msg: ChatMessage): void {
+    if (msg.submitted) return;
+    const form = msg.formData!;
+    const plateNumber = form.plateNumber.trim();
+    const plateCode = form.plateCode === 'OTHER' ? form.otherPlateCode.trim() : form.plateCode;
+
+    if (!plateNumber) {
+      this.pushBot('text', { text: 'Please enter a plate number before continuing.' });
+      return;
+    }
+    if (!plateCode) {
+      this.pushBot('text', { text: 'Please enter a plate code before continuing.' });
+      return;
+    }
+
+    msg.submitted = true;
+    this.data.plateNumber = plateNumber;
+    this.data.plateCode = plateCode;
+
+    this.pushUser(`Plate: ${plateNumber} (${plateCode}) — ${form.plateType}`);
+    this.afterPlateCode();
+  }
+
+private async handlePicked(value: string): Promise<void> {
+    if (this.stage === 'ASK_INSURANCE_TYPE') {
+      if (value === 'MOTOR') {
+        this.startBuyPolicyFlow();
+      } else {
+        await this.typing(400);
+        this.pushBot('text', { text: `${value.charAt(0) + value.slice(1).toLowerCase()} insurance isn't available yet — only Car Insurance can be purchased right now.` });
+      }
+      return;
+    }
+
+    if (this.stage === 'ASK_PRODUCT') {
+      this.data.productId = value;
+      if (value === 'COMPREHENSIVE') {
+        this.stage = 'ASK_VEHICLE_VALUE';
+        await this.typing(400);
+        this.pushBot('text', { text: "What's the current market value of your vehicle (in OMR)?" });
+      } else {
+        await this.generateQuote();
+      }
+      return;
+    }
+
+    if (this.stage === 'PLAN_SELECTION' && value === '__pay') {
+      await this.handlePayNow();
+    }
+}   
+
+  private async afterPlateCode(): Promise<void> {
+    this.stage = 'ASK_CIVIL_ID';
+    await this.typing(400);
+    this.pushBot('text', { text: 'Now for your driving license — what\'s your Civil ID / License number?' });
+  }
+
+  startBuyPolicyFlow(): void {
+    this.stage = 'ASK_FORM';
+    this.pushBot('policy-form', { formData: this.emptyPolicyForm(), step: 1 });
+}
+
+  private async askInsuranceType(): Promise<void> {
+  this.stage = 'ASK_INSURANCE_TYPE';
+  await this.typing(400);
+  this.pushBot('text', { text: 'Sure! What type of insurance would you like?' });
+  this.pushBot('quick-replies', {
+    options: [
+      { label: 'Car Insurance', value: 'MOTOR' },
+      { label: 'Health Insurance', value: 'HEALTH' },
+      { label: 'Travel Insurance', value: 'TRAVEL' },
+      { label: 'Life Insurance', value: 'LIFE' }
+    ]
+  });
+}
+
+  /** Upload/Scan are UI-only placeholders until the backend for document parsing is wired in. */
+  setMulkiyaMethod(msg: ChatMessage, method: 'upload' | 'scan' | 'enter'): void {
+    if (msg.submitted) return;
+    if (method !== 'enter') {
+      this.pushBot('text', {
+        text: `${method === 'upload' ? 'Uploading' : 'Scanning'} your Mulkiya will be available soon — please use "Enter Details" for now.`
+      });
+      return;
+    }
+    msg.formData!.mulkiyaMethod = method;
+  }
+
+  
+
+  setLicenseMethod(msg: ChatMessage, method: 'upload' | 'scan' | 'enter'): void {
+    if (msg.submitted) return;
+    if (method !== 'enter') {
+      this.pushBot('text', {
+        text: `${method === 'upload' ? 'Uploading' : 'Scanning'} your license will be available soon — please use "Enter Details" for now.`
+      });
+      return;
+    }
+    msg.formData!.licenseMethod = method;
+  }
+
+  selectProduct(msg: ChatMessage, productId: string): void {
+    if (msg.submitted) return;
+    msg.formData!.productId = productId;
+  }
+selectPlanForForm(msg: ChatMessage, plan: QuoteOption): void {
+
+  if (!msg.quoteId || !plan.optionId || msg.submitted) {
+    return;
+  }
+
+  this.formNotice = '';
+
+  this.quoteService.selectOption(
+    msg.quoteId,
+    plan.optionId
+  ).subscribe({
+
+    next: (res: any) => {
+
+      console.log('Select option response:', res);
+
+      msg.selectedOption = res.data.selectedOption || plan;
+
+      console.log('Selected option:', msg.selectedOption);
+
+    },
+
+    error: (err) => {
+
+      console.error('Select option failed:', err);
+
+      this.formNotice =
+        err?.error?.message ||
+        'Could not select this plan. Please try again.';
+    }
+  });
+}
+payNowForForm(msg: ChatMessage): void {
+
+  if (!msg.quoteId || !msg.selectedOption || msg.submitted) {
+    return;
+  }
+
+  // Disable Pay Now while payment is processing
+  msg.submitted = true;
+  this.formNotice = '';
+
+  this.quoteService.processPayment(msg.quoteId).subscribe({
+
+    next: (paymentRes: PaymentResponse) => {
+
+      console.log('Payment response:', paymentRes);
+
+      if (
+        !paymentRes?.data?.success &&
+        (paymentRes as any)?.success !== true
+      ) {
+        msg.submitted = false;
+        this.formNotice = 'Payment failed. Please try again.';
+        return;
+      }
+
+      // Payment successful → create policy
+      this.quoteService.createPolicy(msg.quoteId!).subscribe({
+
+        next: (policyRes: PolicyResponse) => {
+
+          console.log('Policy response:', policyRes);
+
+          msg.policyNumber =
+            policyRes?.data?.policy?.policyNumber;
+
+          msg.step = 3;
+
+          msg.submitted = false;
+
+          setTimeout(() => {
+            this.goToPolicyPage(msg.policyNumber);
+          }, 1500);
+        },
+
+        error: (err: HttpErrorResponse) => {
+
+          console.error('Policy creation failed:', err);
+
+          msg.submitted = false;
+
+          this.formNotice =
+            err?.error?.message ||
+            'Payment succeeded but policy creation failed. Please contact support.';
+        }
+      });
+    },
+
+    error: (err: HttpErrorResponse) => {
+
+      console.error('Payment failed:', err);
+
+      msg.submitted = false;
+
+      this.formNotice =
+        err?.error?.message ||
+        'Payment could not be processed.';
+    }
+  });
+}
+cancelPolicyForm(msg: ChatMessage): void {
+    msg.step = undefined;
+    msg.submitted = false;
+}
+
+submitPolicyForm(msg: ChatMessage): void {
+    if (msg.submitted) return;
+    const form = msg.formData!;
+
+    if (!form.mobileNumber?.trim() || !/^\d{7,9}$/.test(form.mobileNumber.replace(/\s/g, ''))) {
+      this.formNotice = 'Please enter a valid mobile number.';
+      return;
+    }
+    const plateNumber = form.plateNumber.trim();
+    const plateCode = form.plateCode === 'OTHER' ? form.otherPlateCode.trim() : form.plateCode;
+    if (!plateNumber) {
+      this.formNotice = 'Please enter a plate number.';
+      return;
+    }
+    if (!plateCode) {
+      this.formNotice = 'Please select a plate code.';
+      return;
+    }
+    if (!form.civilIdLicenseNo?.trim()) {
+      this.formNotice = 'Please enter your Civil ID / License number.';
+      return;
+    }
+    if (!form.fullName?.trim()) {
+      this.formNotice = 'Please enter your full name.';
+      return;
+    }
+    if (!form.productId) {
+      this.formNotice = 'Please select a coverage type.';
+      return;
+    }
+    if (form.productId === 'COMPREHENSIVE' && (!form.vehicleValue || form.vehicleValue <= 0)) {
+      this.formNotice = 'Please enter a valid vehicle value.';
+      return;
+    }
+
+    msg.submitted = true;
+    this.formNotice = '';
+
+    this.quoteService.createMotorQuote({
+      mobileNumber: form.mobileNumber.trim(),
+      fullName: form.fullName.trim(),
+      civilIdLicenseNo: form.civilIdLicenseNo.trim(),
+      plateNumber,
+      plateCode,
+      productId: form.productId,
+      vehicleValue: form.productId === 'COMPREHENSIVE' ? form.vehicleValue : undefined
+    }).subscribe({
+      next: (res: CreateQuoteResponse) => {
+        msg.quoteId = res.data.quote.quoteId;
+        msg.vehicle = res.data.vehicle;
+        msg.plans = res.data.options;
+        msg.step = 2;
+
+        msg.submitted = false;
+      },
+      error: (err: HttpErrorResponse) => {
+        msg.submitted = false;
+        this.formNotice = err?.error?.message || 'Something went wrong generating your quote. Please check your details.';
+      }
+    });
+}
+  private async generateQuote(): Promise<void> {
+    this.stage = 'GENERATING';
+    await this.typing(900);
+    this.pushBot('text', { text: 'Give me a moment while I generate your quote...' });
+
+    this.quoteService.createMotorQuote({
+      mobileNumber: this.data.mobileNumber!,
+      fullName: this.data.fullName!,
+      civilIdLicenseNo: this.data.civilIdLicenseNo!,
+      plateNumber: this.data.plateNumber!,
+      plateCode: this.data.plateCode!,
+      productId: this.data.productId!,
+      vehicleValue: this.data.vehicleValue
+    }).subscribe({
+      next: async (res: CreateQuoteResponse) => {
+        this.quoteId = res.data.quote.quoteId;
+        await this.typing(500);
+        this.pushBot('summary', { vehicle: res.data.vehicle });
+        await this.wait(300);
+        this.pushBot('text', { text: 'Here are your available plans — pick the one that suits you best:' });
+        this.stage = 'PLAN_SELECTION';
+        this.pushBot('plans', { plans: res.data.options });
+      },
+      error: async (err: HttpErrorResponse) => {
+        await this.typing(400);
+        const msg = err?.error?.message || 'Something went wrong generating your quote.';
+        this.pushBot('text', { text: `Sorry — ${msg}. Could you double check the plate number and code below?` });
+        this.stage = 'ASK_VEHICLE_DETAILS';
+        this.pushBot('mulkiya-form', {
+          formData: { plateNumber: this.data.plateNumber || '', plateCode: 'M', otherPlateCode: '', plateType: 'Oman' }
+        });
+      }
+    });
+  }
+
+  onSelectPlan(msg: ChatMessage, plan: QuoteOption): void {
+    if (this.disabledPlanGroups.has(msg)) return;
+    this.disabledPlanGroups.add(msg);
+    this.selectedOption = plan;
+    this.pushUser(`Selected: ${plan.planName} — OMR ${plan.premium.toFixed(3)}`);
+
+    this.quoteService.selectOption(this.quoteId!, plan.optionId).subscribe({
+      next: async (_res: SelectOptionResponse) => {
+        await this.typing(400);
+        this.pushBot('text', { text: `Great choice! Your total premium is OMR ${plan.premium.toFixed(3)}. Ready to pay?` });
+        this.pushBot('quick-replies', { options: [{ label: 'Pay Now', value: '__pay' }] });
+      },
+      error: async (err: HttpErrorResponse) => {
+        await this.typing(400);
+        this.pushBot('text', { text: err?.error?.message || 'Could not select this plan. Please try again.' });
+      }
+    });
+  }
+
+  private async handlePayNow(): Promise<void> {
+    this.stage = 'PAYMENT';
+    await this.typing(1000);
+    this.pushBot('text', { text: 'Processing your payment...' });
+
+    this.quoteService.processPayment(this.quoteId!).subscribe({
+      next: (paymentRes: PaymentResponse) => {
+        if (!paymentRes?.data?.success && (paymentRes as any)?.success !== true) {
+          this.pushBot('text', { text: 'Payment failed. Please try again.' });
+          return;
+        }
+        this.quoteService.createPolicy(this.quoteId!).subscribe({
+          next: async (policyRes: PolicyResponse) => {
+            await this.typing(700);
+            const policyNumber = policyRes?.data?.policy?.policyNumber;
+            this.pushBot('success', { policyNumber });
+            this.stage = 'DONE';
+            await this.wait(300);
+          this.pushBot('text', { text: 'Your policy documents will be sent via WhatsApp and email. Redirecting you to your policy page now...' });
+await this.wait(1200);
+this.goToPolicyPage(policyNumber);
+            // window.location.href = `/payment-success?policyNumber=${policyNumber}`;
+          },
+          error: async (err: HttpErrorResponse) => {
+            await this.typing(400);
+            this.pushBot('text', { text: err?.error?.message || 'Payment succeeded but policy creation failed. Please contact support.' });
+          }
+        });
+      },
+      error: async (err: HttpErrorResponse) => {
+        await this.typing(400);
+        this.pushBot('text', { text: err?.error?.message || 'Payment could not be processed.' });
+      }
+    });
+  }
+}
