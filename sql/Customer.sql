@@ -46,6 +46,7 @@ VALUES (
     'chandana@gmail.com'
 );
 
+
 COMMIT;
 
 -- Check customers

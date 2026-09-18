@@ -1,4 +1,4 @@
-import { Component, ElementRef, ViewChild, AfterViewChecked,Input, OnInit } from '@angular/core';
+import { Component, ElementRef, ViewChild, AfterViewChecked, Input, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -70,6 +70,7 @@ type Stage =
   | 'PLAN_SELECTION'
   | 'PAYMENT'
   | 'DONE';
+
 interface ChatMessage {
   from: 'bot' | 'user';
   type: 'text' | 'typing' | 'quick-replies' | 'plans' | 'summary' | 'success' | 'mulkiya-form' | 'policy-form';
@@ -79,6 +80,9 @@ interface ChatMessage {
   plans?: QuoteOption[];
   policyNumber?: string;
   formData?: ChatFormData;
+   quoteNumber?: string;
+  coverFrom?: string;
+  coverTo?: string;
   submitted: boolean;
   step?: 1 | 2 | 3;
   quoteId?: number;
@@ -92,9 +96,9 @@ interface ChatMessage {
   templateUrl: './buy_policy.component.html',
   styleUrls: ['./buy_policy.component.scss']
 })
-export class BuyPolicyChatComponent implements AfterViewChecked,OnInit {
+export class BuyPolicyChatComponent implements AfterViewChecked, OnInit {
 
-    @Input() embedded: boolean = false;
+  @Input() embedded: boolean = false;
 
   @ViewChild('chatBody') chatBodyRef!: ElementRef<HTMLDivElement>;
 
@@ -108,19 +112,80 @@ export class BuyPolicyChatComponent implements AfterViewChecked,OnInit {
   formNotice = '';
   disabledQuickReplyGroups = new Set<ChatMessage>();
   disabledPlanGroups = new Set<ChatMessage>();
-constructor(private quoteService: QuoteService, private router: Router) {
-    // this.pushBot('text', {
-    //     text: '👋 Hello! I\'m your Insurance Assistant. Type "I want to buy policy" whenever you\'re ready to get started.'
-    // });
-}
 
-goToPolicyPage(policyNumber?: string): void {
+  constructor(
+    private quoteService: QuoteService,
+    private router: Router,
+    private cdr: ChangeDetectorRef
+  ) {}
+
+  goToPolicyPage(policyNumber?: string): void {
   if (!policyNumber) return;
-
+  this.saveChatHistory();
   this.router.navigate(['/policy-success', policyNumber]);
 }
 
+  // ==================================================
+  // CHAT HISTORY SAVE / RESTORE
+  // ==================================================
+  //
+  // Restoring only happens when payment.component.ts's
+  // goHome() explicitly sets 'restoreChatOnLoad' right
+  // before redirecting. Any other load (typing "buy
+  // policy" again, embedded widget boot, etc.) is always
+  // a fresh start, even if stale history happens to be
+  // sitting in sessionStorage.
+  // ==================================================
+
+  private saveChatHistory(): void {
+    try {
+      sessionStorage.setItem('chatHistory', JSON.stringify(this.messages));
+      sessionStorage.setItem('chatStage', this.stage);
+    } catch { /* storage unavailable, ignore */ }
+  }
+  
+private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
+  try {
+    const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
+    const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
+    const isFresh = shouldRestore && (Date.now() - setAt) < 30000; // valid for 30s only
+
+    if (!isFresh) {
+      // stale, expired, or never set — wipe everything so it can never resurrect later
+      sessionStorage.removeItem('chatHistory');
+      sessionStorage.removeItem('chatStage');
+      sessionStorage.removeItem('restoreChatOnLoad');
+      sessionStorage.removeItem('restoreChatOnLoadTime');
+      return null;
+    }
+
+    const raw = sessionStorage.getItem('chatHistory');
+    const stage = sessionStorage.getItem('chatStage') as Stage | null;
+    if (!raw || !stage) return null;
+    return { messages: JSON.parse(raw), stage };
+  } catch {
+    return null;
+  }
+}
+
   ngOnInit(): void {
+    const saved = this.loadChatHistory();
+    if (saved) {
+      this.messages = saved.messages;
+      this.stage = saved.stage;
+      this.cdr.detectChanges();
+      sessionStorage.removeItem('chatHistory');
+      sessionStorage.removeItem('chatStage');
+      sessionStorage.removeItem('restoreChatOnLoad');
+      return;
+    }
+
+    // No restore flag → always a genuinely fresh start.
+    // Clear any stale leftovers so they can never silently resurrect later.
+    sessionStorage.removeItem('chatHistory');
+    sessionStorage.removeItem('chatStage');
+    sessionStorage.removeItem('restoreChatOnLoad');
+
     if (this.embedded) {
       // Already routed here by the main chatbot — skip our own
       // greeting/"type buy policy" onboarding and show the form directly.
@@ -168,6 +233,7 @@ goToPolicyPage(policyNumber?: string): void {
     };
 
     this.messages.push(full);
+    this.cdr.detectChanges();
     return full;
   }
 
@@ -178,6 +244,7 @@ goToPolicyPage(policyNumber?: string): void {
       text,
       submitted: false
     });
+    this.cdr.detectChanges();
   }
 
   private async typing(ms = 600): Promise<void> {
@@ -185,6 +252,7 @@ goToPolicyPage(policyNumber?: string): void {
     await this.wait(ms);
     const idx = this.messages.indexOf(t);
     if (idx > -1) this.messages.splice(idx, 1);
+    this.cdr.detectChanges();
   }
 
   private wait(ms: number): Promise<void> {
@@ -197,19 +265,20 @@ goToPolicyPage(policyNumber?: string): void {
     this.pushUser(label);
     this.handlePicked(value);
   }
-onSend(): void {
-  const val = this.inputValue.trim();
-  if (!val) return;
-  this.pushUser(val);
-  this.inputValue = '';
 
-  if (val.toLowerCase().includes('buy policy')) {
-    this.askInsuranceType();
-    return;
+  onSend(): void {
+    const val = this.inputValue.trim();
+    if (!val) return;
+    this.pushUser(val);
+    this.inputValue = '';
+
+    if (val.toLowerCase().includes('buy policy')) {
+      this.askInsuranceType();
+      return;
+    }
+
+    this.handleTyped(val);
   }
-
-  this.handleTyped(val);
-}
 
   private async handleTyped(text: string): Promise<void> {
     switch (this.stage) {
@@ -302,7 +371,7 @@ onSend(): void {
     this.afterPlateCode();
   }
 
-private async handlePicked(value: string): Promise<void> {
+  private async handlePicked(value: string): Promise<void> {
     if (this.stage === 'ASK_INSURANCE_TYPE') {
       if (value === 'MOTOR') {
         this.startBuyPolicyFlow();
@@ -328,7 +397,7 @@ private async handlePicked(value: string): Promise<void> {
     if (this.stage === 'PLAN_SELECTION' && value === '__pay') {
       await this.handlePayNow();
     }
-}   
+  }
 
   private async afterPlateCode(): Promise<void> {
     this.stage = 'ASK_CIVIL_ID';
@@ -339,21 +408,21 @@ private async handlePicked(value: string): Promise<void> {
   startBuyPolicyFlow(): void {
     this.stage = 'ASK_FORM';
     this.pushBot('policy-form', { formData: this.emptyPolicyForm(), step: 1 });
-}
+  }
 
   private async askInsuranceType(): Promise<void> {
-  this.stage = 'ASK_INSURANCE_TYPE';
-  await this.typing(400);
-  this.pushBot('text', { text: 'Sure! What type of insurance would you like?' });
-  this.pushBot('quick-replies', {
-    options: [
-      { label: 'Car Insurance', value: 'MOTOR' },
-      { label: 'Health Insurance', value: 'HEALTH' },
-      { label: 'Travel Insurance', value: 'TRAVEL' },
-      { label: 'Life Insurance', value: 'LIFE' }
-    ]
-  });
-}
+    this.stage = 'ASK_INSURANCE_TYPE';
+    await this.typing(400);
+    this.pushBot('text', { text: 'Sure! What type of insurance would you like?' });
+    this.pushBot('quick-replies', {
+      options: [
+        { label: 'Car Insurance', value: 'MOTOR' },
+        { label: 'Health Insurance', value: 'HEALTH' },
+        { label: 'Travel Insurance', value: 'TRAVEL' },
+        { label: 'Life Insurance', value: 'LIFE' }
+      ]
+    });
+  }
 
   /** Upload/Scan are UI-only placeholders until the backend for document parsing is wired in. */
   setMulkiyaMethod(msg: ChatMessage, method: 'upload' | 'scan' | 'enter'): void {
@@ -366,8 +435,6 @@ private async handlePicked(value: string): Promise<void> {
     }
     msg.formData!.mulkiyaMethod = method;
   }
-
-  
 
   setLicenseMethod(msg: ChatMessage, method: 'upload' | 'scan' | 'enter'): void {
     if (msg.submitted) return;
@@ -384,114 +451,77 @@ private async handlePicked(value: string): Promise<void> {
     if (msg.submitted) return;
     msg.formData!.productId = productId;
   }
-selectPlanForForm(msg: ChatMessage, plan: QuoteOption): void {
 
-  if (!msg.quoteId || !plan.optionId || msg.submitted) {
-    return;
-  }
-
-  this.formNotice = '';
-
-  this.quoteService.selectOption(
-    msg.quoteId,
-    plan.optionId
-  ).subscribe({
-
-    next: (res: any) => {
-
-      console.log('Select option response:', res);
-
-      msg.selectedOption = res.data.selectedOption || plan;
-
-      console.log('Selected option:', msg.selectedOption);
-
-    },
-
-    error: (err) => {
-
-      console.error('Select option failed:', err);
-
-      this.formNotice =
-        err?.error?.message ||
-        'Could not select this plan. Please try again.';
+  selectPlanForForm(msg: ChatMessage, plan: QuoteOption): void {
+    if (!msg.quoteId || !plan.optionId || msg.submitted) {
+      return;
     }
-  });
-}
-payNowForForm(msg: ChatMessage): void {
 
-  if (!msg.quoteId || !msg.selectedOption || msg.submitted) {
-    return;
-  }
+    this.formNotice = '';
 
-  // Disable Pay Now while payment is processing
-  msg.submitted = true;
-  this.formNotice = '';
-
-  this.quoteService.processPayment(msg.quoteId).subscribe({
-
-    next: (paymentRes: PaymentResponse) => {
-
-      console.log('Payment response:', paymentRes);
-
-      if (
-        !paymentRes?.data?.success &&
-        (paymentRes as any)?.success !== true
-      ) {
-        msg.submitted = false;
-        this.formNotice = 'Payment failed. Please try again.';
-        return;
+    this.quoteService.selectOption(msg.quoteId, plan.optionId).subscribe({
+      next: (res: any) => {
+        msg.selectedOption = res.data.selectedOption || plan;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.formNotice = err?.error?.message || 'Could not select this plan. Please try again.';
+        this.cdr.detectChanges();
       }
+    });
+  }
 
-      // Payment successful → create policy
-      this.quoteService.createPolicy(msg.quoteId!).subscribe({
-
-        next: (policyRes: PolicyResponse) => {
-
-          console.log('Policy response:', policyRes);
-
-          msg.policyNumber =
-            policyRes?.data?.policy?.policyNumber;
-
-          msg.step = 3;
-
-          msg.submitted = false;
-
-          setTimeout(() => {
-            this.goToPolicyPage(msg.policyNumber);
-          }, 1500);
-        },
-
-        error: (err: HttpErrorResponse) => {
-
-          console.error('Policy creation failed:', err);
-
-          msg.submitted = false;
-
-          this.formNotice =
-            err?.error?.message ||
-            'Payment succeeded but policy creation failed. Please contact support.';
-        }
-      });
-    },
-
-    error: (err: HttpErrorResponse) => {
-
-      console.error('Payment failed:', err);
-
-      msg.submitted = false;
-
-      this.formNotice =
-        err?.error?.message ||
-        'Payment could not be processed.';
+  payNowForForm(msg: ChatMessage): void {
+    if (!msg.quoteId || !msg.selectedOption || msg.submitted) {
+      return;
     }
-  });
-}
-cancelPolicyForm(msg: ChatMessage): void {
+
+    msg.submitted = true;
+    this.formNotice = '';
+
+    this.quoteService.processPayment(msg.quoteId).subscribe({
+      next: (paymentRes: PaymentResponse) => {
+        if (!paymentRes?.data?.success && (paymentRes as any)?.success !== true) {
+          msg.submitted = false;
+          this.formNotice = 'Payment failed. Please try again.';
+          this.cdr.detectChanges();
+          return;
+        }
+
+        this.quoteService.createPolicy(msg.quoteId!).subscribe({
+          next: (policyRes: PolicyResponse) => {
+            msg.policyNumber = policyRes?.data?.policy?.policyNumber;
+            msg.step = 3;
+            msg.submitted = false;
+
+            this.saveChatHistory();
+            this.cdr.detectChanges();
+
+            // setTimeout(() => {
+            //   this.goToPolicyPage(msg.policyNumber);
+            // }, 1500);
+          },
+          error: (err: HttpErrorResponse) => {
+            msg.submitted = false;
+            this.formNotice = err?.error?.message || 'Payment succeeded but policy creation failed. Please contact support.';
+            this.cdr.detectChanges();
+          }
+        });
+      },
+      error: (err: HttpErrorResponse) => {
+        msg.submitted = false;
+        this.formNotice = err?.error?.message || 'Payment could not be processed.';
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  cancelPolicyForm(msg: ChatMessage): void {
     msg.step = undefined;
     msg.submitted = false;
-}
+  }
 
-submitPolicyForm(msg: ChatMessage): void {
+  submitPolicyForm(msg: ChatMessage): void {
     if (msg.submitted) return;
     const form = msg.formData!;
 
@@ -540,18 +570,23 @@ submitPolicyForm(msg: ChatMessage): void {
     }).subscribe({
       next: (res: CreateQuoteResponse) => {
         msg.quoteId = res.data.quote.quoteId;
+          msg.quoteNumber = res.data.quote.quoteNumber;   // ← add
+  msg.coverFrom = res.data.quote.coverFrom;        // ← add
+  msg.coverTo = res.data.quote.coverTo;            
         msg.vehicle = res.data.vehicle;
         msg.plans = res.data.options;
         msg.step = 2;
-
         msg.submitted = false;
+        this.cdr.detectChanges();
       },
       error: (err: HttpErrorResponse) => {
         msg.submitted = false;
         this.formNotice = err?.error?.message || 'Something went wrong generating your quote. Please check your details.';
+        this.cdr.detectChanges();
       }
     });
-}
+  }
+
   private async generateQuote(): Promise<void> {
     this.stage = 'GENERATING';
     await this.typing(900);
@@ -598,10 +633,12 @@ submitPolicyForm(msg: ChatMessage): void {
         await this.typing(400);
         this.pushBot('text', { text: `Great choice! Your total premium is OMR ${plan.premium.toFixed(3)}. Ready to pay?` });
         this.pushBot('quick-replies', { options: [{ label: 'Pay Now', value: '__pay' }] });
+        this.cdr.detectChanges();
       },
       error: async (err: HttpErrorResponse) => {
         await this.typing(400);
         this.pushBot('text', { text: err?.error?.message || 'Could not select this plan. Please try again.' });
+        this.cdr.detectChanges();
       }
     });
   }
@@ -624,20 +661,23 @@ submitPolicyForm(msg: ChatMessage): void {
             this.pushBot('success', { policyNumber });
             this.stage = 'DONE';
             await this.wait(300);
-          this.pushBot('text', { text: 'Your policy documents will be sent via WhatsApp and email. Redirecting you to your policy page now...' });
-await this.wait(1200);
-this.goToPolicyPage(policyNumber);
-            // window.location.href = `/payment-success?policyNumber=${policyNumber}`;
+            this.pushBot('text', { text: 'Your policy documents will be sent via WhatsApp and email. Redirecting you to your policy page now...' });
+            this.saveChatHistory();
+            this.cdr.detectChanges();
+            // await this.wait(1200);
+            // this.goToPolicyPage(policyNumber);
           },
           error: async (err: HttpErrorResponse) => {
             await this.typing(400);
             this.pushBot('text', { text: err?.error?.message || 'Payment succeeded but policy creation failed. Please contact support.' });
+            this.cdr.detectChanges();
           }
         });
       },
       error: async (err: HttpErrorResponse) => {
         await this.typing(400);
         this.pushBot('text', { text: err?.error?.message || 'Payment could not be processed.' });
+        this.cdr.detectChanges();
       }
     });
   }

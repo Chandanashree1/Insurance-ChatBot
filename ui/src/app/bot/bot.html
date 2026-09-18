@@ -625,9 +625,9 @@
           autocomplete="current-password" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
       </div>
 
-      <button type="button" class="signin-btn" (click)="login()" [disabled]="isLoading">
-        {{ isLoading ? 'Signing in...' : 'Sign In' }}
-      </button>
+    <button type="button" class="signin-btn" (click)="login()" [disabled]="isLoggingIn">
+  {{ isLoggingIn ? 'Signing in...' : 'Sign In' }}
+</button>
 
       <p class="login-help">
         New here? <a (click)="openSignup()" style="cursor:pointer; color:#3b82f6;">Create an account</a>

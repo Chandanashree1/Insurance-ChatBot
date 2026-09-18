@@ -185,9 +185,15 @@ const getPolicy = async (req, res) => {
 
                 policyNumber: policy.POLICY_NUMBER,
 
+                quoteId: policy.QUOTE_ID,
+
                 customerId: policy.CUSTOMER_ID,
 
-                policyType: policy.POLICY_TYPE,
+                vehicleId: policy.VEHICLE_ID,
+
+                policyType: policy.PRODUCT_TYPE,
+
+                productName: policy.PRODUCT_NAME,
 
                 planName: policy.PLAN_NAME,
 
@@ -195,11 +201,11 @@ const getPolicy = async (req, res) => {
 
                 sumInsured: policy.SUM_INSURED,
 
-                startDate: policy.START_DATE,
+                coverFrom: policy.COVER_FROM,
 
-                endDate: policy.END_DATE,
+                coverTo: policy.COVER_TO,
 
-                status: policy.STATUS
+                status: policy.POLICY_STATUS
 
             }
 

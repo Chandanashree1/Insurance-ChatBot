@@ -275,20 +275,32 @@
               <div class="vehicle-plate-badge">{{ msg.vehicle?.plateNumber }} {{ msg.vehicle?.plateCode }}</div>
             </div>
 
-            <div class="summary-grid">
-              <div class="summary-cell">
-                <span class="summary-label">Chassis Number</span>
-                <span class="summary-value">{{ msg.vehicle?.chassisNumber }}</span>
-              </div>
-              <div class="summary-cell">
-                <span class="summary-label">Body Type</span>
-                <span class="summary-value">{{ msg.vehicle?.bodyType }}</span>
-              </div>
-              <div class="summary-cell">
-                <span class="summary-label">Usage Type</span>
-                <span class="summary-value">{{ msg.vehicle?.usageType }}</span>
-              </div>
-            </div>
+           <div class="summary-grid">
+  <div class="summary-cell">
+    <span class="summary-label">Quote No</span>
+    <span class="summary-value">{{ msg.quoteNumber }}</span>
+  </div>
+  <div class="summary-cell">
+    <span class="summary-label">Chassis Number</span>
+    <span class="summary-value">{{ msg.vehicle?.chassisNumber }}</span>
+  </div>
+  <div class="summary-cell">
+    <span class="summary-label">Body Type</span>
+    <span class="summary-value">{{ msg.vehicle?.bodyType }}</span>
+  </div>
+  <div class="summary-cell">
+    <span class="summary-label">Usage Type</span>
+    <span class="summary-value">{{ msg.vehicle?.usageType }}</span>
+  </div>
+  <div class="summary-cell">
+    <span class="summary-label">Valid From</span>
+    <span class="summary-value">{{ msg.coverFrom | date:'d MMM y' }}</span>
+  </div>
+  <div class="summary-cell">
+    <span class="summary-label">Valid To</span>
+    <span class="summary-value">{{ msg.coverTo | date:'d MMM y' }}</span>
+  </div>
+</div>
 
             <div class="section-label">Select Plan</div>
             <div class="plan-list">

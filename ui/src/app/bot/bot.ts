@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, ChangeDetectorRef } from '@angular/core';
+import { Component, ViewChild, ElementRef, ChangeDetectorRef, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -92,12 +92,13 @@ const WELCOME_MESSAGE: ChatMessage = {
   templateUrl: './bot.html',
   styleUrls: ['./bot.scss']
 })
-export class Bot implements DoCheck {
+export class Bot implements DoCheck, OnInit {
   userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
   email = '';
   password = '';
   isLogginIn: boolean = false;
+  isLoggingIn: boolean = false;  
   customerId: number | null = null;
   pendingQuestion = '';
   showLoginPopup = false;
@@ -119,6 +120,24 @@ export class Bot implements DoCheck {
     this.signupPassword = '';
     this.signupConfirmPassword = '';
   }
+
+   ngOnInit(): void {
+      this.restoreLoginState(); 
+    const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
+    const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
+    const isFresh = shouldRestore && (Date.now() - setAt) < 30000; // only trust a flag set in the last 30s
+
+    if (isFresh) {
+      this.isOpen = true;   // auto-open the widget instead of showing the collapsed launcher
+      this.hasUserMessaged = true;
+
+      this.messages.push({
+        sender: 'bot',
+        text: '',
+        uiType: 'BUY_POLICY_FORM',
+        time: new Date()
+      });
+    }}
 
   switchToLogin(): void {
     this.authMode = 'login';
@@ -147,8 +166,9 @@ export class Bot implements DoCheck {
         this.isSigningUp = false;
 
         if (res.success) {
-          this.isLogginIn = true;
+            this.isLogginIn = true; 
           this.customerId = res.customerId;
+           this.saveLoginState();
           this.showSignupPopup = false;
 
           this.messages.push({
@@ -727,49 +747,59 @@ toggleHistory(): void {
   }
 
   // ----- Login -----
-  login() {
+ // ----- Login -----
+login() {
+  if (this.isLoggingIn) return;   // block a second call while one is already in flight
 
-    const body = {
-      email: this.email,
-      password: this.password
-    };
+  const body = {
+    email: this.email,
+    password: this.password
+  };
 
-    this.http.post<any>("http://localhost:5000/api/login", body)
-      .subscribe({
-        next: (res) => {
+  this.isLoggingIn = true;
 
-          if (res.success) {
-            this.isLogginIn = true;
-            this.customerId = res.customerId;
-            this.showLoginPopup = false;
-            this.messages.push({
-              sender: 'bot',
-              text: this.translations[this.selectedLanguage].loginSuccess,
-              time: new Date()
-            });
-            if (this.pendingQuestion) {
-              this.userMessage = this.pendingQuestion;
-              this.pendingQuestion = '';
-              setTimeout(() => {
-                this.sendMessage();
-              }, 500);
-            }
-          } 
-            else {
-            this.isLogginIn = false;
-            if (res.userNotFound) {
-              alert(res.message || 'No account found with this email.');
-              this.signupEmail = this.email;
-               this.openSignup(this.authReturnTo);
-            } else {
-              alert(res.message);
-            }
+  this.http.post<any>("http://localhost:5000/api/login", body)
+    .subscribe({
+      next: (res) => {
+        this.isLoggingIn = false;
+
+        if (res.success) {
+          this.isLogginIn = true;
+          this.customerId = res.customerId;
+          this.saveLoginState(); 
+          this.showLoginPopup = false;
+          this.messages.push({
+            sender: 'bot',
+            text: this.translations[this.selectedLanguage].loginSuccess,
+            time: new Date()
+          });
+          if (this.pendingQuestion) {
+            this.userMessage = this.pendingQuestion;
+            this.pendingQuestion = '';
+            setTimeout(() => {
+              this.sendMessage();
+            }, 500);
           }
-
+        } else {
+          this.isLogginIn = false;
+          if (res.userNotFound) {
+            alert(res.message || 'No account found with this email.');
+            this.signupEmail = this.email;
+            this.openSignup(this.authReturnTo);
+          } else {
+            alert(res.message);
+          }
         }
-      });
-
-  }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.isLoggingIn = false;
+        console.error('Login error:', err);
+        alert('Something went wrong. Please try again.');
+        this.cdr.detectChanges();
+      }
+    });
+}
 
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
 
@@ -1126,6 +1156,28 @@ goHome(): void {
     this.showSignupPopup = false;
     this.isHistoryOpen = false;
   }
+
+  // Add near your other session helpers in bot.ts
+
+private saveLoginState(): void {
+  try {
+    if (this.isLogginIn && this.customerId) {
+      sessionStorage.setItem('botCustomerId', String(this.customerId));
+      sessionStorage.setItem('botIsLoggedIn', 'true');
+    }
+  } catch { /* ignore */ }
+}
+
+private restoreLoginState(): void {
+  try {
+    const loggedIn = sessionStorage.getItem('botIsLoggedIn') === 'true';
+    const customerId = sessionStorage.getItem('botCustomerId');
+    if (loggedIn && customerId) {
+      this.isLogginIn = true;
+      this.customerId = Number(customerId);
+    }
+  } catch { /* ignore */ }
+}
 
   onActionClick(action: string) {
 

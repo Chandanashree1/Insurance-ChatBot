@@ -1,8 +1,26 @@
+// ---------- THEME VARIABLES ----------
+// Colors extracted directly from the dark chatbot interface
+$bg-main:          #161922; // Dark background of the outer container
+$bg-card:          #242936; // Lighter dark background used for the main card area
+$bg-input:         #11131a; // Very dark background of the input boxes/buttons
+
+$color-text-main:  #ffffff; // Bright white for primary headings and text
+$color-text-sub:   #8a92a6; // Soft slate blue-gray for secondary text/labels
+$color-text-muted: #575d6c; // Muted dark gray for subtle notes
+
+$color-primary:    #3b82f6; // Vibrant blue matching the "Submit" button
+$color-cancel:     #11131a; // Matching the dark color of the "Cancel" button
+$color-error:      #ea4335; // Standard alert red for errors
+
+$font-stack:       'Segoe UI', Roboto, Arial, sans-serif;
+$border-radius:    10px;
+
+// ---------- MAIN STYLES ----------
 :host {
   display: block;
   min-height: 100vh;
-  background: #f5f5f7;
-  font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+  background: $bg-main;
+  font-family: $font-stack;
 }
 
 .success-page {
@@ -10,183 +28,180 @@
   margin: 0 auto;
   padding: 48px 24px 64px;
   text-align: center;
-}
 
-// ---------- loading / error states ----------
+  // ---------- loading / error states ----------
+  .state-box {
+    padding: 80px 20px;
+    color: $color-text-sub;
+    font-size: 15px;
 
-.state-box {
-  padding: 80px 20px;
-  color: #6b6b6b;
-  font-size: 15px;
-}
-
-.state-box.error {
-  color: #b3261e;
-}
-
-// ---------- success header ----------
-
-.checkmark {
-  width: 64px;
-  height: 64px;
-  margin: 0 auto 20px;
-  border-radius: 50%;
-  background: #2fa84f;
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 32px;
-  font-weight: 700;
-}
-
-h2.success-title {
-  font-size: 20px;
-  font-weight: 700;
-  color: #5a1f3d;
-  margin: 0 0 4px;
-}
-
-p.success-sub {
-  font-size: 15px;
-  color: #5a1f3d;
-  margin: 0 0 28px;
-}
-
-// ---------- policy details card ----------
-
-.policy-details-card {
-  border: 1px solid #e3e0e4;
-  border-radius: 10px;
-  padding: 20px 24px;
-  margin: 0 auto 28px;
-  text-align: left;
-}
-
-.policy-details-card h3 {
-  font-size: 15px;
-  font-weight: 700;
-  color: #333;
-  margin: 0 0 12px;
-  text-align: center;
-}
-
-.policy-details-card .row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 14px;
-}
-
-.policy-details-card .row span:first-child {
-  color: #8a8a8a;
-}
-
-.policy-details-card .row span:last-child {
-  font-weight: 600;
-  color: #222;
-}
-
-// ---------- document list ----------
-
-.doc-list {
-  text-align: left;
-  margin-bottom: 24px;
-}
-
-.doc-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #efeef0;
-}
-
-.doc-row:last-child {
-  border-bottom: none;
-}
-
-.doc-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #222;
-}
-
-.doc-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.btn-preview,
-.btn-download {
-  border-radius: 6px;
-  font-size: 13px;
-  font-weight: 600;
-  padding: 8px 16px;
-  cursor: pointer;
-  border: 1px solid #5a1f3d;
-  background: #fff;
-  color: #5a1f3d;
-  transition: background 0.15s ease, color 0.15s ease;
-}
-
-.btn-preview:hover {
-  background: #f6eef2;
-}
-
-.btn-download {
-  background: #5a1f3d;
-  color: #fff;
-  border-color: #5a1f3d;
-}
-
-.btn-download:hover {
-  background: #46182f;
-}
-
-// ---------- footer ----------
-
-.btn-home {
-  display: inline-block;
-  margin: 8px 0 20px;
-  padding: 10px 28px;
-  border-radius: 6px;
-  border: none;
-  background: #5a1f3d;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-}
-
-.btn-home:hover {
-  background: #46182f;
-}
-
-.footer-note {
-  font-size: 12px;
-  color: #8a8a8a;
-  line-height: 1.6;
-  max-width: 420px;
-  margin: 0 auto;
-}
-
-// ---------- responsive ----------
-
-@media (max-width: 480px) {
-  .doc-row {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    &.error {
+      color: $color-error;
+    }
   }
 
-  .doc-actions {
-    width: 100%;
+  // ---------- success header ----------
+  .checkmark {
+    width: 64px;
+    height: 64px;
+    margin: 0 auto 20px;
+    border-radius: 50%;
+    background: $color-primary;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 700;
   }
 
+  h2.success-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: $color-text-main;
+    margin: 0 0 4px;
+  }
+
+  p.success-sub {
+    font-size: 15px;
+    color: $color-text-sub;
+    margin: 0 0 28px;
+  }
+
+  // ---------- policy details card ----------
+  .policy-details-card {
+    background: $bg-card;
+    border: 1px solid lighten($bg-main, 3%);
+    border-radius: $border-radius;
+    padding: 20px 24px;
+    margin: 0 auto 28px;
+    text-align: left;
+
+    h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: $color-text-main;
+      margin: 0 0 12px;
+      text-align: center;
+    }
+
+    .row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+
+      span:first-child {
+        color: $color-text-sub;
+      }
+
+      span:last-child {
+        font-weight: 600;
+        color: $color-text-main;
+      }
+    }
+  }
+
+  // ---------- document list ----------
+  .doc-list {
+    text-align: left;
+    margin-bottom: 24px;
+
+    .doc-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 0;
+      border-bottom: 1px solid lighten($bg-main, 3%);
+
+      &:last-child {
+        border-bottom: none;
+      }
+    }
+
+    .doc-name {
+      font-size: 14px;
+      font-weight: 600;
+      color: $color-text-main;
+    }
+
+    .doc-actions {
+      display: flex;
+      gap: 10px;
+    }
+  }
+
+  // ---------- buttons ----------
   .btn-preview,
+  .btn-download,
+  .btn-home {
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 16px;
+    cursor: pointer;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
+
+    &:hover {
+      opacity: 0.9;
+    }
+  }
+
+  .btn-preview {
+    border: 1px solid lighten($bg-main, 6%);
+    background: $bg-input;
+    color: $color-text-main;
+
+    &:hover {
+      background: lighten($bg-input, 4%);
+    }
+  }
+
   .btn-download {
-    flex: 1;
-    text-align: center;
+    background: $color-primary;
+    color: #fff;
+    border: none;
+  }
+
+  .btn-home {
+    display: inline-block;
+    margin: 8px 0 20px;
+    padding: 10px 28px;
+    border: none;
+    background: $color-primary;
+    color: #fff;
+    font-size: 14px;
+  }
+
+  // ---------- footer ----------
+  .footer-note {
+    font-size: 12px;
+    color: $color-text-muted;
+    line-height: 1.6;
+    max-width: 420px;
+    margin: 0 auto;
+  }
+}
+
+// ---------- RESPONSIVE MEDIA QUERIES ----------
+@media (max-width: 480px) {
+  .success-page {
+    .doc-list {
+      .doc-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+      }
+
+      .doc-actions {
+        width: 100%;
+      }
+    }
+
+    .btn-preview,
+    .btn-download {
+      flex: 1;
+      text-align: center;
+    }
   }
 }

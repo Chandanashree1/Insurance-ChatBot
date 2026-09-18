@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { HttpClient } from '@angular/common/http';
@@ -23,61 +23,41 @@ export class PaymentComponent implements OnInit {
     { key: 'receipt-voucher', label: 'Receipt Voucher' }
   ];
 
-  constructor(private route: ActivatedRoute, private http: HttpClient) {}
+  constructor(
+    private route: ActivatedRoute,
+    private http: HttpClient,
+    private cdr: ChangeDetectorRef
+  ) {}
 
- ngOnInit(): void {
+  ngOnInit(): void {
+    const policyNumber = this.route.snapshot.paramMap.get('policyNumber');
 
-  const policyNumber =
-    this.route.snapshot.paramMap.get('policyNumber');
+    if (!policyNumber) {
+      this.error = 'No policy number provided';
+      this.loading = false;
+      this.cdr.detectChanges();
+      return;
+    }
 
-  if (!policyNumber) {
-    this.error = 'No policy number provided';
-    this.loading = false;
-    return;
-  }
-
-  console.log('Fetching policy:', policyNumber);
-
-  this.http
-    .get<any>(
-      `http://localhost:5000/api/policies/${policyNumber}`
-    )
-    .subscribe({
-
+    this.http.get<any>(`http://localhost:5000/api/policies/${policyNumber}`).subscribe({
       next: res => {
-
-        console.log('Policy API response:', res);
-
         this.policy = res.data;
         this.loading = false;
-
+        this.cdr.detectChanges();
       },
-
       error: err => {
-
-        console.error('Policy API error:', err);
-
-        this.error =
-          err?.error?.message ||
-          'Policy not found';
-
+        this.error = err?.error?.message || 'Policy not found';
         this.loading = false;
-
+        this.cdr.detectChanges();
       }
-
     });
-}
-  preview(docKey: string): void {
-    // Placeholder until document-generation endpoints exist
-    console.log('Preview requested:', docKey);
   }
 
-  download(docKey: string): void {
-    // Placeholder until document-generation endpoints exist
-    console.log('Download requested:', docKey);
-  }
-
+  preview(docKey: string): void { console.log('Preview requested:', docKey); }
+  download(docKey: string): void { console.log('Download requested:', docKey); }
   goHome(): void {
-    window.location.href = '/';
-  }
+  sessionStorage.setItem('restoreChatOnLoad', 'true');
+  sessionStorage.setItem('restoreChatOnLoadTime', Date.now().toString());
+  window.location.href = '/';
+}
 }

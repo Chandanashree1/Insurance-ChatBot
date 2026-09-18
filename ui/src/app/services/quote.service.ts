@@ -54,9 +54,9 @@ export class QuoteService {
     return this.http.post<CreateQuoteResponse>(`${this.baseUrl}/quotes`, payload);
   }
 
-  selectOption(quoteId: number, optionId: number): Observable<any> {
-    return this.http.post(`${this.baseUrl}/quotes/select-option`, { quoteId, optionId });
-  }
+selectOption(quoteId: number, optionId: number): Observable<any> {
+  return this.http.post(`${this.baseUrl}/quotes/select-option`, { quoteId, optionId });
+}
 
   processPayment(quoteId: number): Observable<any> {
     return this.http.post(`${this.baseUrl}/payments`, { quoteId });
@@ -65,4 +65,8 @@ export class QuoteService {
   createPolicy(quoteId: number): Observable<any> {
     return this.http.post(`${this.baseUrl}/policies`, { quoteId });
   }
+
+  getQuoteByNumber(quoteNumber: string): Observable<any> {
+  return this.http.get(`${this.baseUrl}/quotes/number/${quoteNumber}`);
+}
 }
