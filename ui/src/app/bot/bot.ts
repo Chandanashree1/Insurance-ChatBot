@@ -216,12 +216,7 @@ submitRating(): void {
     return;
   }
 
-  // Already rated this session — don't hit the API again, just close
   if (this.hasRatedSession) {
-    this.showRatingModal = false;
-    this.isOpen = false;
-    this.selectedRating = 0;
-    this.ratingFeedback = '';
     return;
   }
 
@@ -236,34 +231,121 @@ submitRating(): void {
 
   this.isSubmittingRating = true;
 
+  const rating = Number(this.selectedRating);
+  const feedback = this.ratingFeedback?.trim() || '';
+
   const payload = {
     customerId: this.customerId ?? null,
     sessionId: this.sessionId,
-    rating: Number(this.selectedRating),
-    feedback: this.ratingFeedback?.trim() || null,
+    rating,
+    feedback: feedback || null,
     language: this.selectedLanguage || 'en'
   };
 
-  this.http.post<any>('http://localhost:5000/api/rating', payload).subscribe({
-   next: (response) => {
-  console.log('Rating response:', response);
-  this.isSubmittingRating = false;
+  this.http.post<any>(
+    'http://localhost:5000/api/rating',
+    payload
+  ).subscribe({
 
-  if (response?.success) {
-    this.hasRatedSession = true;
-    this.showRatingModal = false;
-    // this.isOpen = false;   
-    this.selectedRating = 0;
-    this.ratingFeedback = '';
-    this.cdr.detectChanges();
-  }
-},
-    error: (err) => {
-      console.error('Rating submission error:', err);
+    next: (response) => {
+
+      console.log('Rating response:', response);
+
       this.isSubmittingRating = false;
+
+      if (!response?.success) {
+        alert(
+          this.selectedLanguage === 'ar'
+            ? 'تعذر إرسال التقييم.'
+            : 'Unable to submit rating.'
+        );
+        return;
+      }
+
+      // ------------------------------------
+      // Mark current session as rated
+      // ------------------------------------
+      this.hasRatedSession = true;
+
+      // ------------------------------------
+      // Close rating modal
+      // ------------------------------------
+      this.showRatingModal = false;
+
+      // ------------------------------------
+      // Show feedback inside chat
+      // ------------------------------------
+      const stars = '⭐'.repeat(rating);
+
+      this.messages.push({
+        sender: 'user',
+        text: feedback
+          ? `${stars} ${rating}/5\n${feedback}`
+          : `${stars} ${rating}/5`,
+        time: new Date()
+      });
+
+      // ------------------------------------
+      // Bot thank-you message
+      // ------------------------------------
+      const followUpMessage =
+  this.selectedLanguage === 'ar'
+    ? 'نأسف لأن تجربتك لم تكن مرضية. سيقوم أحد وكلائنا بمتابعة ملاحظاتك ومساعدتك قريبًا.'
+    : 'Sorry to hear that. An agent will follow up with you soon.';
+
+const thankYouMessage =
+  this.selectedLanguage === 'ar'
+    ? 'شكرًا لك على ملاحظاتك وتقييمك. نحن نقدر ملاحظاتك.'
+    : 'Thank you for your feedback and rating.';
+
+const messageToShow =
+  response.followUpRequired === true
+    ? followUpMessage
+    : thankYouMessage;
+
+      this.messages.push({
+        sender: 'bot',
+        text: messageToShow,
+        time: new Date()
+      });
+
+      // ------------------------------------
+      // Reset rating fields
+      // ------------------------------------
+      this.selectedRating = 0;
+      this.ratingFeedback = '';
+
+      this.cdr.detectChanges();
+
+      // ------------------------------------
+      // Wait so user can see thank-you
+      // Then start a fresh chat
+      // ------------------------------------
+      setTimeout(() => {
+        this.startFreshChat();
+      }, 2500);
+    },
+
+    error: (err) => {
+
+      console.error(
+        'Rating submission error:',
+        err
+      );
+
+      this.isSubmittingRating = false;
+
       const backendMessage =
-        err?.error?.message || err?.error?.error || 'Unable to submit rating. Please try again.';
+        err?.error?.message ||
+        err?.error?.error ||
+        (
+          this.selectedLanguage === 'ar'
+            ? 'تعذر إرسال التقييم. يرجى المحاولة مرة أخرى.'
+            : 'Unable to submit rating. Please try again.'
+        );
+
       alert(backendMessage);
+
       this.cdr.detectChanges();
     }
   });
@@ -385,7 +467,52 @@ openComplaintFromCenter(): void {
       this.showLoginPopup = true;
     this.openLogin('supportCenter');
   }
+private startFreshChat(): void {
+this.isOpen = false;
+  if (this.isLoading) {
+    return;
+  }
 
+  // ------------------------------------
+  // Generate completely new session
+  // ------------------------------------
+  this.sessionId = this.generateSessionId();
+
+  // ------------------------------------
+  // Clear current conversation
+  // ------------------------------------
+  this.messages = [
+    {
+      sender: 'bot',
+      text: this.translations[this.selectedLanguage].welcome,
+      time: new Date()
+    }
+  ];
+
+  // ------------------------------------
+  // Reset chat state
+  // ------------------------------------
+  this.userMessage = '';
+  this.pendingQuestion = '';
+
+  this.activeForm = null;
+  this.isHistoryOpen = false;
+
+  this.hasRatedSession = false;
+  this.hasUserMessaged = false;
+
+  this.selectedRating = 0;
+  this.ratingFeedback = '';
+
+  this.applicationFormData = {};
+  this.selectedDocuments = [];
+
+  this.cdr.detectChanges();
+
+  setTimeout(() => {
+    this.scrollToBottom();
+  }, 100);
+}
 skipRating(): void {
   this.showRatingModal = false;
   this.selectedRating = 0;
@@ -703,7 +830,7 @@ goHome(): void {
   this.messages = [{ ...WELCOME_MESSAGE }];
   this.sessionId = this.generateSessionId();
   this.hasRatedSession = false;
-  this.hasUserMessaged = false;  
+  this.hasUserMessaged = false;
 }
 
   private scrollToBottom(): void {

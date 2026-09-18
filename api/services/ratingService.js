@@ -12,7 +12,10 @@ async function saveRating(
     try {
         connection = await getConnection();
 
-        // Convert customerId safely
+        // ==========================================
+        // CUSTOMER ID VALIDATION
+        // ==========================================
+
         let customerIdValue = null;
 
         if (
@@ -29,7 +32,10 @@ async function saveRating(
             customerIdValue = parsedCustomerId;
         }
 
-        // Validate session ID
+        // ==========================================
+        // SESSION ID VALIDATION
+        // ==========================================
+
         if (!sessionId || typeof sessionId !== "string") {
             throw new Error("Invalid sessionId");
         }
@@ -38,7 +44,10 @@ async function saveRating(
             throw new Error("Session ID cannot exceed 100 characters");
         }
 
-        // Validate rating
+        // ==========================================
+        // RATING VALIDATION
+        // ==========================================
+
         const ratingValue = Number(rating);
 
         if (
@@ -46,45 +55,117 @@ async function saveRating(
             ratingValue < 1 ||
             ratingValue > 5
         ) {
-            throw new Error("Rating must be an integer between 1 and 5");
+            throw new Error(
+                "Rating must be an integer between 1 and 5"
+            );
         }
+
+        // ==========================================
+        // LOW RATING BUSINESS RULE
+        // ==========================================
+
+        const followUpRequired = ratingValue <= 2;
+
+        const followUpStatus = followUpRequired
+            ? "PENDING"
+            : "NOT_REQUIRED";
+
+        console.log("--------------------------------");
+        console.log("Rating:", ratingValue);
+        console.log("Follow-up required:", followUpRequired);
+        console.log("Follow-up status:", followUpStatus);
+        console.log("--------------------------------");
+
+        // ==========================================
+        // SAVE RATING
+        // ==========================================
 
         const result = await connection.execute(
             `INSERT INTO CHAT_RATINGS
-                (
-                    CUSTOMER_ID,
-                    SESSION_ID,
-                    RATING,
-                    FEEDBACK,
-                    LANGUAGE
-                )
-             VALUES
-                (
-                    :customerId,
-                    :sessionId,
-                    :rating,
-                    :feedback,
-                    :language
-                )`,
+            (
+                CUSTOMER_ID,
+                SESSION_ID,
+                RATING,
+                FEEDBACK,
+                LANGUAGE,
+                FOLLOW_UP_STATUS
+            )
+            VALUES
+            (
+                :customerId,
+                :sessionId,
+                :rating,
+                :feedback,
+                :language,
+                :followUpStatus
+            )`,
             {
                 customerId: customerIdValue,
                 sessionId: sessionId,
                 rating: ratingValue,
                 feedback: feedback || null,
-                language: language || "en"
+                language: language || "en",
+                followUpStatus,
+
+        ratingId: {
+            dir: oracledb.BIND_OUT,
+            type: oracledb.NUMBER
+        }
             },
             {
                 autoCommit: true
             }
         );
 
-        console.log("Rating inserted successfully:", result.rowsAffected);
+        console.log(
+            "Rating inserted successfully:",
+            result.rowsAffected
+        );
+
+        // ==========================================
+        // FOLLOW-UP BUSINESS LOGIC
+        // ==========================================
+
+        if (followUpRequired) {
+
+            console.log(
+                "⚠️ LOW RATING DETECTED"
+            );
+
+            console.log(
+                "⚠️ Agent follow-up is required"
+            );
+
+            /*
+             * NEXT STEP:
+             *
+             * Create AGENT_FOLLOW_UP record here.
+             *
+             * Example:
+             *
+             * await createFollowUp({
+             *     customerId: customerIdValue,
+             *     sessionId,
+             *     ratingId: result.outBinds?.ratingId,
+             *     rating: ratingValue,
+             *     feedback,
+             *     language
+             * });
+             */
+        }
+
+        // ==========================================
+        // RETURN RESULT
+        // ==========================================
 
         return {
-            success: true
+            success: true,
+            followUpRequired,
+            followUpStatus
         };
 
     } catch (err) {
+
         console.error("Failed to save rating");
         console.error("Oracle error:", err);
         console.error("Oracle error code:", err.errorNum);
@@ -93,11 +174,15 @@ async function saveRating(
         throw err;
 
     } finally {
+
         if (connection) {
             try {
                 await connection.close();
             } catch (closeErr) {
-                console.error("Connection close error:", closeErr);
+                console.error(
+                    "Connection close error:",
+                    closeErr
+                );
             }
         }
     }

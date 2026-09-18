@@ -366,7 +366,70 @@ Do not repeat questions that the customer has already answered.
 
     }
 }
+/*
+|--------------------------------------------------------------------------
+| AI ANALYZE THE FEEDBACK
+|--------------------------------------------------------------------------
+*/
+async function analyzeFeedback(rating, feedback) {
+    const content = await callLLM([
+        {
+            role: "system",
+            content: `
+You are an AI customer feedback analyzer for ABC Insurance.
 
+Analyze the customer's rating and feedback.
+
+Return ONLY valid JSON.
+
+Rules:
+
+1. If feedback is negative, dissatisfied, unhappy,
+   disappointed, frustrated, poor service, issue,
+   problem, not satisfied, or similar:
+
+{
+    "followUpRequired": true,
+    "sentiment": "NEGATIVE"
+}
+
+2. If feedback is positive, satisfied, happy, good,
+   excellent, resolved, thank you, or similar:
+
+{
+    "followUpRequired": false,
+    "sentiment": "POSITIVE"
+}
+
+3. Rating alone must NOT determine follow-up
+   when feedback is available.
+
+4. Even 4 or 5 stars can require follow-up if
+   feedback is negative.
+
+5. If feedback is empty:
+   - Rating 1 or 2 = followUpRequired true
+   - Rating 3, 4 or 5 = followUpRequired false
+
+Return ONLY JSON.
+`
+        },
+        {
+            role: "user",
+            content: JSON.stringify({
+                rating,
+                feedback
+            })
+        }
+    ]);
+
+    const cleanContent = content
+        .replace(/```json/g, "")
+        .replace(/```/g, "")
+        .trim();
+
+    return JSON.parse(cleanContent);
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -809,6 +872,8 @@ module.exports = {
 
     askAI,
 
-    detectIntentAI
+    detectIntentAI,
+    
+    analyzeFeedback
 
 };
