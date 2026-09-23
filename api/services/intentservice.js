@@ -22,23 +22,31 @@ const { detectIntentAI } = require("./huggingFaceService");
 */
 
 
+// This list must stay identical to the `allowedIntents` list
+// inside detectIntentAI (huggingFaceService.js) — that function
+// is the only source of these values, so a mismatch here silently
+// downgrades valid intents to UNKNOWN before the controller ever
+// sees them.
 const ALLOWED_INTENTS = [
     "GREETING",
     "THANKS",
     "GOODBYE",
     "HELP",
 
-    "INSURANCE_ADVICE",
-    "BUY_POLICY",
-    "GET_QUOTE",
-
-    "POLICY_DETAILS",
+    "POLICY",
     "CLAIM",
-    "RENEWAL",
-    "PAYMENT",
-    "COVERAGE",
+    "CLAIM_ELIGIBILITY",
+    "CLAIM_DOCUMENTS",
 
-    "INSURANCE_QUERY",
+    "RENEW_POLICY",
+    "BUY_POLICY",
+
+    "PREMIUM",
+    "PAYMENT",
+
+    "FAQ",
+    "INSURANCE_GENERAL",
+
     "OUT_OF_SCOPE",
     "UNKNOWN"
 ];
@@ -49,18 +57,6 @@ const ALLOWED_INSURANCE_TYPES = [
     "HEALTH",
     "TRAVEL",
     "LIFE",
-    "UNKNOWN"
-];
-
-
-const ALLOWED_STAGES = [
-    "CONVERSATION",
-    "DISCOVERY",
-    "READY_TO_BUY",
-    "QUOTE",
-    "PAYMENT",
-    "POLICY",
-    "CLAIM",
     "UNKNOWN"
 ];
 
@@ -78,8 +74,8 @@ function normalizeIntent(result) {
         return {
             intent: "UNKNOWN",
             insuranceType: "UNKNOWN",
-            stage: "UNKNOWN",
             confidence: 0,
+            readyToPurchase: false,
             needsClarification: true
         };
     }
@@ -91,11 +87,6 @@ function normalizeIntent(result) {
 
 
     let insuranceType = String(result.insuranceType || "UNKNOWN")
-        .trim()
-        .toUpperCase();
-
-
-    let stage = String(result.stage || "UNKNOWN")
         .trim()
         .toUpperCase();
 
@@ -122,11 +113,6 @@ function normalizeIntent(result) {
     }
 
 
-    if (!ALLOWED_STAGES.includes(stage)) {
-        stage = "UNKNOWN";
-    }
-
-
     /*
      * Keep confidence between 0 and 1.
      */
@@ -135,6 +121,18 @@ function normalizeIntent(result) {
         0,
         Math.min(1, confidence)
     );
+
+
+    /*
+     * The AI decides readiness directly now (see detectIntentAI's
+     * "readyToPurchase" field). Only BUY_POLICY can ever be ready —
+     * any other intent is never treated as a purchase trigger,
+     * regardless of what the AI layer sends.
+     */
+
+    let readyToPurchase =
+        intent === "BUY_POLICY" &&
+        Boolean(result.readyToPurchase);
 
 
     /*
@@ -150,20 +148,23 @@ function normalizeIntent(result) {
 
 
     if (
-        (intent === "BUY_POLICY" ||
-         intent === "GET_QUOTE") &&
+        intent === "BUY_POLICY" &&
         insuranceType === "UNKNOWN"
     ) {
 
         needsClarification = true;
+
+        // Can't be ready to purchase without knowing what
+        // insurance type is being purchased.
+        readyToPurchase = false;
     }
 
 
     return {
         intent,
         insuranceType,
-        stage,
         confidence,
+        readyToPurchase,
         needsClarification
     };
 }
@@ -184,8 +185,8 @@ async function detectIntent(message, conversationHistory = [], context = {}) {
             return {
                 intent: "UNKNOWN",
                 insuranceType: "UNKNOWN",
-                stage: "UNKNOWN",
                 confidence: 0,
+                readyToPurchase: false,
                 needsClarification: true
             };
         }
@@ -224,8 +225,8 @@ async function detectIntent(message, conversationHistory = [], context = {}) {
         );
 
         console.log(
-            "Stage:",
-            result.stage
+            "Ready To Purchase:",
+            result.readyToPurchase
         );
 
         console.log(
@@ -256,8 +257,8 @@ async function detectIntent(message, conversationHistory = [], context = {}) {
         return {
             intent: "UNKNOWN",
             insuranceType: "UNKNOWN",
-            stage: "CONVERSATION",
             confidence: 0,
+            readyToPurchase: false,
             needsClarification: true
         };
     }

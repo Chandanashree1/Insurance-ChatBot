@@ -437,7 +437,7 @@ Return ONLY JSON.
 |--------------------------------------------------------------------------
 */
 
-async function detectIntentAI(userMessage, history = []) {
+async function detectIntentAI(userMessage, history = [], context = {}) {
 
     try {
 
@@ -515,6 +515,17 @@ Examples:
 => INSURANCE_GENERAL
 
 "I want to understand what insurance I should get."
+
+=> INSURANCE_GENERAL
+
+"I am planning to buy a policy for my car, suggest me some ideas."
+
+This MENTIONS buying, but the customer is asking for suggestions/ideas,
+not confirming they are ready to proceed right now.
+
+=> INSURANCE_GENERAL
+
+"I'm planning to get motor insurance soon, what should I know first?"
 
 => INSURANCE_GENERAL
 
@@ -655,6 +666,41 @@ OUT_OF_SCOPE
 Use OUT_OF_SCOPE when the request is unrelated to insurance.
 
 ==================================================
+INSURANCE TYPE
+==================================================
+
+If the customer's message (with conversation history) makes the
+type of insurance clear, extract it as one of:
+
+MOTOR
+HEALTH
+TRAVEL
+LIFE
+UNKNOWN
+
+Extract this even when the customer is only asking for advice,
+not just when they are ready to buy. This helps carry context
+forward — it does NOT by itself mean they are ready to purchase.
+
+==================================================
+READY TO PURCHASE
+==================================================
+
+Set "readyToPurchase" to true ONLY when the customer has clearly
+committed to proceeding right now — starting an application,
+getting a quote, or buying — matching the same bar described
+above for BUY_POLICY.
+
+A message that mentions buying/planning/considering but is
+actually asking for advice, ideas, comparisons, or general
+information is readyToPurchase: false, even if intent ends up
+being BUY_POLICY due to ambiguous wording.
+
+If intent is BUY_POLICY, readyToPurchase should almost always be
+true — use false only when the BUY_POLICY classification itself
+is uncertain and the customer seems to still be exploring.
+
+==================================================
 RULES
 ==================================================
 
@@ -678,6 +724,10 @@ RULES
 
 10. Existing claims = CLAIM.
 
+11. A message that only mentions "planning to buy" or "thinking
+    about buying" without confirming readiness is INSURANCE_GENERAL
+    with readyToPurchase: false.
+
 ==================================================
 OUTPUT
 ==================================================
@@ -686,7 +736,9 @@ Return exactly:
 
 {
   "intent": "INTENT_NAME",
-  "confidence": 0.95
+  "confidence": 0.95,
+  "insuranceType": "MOTOR",
+  "readyToPurchase": false
 }
 `;
 
@@ -810,13 +862,39 @@ ${history
         ];
 
 
+        const allowedInsuranceTypes = [
+            "MOTOR",
+            "HEALTH",
+            "TRAVEL",
+            "LIFE",
+            "UNKNOWN"
+        ];
+
+        const insuranceType =
+            allowedInsuranceTypes.includes(result.insuranceType)
+                ? result.insuranceType
+                : "UNKNOWN";
+
+        // BUY_POLICY should always imply readiness unless the
+        // model explicitly said otherwise; every other intent
+        // defaults to not-ready.
+        const readyToPurchase =
+            typeof result.readyToPurchase === "boolean"
+                ? result.readyToPurchase
+                : result.intent === "BUY_POLICY";
+
+
         if (!allowedIntents.includes(result.intent)) {
 
             return {
 
                 intent: "INSURANCE_GENERAL",
 
-                confidence: 0.5
+                confidence: 0.5,
+
+                insuranceType,
+
+                readyToPurchase: false
 
             };
 
@@ -830,7 +908,11 @@ ${history
             confidence:
                 typeof result.confidence === "number"
                     ? result.confidence
-                    : 0.8
+                    : 0.8,
+
+            insuranceType,
+
+            readyToPurchase
 
         };
 
@@ -853,7 +935,11 @@ ${history
 
             intent: "INSURANCE_GENERAL",
 
-            confidence: 0.3
+            confidence: 0.3,
+
+            insuranceType: "UNKNOWN",
+
+            readyToPurchase: false
 
         };
 

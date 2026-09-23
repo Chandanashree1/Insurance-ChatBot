@@ -870,12 +870,18 @@ const chat = async (req, res) => {
         // --------------------------------------------------
 
         const intentResult =
-            await detectIntent(message);
+            await detectIntent(message, history);
 
         const intent =
             typeof intentResult === "string"
                 ? intentResult
                 : intentResult?.intent || "UNKNOWN";
+
+        const detectedInsuranceType =
+            intentResult?.insuranceType || "UNKNOWN";
+
+        const readyToPurchase =
+            Boolean(intentResult?.readyToPurchase);
 
         console.log(
             "\n========== AI INTENT =========="
@@ -1105,13 +1111,28 @@ if (intent === "COMPLAINT") {
         // 7. Start purchase flow
         // --------------------------------------------------
 
+        // Only a confirmed BUY_POLICY + readyToPurchase starts the
+        // form/slot-filling flow. INSURANCE_GENERAL and any
+        // BUY_POLICY that the AI itself flagged as not-yet-ready
+        // (e.g. "planning to buy... suggest some ideas") fall
+        // through to the normal RAG/chat path below instead.
         const isPurchaseRequest =
-            intent === "BUY_POLICY" ||
-            intent === "INSURANCE_GENERAL";
+            intent === "BUY_POLICY" &&
+            readyToPurchase;
 
         if (isPurchaseRequest) {
             const purchaseFlow =
                 startPurchaseFlow(flowUserId);
+
+            // Pre-seed the flow with the insurance type we already
+            // extracted during intent detection, so the purchase
+            // flow doesn't re-ask something the customer already
+            // told us.
+            if (detectedInsuranceType !== "UNKNOWN") {
+                updatePurchaseFlow(flowUserId, {
+                    insuranceType: detectedInsuranceType
+                });
+            }
 
             console.log(
                 "\n========== START PURCHASE FLOW =========="
