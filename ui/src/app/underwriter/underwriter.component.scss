@@ -1,0 +1,198 @@
+// ---------- LOGIN VIEW ----------
+.uw-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #161922;
+}
+
+.uw-login-card {
+  background: #242936;
+  padding: 32px;
+  border-radius: 16px;
+  width: 320px;
+
+  h2 { color: #fff; margin-bottom: 20px; }
+  label { display: block; color: #8a92a6; font-size: 13px; margin: 12px 0 6px; }
+
+  input {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #2e3340;
+    background: #11131a;
+    color: #fff;
+  }
+
+  .uw-error { color: #ea4335; font-size: 13px; margin-top: 10px; }
+
+  button {
+    width: 100%;
+    margin-top: 20px;
+    padding: 12px;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+}
+
+.selected-summary {
+  background: #1b1f2a;
+  border-radius: 10px;
+  padding: 14px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: #8a92a6;
+
+  div:first-child { color: #fff; font-size: 15px; margin-bottom: 4px; }
+}
+
+.decision-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 16px;
+
+  button {
+    flex: 1;
+    padding: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+
+  .approve-btn { background: #22c55e; color: #fff; }
+  .counter-btn { background: #3b82f6; color: #fff; }
+  .decline-btn { background: #ea4335; color: #fff; }
+}
+
+.reason-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 6px;
+  margin-top: 4px;
+
+  &.kyc_failed { background: rgba(234, 67, 53, 0.15); color: #ea4335; }
+  &.payment_failed { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+  &.high_value { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+}
+
+.quote-card-value {
+  font-size: 12px;
+  color: #575d6c;
+  margin-top: 2px;
+}
+
+// ---------- DASHBOARD VIEW ----------
+.uw-dashboard {
+  min-height: 100vh;
+  background: #161922;
+  padding: 24px;
+  color: #fff;
+}
+
+.uw-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+
+  .logout-btn {
+    background: #11131a;
+    color: #8a92a6;
+    border: 1px solid #2e3340;
+    border-radius: 8px;
+    padding: 8px 16px;
+    cursor: pointer;
+  }
+}
+
+.uw-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+}
+
+.uw-quote-list, .uw-followup-panel {
+  background: #242936;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.quote-card {
+  background: #1b1f2a;
+  border: 1px solid #2e3340;
+  border-radius: 10px;
+  padding: 12px;
+  margin-bottom: 10px;
+  cursor: pointer;
+
+  &.selected { border-color: #3b82f6; }
+
+  .quote-card-top {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #8a92a6;
+
+    .status { color: #3b82f6; font-weight: 600; }
+  }
+
+  .quote-card-name { font-weight: 600; margin-top: 4px; }
+  .quote-card-plan { font-size: 13px; color: #8a92a6; margin-top: 2px; }
+}
+
+.uw-followup-panel {
+  label { display: block; color: #8a92a6; font-size: 13px; margin: 12px 0 6px; }
+
+  input, textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border-radius: 8px;
+    border: 1px solid #2e3340;
+    background: #11131a;
+    color: #fff;
+    resize: vertical;
+  }
+
+  button {
+    margin-top: 16px;
+    width: 100%;
+    padding: 12px;
+    background: #3b82f6;
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+}
+
+.uw-log {
+  margin-top: 24px;
+
+  h4 { color: #8a92a6; font-size: 13px; margin-bottom: 10px; }
+
+  .log-row {
+    display: flex;
+    gap: 10px;
+    font-size: 12px;
+    padding: 6px 0;
+    border-bottom: 1px solid #2e3340;
+    color: #8a92a6;
+
+    .log-quote { color: #3b82f6; }
+    .log-msg { color: #fff; flex: 1; }
+  }
+}
+
+.empty-state { color: #575d6c; font-size: 13px; text-align: center; padding: 20px; }

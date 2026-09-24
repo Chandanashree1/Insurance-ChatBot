@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpErrorResponse } from '@angular/common/http';
 import { QuoteService, QuoteOption, CreateQuoteResponse } from '../services/quote.service';
 import { Router } from '@angular/router';
+// import { KycService } from '../services/kyc.service';
 
 
 interface SelectOptionResponse {
@@ -80,15 +81,23 @@ interface ChatMessage {
   plans?: QuoteOption[];
   policyNumber?: string;
   formData?: ChatFormData;
-   quoteNumber?: string;
+  quoteNumber?: string;
   coverFrom?: string;
   coverTo?: string;
   submitted: boolean;
   step?: 1 | 2 | 3;
   quoteId?: number;
+  needsAdditionalInfo?: boolean;
+  additionalInfoText?: string;
+  underwritingPending?: boolean;
+  proposalId?: number;
+  proposalNumber?: string;
+  proposalStatus?: string;
+  counterOfferPremium?: number;
+  underwriterNote?: string;
+  checkingStatus?: boolean;
   selectedOption?: QuoteOption;
 }
-
 @Component({
   selector: 'app-buy-policy-chat',
   standalone: true,
@@ -113,10 +122,15 @@ export class BuyPolicyChatComponent implements AfterViewChecked, OnInit {
   disabledQuickReplyGroups = new Set<ChatMessage>();
   disabledPlanGroups = new Set<ChatMessage>();
 
+kycVerifying = false;
+kycVerified = false;
+kycFailedReason: string | null = null;
+
   constructor(
     private quoteService: QuoteService,
     private router: Router,
     private cdr: ChangeDetectorRef
+    // private kycService: KycService
   ) {}
 
   goToPolicyPage(policyNumber?: string): void {
@@ -362,6 +376,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       this.pushBot('text', { text: 'Please enter a plate code before continuing.' });
       return;
     }
+    
 
     msg.submitted = true;
     this.data.plateNumber = plateNumber;
@@ -452,7 +467,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
     msg.formData!.productId = productId;
   }
 
-  selectPlanForForm(msg: ChatMessage, plan: QuoteOption): void {
+selectPlanForForm(msg: ChatMessage, plan: QuoteOption): void {
     if (!msg.quoteId || !plan.optionId || msg.submitted) {
       return;
     }
@@ -461,6 +476,15 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
 
     this.quoteService.selectOption(msg.quoteId, plan.optionId).subscribe({
       next: (res: any) => {
+
+        if (res.data.needsAdditionalInfo) {
+          msg.selectedOption = plan;
+          msg.needsAdditionalInfo = true;
+          msg.additionalInfoText = '';
+          this.cdr.detectChanges();
+          return;
+        }
+
         msg.selectedOption = res.data.selectedOption || plan;
         this.cdr.detectChanges();
       },
@@ -469,8 +493,94 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
         this.cdr.detectChanges();
       }
     });
-  }
+}
 
+submitAdditionalInfo(msg: ChatMessage): void {
+    if (!msg.quoteId || !msg.selectedOption?.optionId) return;
+    if (!msg.additionalInfoText?.trim()) {
+      this.formNotice = 'Please provide the requested information before submitting.';
+      return;
+    }
+
+    msg.submitted = true;
+    this.formNotice = '';
+
+    this.quoteService.submitProposal(
+      msg.quoteId,
+      msg.selectedOption.optionId,
+      msg.additionalInfoText.trim()
+    ).subscribe({
+      next: (res: any) => {
+        msg.needsAdditionalInfo = false;
+        msg.underwritingPending = true;
+        msg.proposalId = res.data.proposalId;
+        msg.proposalNumber = res.data.proposalNumber;
+        msg.proposalStatus = 'PENDING';
+        msg.submitted = false;
+        this.cdr.detectChanges();
+      },
+      error: (err: HttpErrorResponse) => {
+        msg.submitted = false;
+        this.formNotice = err?.error?.message || 'Could not submit your proposal. Please try again.';
+        this.cdr.detectChanges();
+      }
+    });
+}
+
+checkProposalStatus(msg: ChatMessage): void {
+    if (!msg.quoteId) return;
+
+    msg.checkingStatus = true;
+
+    this.quoteService.getProposalStatus(msg.quoteId).subscribe({
+      next: (res: any) => {
+        msg.proposalStatus = res.data.status;
+        msg.counterOfferPremium = res.data.counterOfferPremium;
+        msg.underwriterNote = res.data.note;
+
+        // Populate selectedOption so payNowForForm() has what it needs
+        if (res.data.optionId && !msg.selectedOption) {
+          msg.selectedOption = {
+            optionId: res.data.optionId,
+            optionNumber: 0,
+            planName: res.data.planName,
+            premium: res.data.premium,
+            coverageDetails: ''
+          };
+        }
+
+        msg.checkingStatus = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        msg.checkingStatus = false;
+        this.cdr.detectChanges();
+      }
+    });
+}
+
+respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void {
+    if (!msg.proposalId) return;
+
+    this.quoteService.respondToCounterOffer(msg.proposalId, response).subscribe({
+      next: () => {
+        if (response === 'ACCEPTED') {
+          if (msg.selectedOption) {
+            msg.selectedOption.premium = msg.counterOfferPremium!;
+          }
+          msg.underwritingPending = false;
+          msg.proposalStatus = 'ACCEPTED_PROCEED';
+        } else {
+          msg.proposalStatus = 'REJECTED_BY_CUSTOMER';
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err: HttpErrorResponse) => {
+        this.formNotice = err?.error?.message || 'Could not submit your response.';
+        this.cdr.detectChanges();
+      }
+    });
+}
   payNowForForm(msg: ChatMessage): void {
     if (!msg.quoteId || !msg.selectedOption || msg.submitted) {
       return;
@@ -520,8 +630,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
     msg.step = undefined;
     msg.submitted = false;
   }
-
-  submitPolicyForm(msg: ChatMessage): void {
+submitPolicyForm(msg: ChatMessage): void {
     if (msg.submitted) return;
     const form = msg.formData!;
 
@@ -556,80 +665,184 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       return;
     }
 
+    // ==================================================
+    // KYC VERIFICATION (DB-BACKED)
+    // ==================================================
+
     msg.submitted = true;
     this.formNotice = '';
+    this.kycVerifying = true;
+    this.kycVerified = false;
+    this.kycFailedReason = null;
+    this.cdr.detectChanges();
 
-    this.quoteService.createMotorQuote({
-      mobileNumber: form.mobileNumber.trim(),
-      fullName: form.fullName.trim(),
-      civilIdLicenseNo: form.civilIdLicenseNo.trim(),
-      plateNumber,
-      plateCode,
-      productId: form.productId,
-      vehicleValue: form.productId === 'COMPREHENSIVE' ? form.vehicleValue : undefined
-    }).subscribe({
-      next: (res: CreateQuoteResponse) => {
-        msg.quoteId = res.data.quote.quoteId;
-          msg.quoteNumber = res.data.quote.quoteNumber;   // ← add
-  msg.coverFrom = res.data.quote.coverFrom;        // ← add
-  msg.coverTo = res.data.quote.coverTo;            
-        msg.vehicle = res.data.vehicle;
-        msg.plans = res.data.options;
-        msg.step = 2;
-        msg.submitted = false;
+    this.quoteService.verifyKyc(form.civilIdLicenseNo!.trim()).subscribe({
+      next: (kycRes: any) => {
+
+        this.kycVerifying = false;
+
+        if (!kycRes.verified) {
+
+          this.kycFailedReason = kycRes.reason;
+          this.cdr.detectChanges();
+
+          this.quoteService.escalateKycFailure({
+            mobileNumber: form.mobileNumber!.trim(),
+            fullName: form.fullName!.trim(),
+            civilIdLicenseNo: form.civilIdLicenseNo!.trim(),
+            plateNumber,
+            plateCode,
+            productId: form.productId!,
+            vehicleValue: form.productId === 'COMPREHENSIVE' ? form.vehicleValue : undefined
+          }).subscribe({
+            next: (res: any) => {
+              msg.quoteId = res.data.quoteId;
+              msg.quoteNumber = res.data.quoteNumber;
+              msg.proposalNumber = res.data.proposal?.proposalNumber;
+              msg.underwritingPending = true;
+              msg.proposalStatus = 'PENDING';
+              msg.step = 2;
+              msg.submitted = false;
+              this.cdr.detectChanges();
+            },
+            error: (err: HttpErrorResponse) => {
+              msg.submitted = false;
+              this.formNotice = 'Verification failed and could not be submitted for review. Please try again.';
+              this.cdr.detectChanges();
+            }
+          });
+
+          return;
+        }
+
+        // KYC passed — show success badge briefly, then proceed
+        this.kycVerified = true;
         this.cdr.detectChanges();
+
+        setTimeout(() => {
+
+          this.kycVerified = false; // clear before moving on
+
+          this.quoteService.createMotorQuote({
+            mobileNumber: form.mobileNumber!.trim(),
+            fullName: form.fullName!.trim(),
+            civilIdLicenseNo: form.civilIdLicenseNo!.trim(),
+            plateNumber,
+            plateCode,
+            productId: form.productId!,
+            vehicleValue: form.productId === 'COMPREHENSIVE' ? form.vehicleValue : undefined
+          }).subscribe({
+            next: (res: CreateQuoteResponse) => {
+              msg.quoteId = res.data.quote.quoteId;
+              msg.quoteNumber = res.data.quote.quoteNumber;
+              msg.coverFrom = res.data.quote.coverFrom;
+              msg.coverTo = res.data.quote.coverTo;
+              msg.vehicle = res.data.vehicle;
+              msg.plans = res.data.options;
+              msg.step = 2;
+              msg.submitted = false;
+              this.cdr.detectChanges();
+            },
+            error: (err: HttpErrorResponse) => {
+              msg.submitted = false;
+              this.formNotice = err?.error?.message || 'Something went wrong generating your quote. Please check your details.';
+              this.cdr.detectChanges();
+            }
+          });
+
+        }, 600);
       },
-      error: (err: HttpErrorResponse) => {
+      error: () => {
+        this.kycVerifying = false;
         msg.submitted = false;
-        this.formNotice = err?.error?.message || 'Something went wrong generating your quote. Please check your details.';
+        this.formNotice = 'Could not verify your identity right now. Please try again.';
         this.cdr.detectChanges();
       }
     });
-  }
+}
+private async generateQuote(): Promise<void> {
 
-  private async generateQuote(): Promise<void> {
-    this.stage = 'GENERATING';
-    await this.typing(900);
-    this.pushBot('text', { text: 'Give me a moment while I generate your quote...' });
+    // ==================================================
+    // KYC VERIFICATION (DB-BACKED)
+    // ==================================================
 
-    this.quoteService.createMotorQuote({
-      mobileNumber: this.data.mobileNumber!,
-      fullName: this.data.fullName!,
-      civilIdLicenseNo: this.data.civilIdLicenseNo!,
-      plateNumber: this.data.plateNumber!,
-      plateCode: this.data.plateCode!,
-      productId: this.data.productId!,
-      vehicleValue: this.data.vehicleValue
-    }).subscribe({
-      next: async (res: CreateQuoteResponse) => {
-        this.quoteId = res.data.quote.quoteId;
-        await this.typing(500);
-        this.pushBot('summary', { vehicle: res.data.vehicle });
-        await this.wait(300);
-        this.pushBot('text', { text: 'Here are your available plans — pick the one that suits you best:' });
-        this.stage = 'PLAN_SELECTION';
-        this.pushBot('plans', { plans: res.data.options });
-      },
-      error: async (err: HttpErrorResponse) => {
-        await this.typing(400);
-        const msg = err?.error?.message || 'Something went wrong generating your quote.';
-        this.pushBot('text', { text: `Sorry — ${msg}. Could you double check the plate number and code below?` });
-        this.stage = 'ASK_VEHICLE_DETAILS';
-        this.pushBot('mulkiya-form', {
-          formData: { plateNumber: this.data.plateNumber || '', plateCode: 'M', otherPlateCode: '', plateType: 'Oman' }
+    this.kycVerifying = true;
+
+    this.quoteService.verifyKyc(this.data.civilIdLicenseNo!).subscribe({
+      next: async (kycRes: any) => {
+
+        this.kycVerifying = false;
+
+        if (!kycRes.verified) {
+          await this.typing(400);
+          this.pushBot('text', { text: `Sorry — ${kycRes.reason}. Please re-check your details.` });
+          this.stage = 'ASK_CIVIL_ID';
+          this.cdr.detectChanges();
+          return;
+        }
+
+        this.stage = 'GENERATING';
+        await this.typing(900);
+        this.pushBot('text', { text: 'Give me a moment while I generate your quote...' });
+
+        this.quoteService.createMotorQuote({
+          mobileNumber: this.data.mobileNumber!,
+          fullName: this.data.fullName!,
+          civilIdLicenseNo: this.data.civilIdLicenseNo!,
+          plateNumber: this.data.plateNumber!,
+          plateCode: this.data.plateCode!,
+          productId: this.data.productId!,
+          vehicleValue: this.data.vehicleValue
+        }).subscribe({
+          next: async (res: CreateQuoteResponse) => {
+            this.quoteId = res.data.quote.quoteId;
+            await this.typing(500);
+            this.pushBot('summary', { vehicle: res.data.vehicle });
+            await this.wait(300);
+            this.pushBot('text', { text: 'Here are your available plans — pick the one that suits you best:' });
+            this.stage = 'PLAN_SELECTION';
+            this.pushBot('plans', { plans: res.data.options });
+          },
+          error: async (err: HttpErrorResponse) => {
+            await this.typing(400);
+            const msg = err?.error?.message || 'Something went wrong generating your quote.';
+            this.pushBot('text', { text: `Sorry — ${msg}. Could you double check the plate number and code below?` });
+            this.stage = 'ASK_VEHICLE_DETAILS';
+            this.pushBot('mulkiya-form', {
+              formData: { plateNumber: this.data.plateNumber || '', plateCode: 'M', otherPlateCode: '', plateType: 'Oman' }
+            });
+            this.cdr.detectChanges();
+          }
         });
+      },
+      error: async () => {
+        this.kycVerifying = false;
+        await this.typing(400);
+        this.pushBot('text', { text: 'Could not verify your identity right now. Please try again.' });
+        this.stage = 'ASK_CIVIL_ID';
+        this.cdr.detectChanges();
       }
     });
-  }
-
-  onSelectPlan(msg: ChatMessage, plan: QuoteOption): void {
+}
+onSelectPlan(msg: ChatMessage, plan: QuoteOption): void {
     if (this.disabledPlanGroups.has(msg)) return;
     this.disabledPlanGroups.add(msg);
     this.selectedOption = plan;
     this.pushUser(`Selected: ${plan.planName} — OMR ${plan.premium.toFixed(3)}`);
 
     this.quoteService.selectOption(this.quoteId!, plan.optionId).subscribe({
-      next: async (_res: SelectOptionResponse) => {
+      next: async (res: any) => {
+
+        if (res.data.needsAdditionalInfo) {
+          await this.typing(500);
+          this.pushBot('text', {
+            text: `Your vehicle value requires manual underwriting review. This flow needs the wizard form (Buy Policy card) to collect additional details — please use "I want to buy policy" instead.`
+          });
+          this.stage = 'DONE';
+          this.cdr.detectChanges();
+          return;
+        }
+
         await this.typing(400);
         this.pushBot('text', { text: `Great choice! Your total premium is OMR ${plan.premium.toFixed(3)}. Ready to pay?` });
         this.pushBot('quick-replies', { options: [{ label: 'Pay Now', value: '__pay' }] });
@@ -641,8 +854,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
         this.cdr.detectChanges();
       }
     });
-  }
-
+}
   private async handlePayNow(): Promise<void> {
     this.stage = 'PAYMENT';
     await this.typing(1000);
