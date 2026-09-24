@@ -213,6 +213,12 @@ isSupportCenterOpen: boolean = false;
 
 isMyComplaintsOpen: boolean = false;
 
+isCheckStatusOpen: boolean = false;
+statusQuoteNumber: string = '';
+statusResult: any = null;
+statusLookupError: string = '';
+isLookingUpStatus: boolean = false;
+
   // ----- Complaint form state -----
   activeForm: 'complaint' | 'agentConnect' | null = null;
   isSubmittingComplaint: boolean = false;
@@ -229,6 +235,66 @@ hasUserMessaged: boolean = false;
 selectRating(rating: number): void {
   this.selectedRating = rating;
 }
+
+
+// ===============================
+// CHECK STATUS
+// ===============================
+
+openCheckStatus(): void {
+  this.isSupportCenterOpen = false;
+  this.isHistoryOpen = false;
+  this.isMyComplaintsOpen = false;
+  this.isCheckStatusOpen = true;
+
+  this.statusQuoteNumber = '';
+  this.statusResult = null;
+  this.statusLookupError = '';
+}
+
+goBackFromCheckStatus(): void {
+  this.isCheckStatusOpen = false;
+  this.isSupportCenterOpen = true;
+}
+
+lookupProposalStatus(): void {
+  const quoteNumber = this.statusQuoteNumber.trim();
+
+  if (!quoteNumber) {
+    this.statusLookupError = 'Please enter your quote number.';
+    return;
+  }
+
+  this.isLookingUpStatus = true;
+  this.statusLookupError = '';
+  this.statusResult = null;
+
+  this.http.get<any>(`http://localhost:5000/api/proposals/quote-number/${quoteNumber}`).subscribe({
+    next: (res) => {
+      this.isLookingUpStatus = false;
+
+      if (res.success) {
+        this.statusResult = res.data;
+      } else {
+        this.statusLookupError = res.message || 'Could not find a proposal for this quote number.';
+      }
+
+      this.cdr.detectChanges();   // ← MUST be here
+    },
+    error: (err) => {
+      this.isLookingUpStatus = false;
+      this.statusLookupError = err?.error?.message || 'No proposal found for this quote number.';
+      this.cdr.detectChanges();   // ← MUST be here too
+    }
+  });
+}
+
+resetStatusLookup(): void {
+  this.statusQuoteNumber = '';
+  this.statusResult = null;
+  this.statusLookupError = '';
+}
+
 
 submitRating(): void {
 

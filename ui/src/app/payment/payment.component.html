@@ -1,39 +1,44 @@
 <div class="success-page">
 
   <div class="state-box" *ngIf="loading">Loading your policy…</div>
-
   <div class="state-box error" *ngIf="!loading && error">{{ error }}</div>
 
   <ng-container *ngIf="!loading && !error && policy">
 
-    <div class="checkmark">✓</div>
-    <h2 class="success-title">Your premium payment is successful.</h2>
-    <p class="success-sub">Thank you!</p>
-
-    <div class="policy-details-card">
-      <h3>Policy Details</h3>
-      <div class="row">
-        <span>Policy No</span>
-      <span>{{ policy.policyNumber }}</span>
+    <div class="success-card">
+      <div class="icon-circle">
+        <span class="checkmark">✓</span>
       </div>
-    </div>
 
-    <div class="doc-list">
-      <div class="doc-row" *ngFor="let doc of documents">
-        <span class="doc-name">{{ doc.label }}</span>
-        <div class="doc-actions">
-          <button class="btn-preview" (click)="preview(doc.key)">Preview</button>
-          <button class="btn-download" (click)="download(doc.key)">Download</button>
+      <h2 class="success-title">Payment Successful!</h2>
+      <p class="success-sub">Your premium payment has been processed successfully for Policy No. {{ policy.policyNumber }}.</p>
+
+      <div class="policy-details-card">
+        <div class="row">
+          <span>Policy No</span>
+          <span class="value">{{ policy.policyNumber }}</span>
+        </div>
+        <div class="row" *ngIf="policy.planName">
+          <span>Plan</span>
+          <span class="value">{{ policy.planName }}</span>
+        </div>
+        <div class="row" *ngIf="policy.premium">
+          <span>Premium Paid</span>
+          <span class="value">{{ policy.premium | currency:'OMR' }}</span>
         </div>
       </div>
+
+      <button class="btn-download-policy" (click)="downloadPolicy()" [disabled]="downloading">
+        {{ downloading ? 'Preparing…' : 'Download Policy Document' }}
+      </button>
+
+      <button class="btn-home" (click)="goHome()">Go back home</button>
+
+      <div class="footer-note">
+        Your policy has been sent to you via WhatsApp and email according to your communication preferences.
+        Additionally, an SMS link has been provided for you to download your policy document.
+      </div>
     </div>
-
-    <button class="btn-home" (click)="goHome()">Go back home</button>
-
-    <p class="footer-note">
-      Your policy has been sent to you via WhatsApp and email according to your communication preferences.
-      Additionally, an SMS link has been provided for you to download your policy document.
-    </p>
 
   </ng-container>
 

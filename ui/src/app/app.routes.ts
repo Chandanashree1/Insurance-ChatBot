@@ -7,5 +7,13 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./payment/payment.component')
         .then(m => m.PaymentComponent)
-  }
+  },
+
+{
+  path: 'underwriter',
+  loadComponent: () => import('./underwriter/underwriter.component')
+    .then(m => m.UnderwriterComponent)
+}
+
+
 ];

@@ -1973,6 +1973,42 @@ textarea:disabled::placeholder {
   transform: scale(0.98);
 }
 
+.status-lookup-body {
+  padding: 20px;
+}
+
+.status-lookup-form {
+  label { display: block; color: #8a92a6; font-size: 13px; margin-bottom: 6px; }
+
+  input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid #2e3340;
+    background: #11131a;
+    color: #fff;
+    margin-bottom: 12px;
+  }
+
+  .status-error { color: #ea4335; font-size: 13px; margin-bottom: 12px; }
+}
+
+.status-result {
+  text-align: center;
+  padding: 24px 12px;
+
+  .status-icon-large { font-size: 40px; margin-bottom: 12px; }
+  h3 { color: #fff; margin-bottom: 8px; }
+  p { color: #8a92a6; font-size: 14px; margin-bottom: 6px; line-height: 1.5; }
+
+  button { margin-top: 16px; }
+}
+
+.status-icon {
+  background: rgba(174, 172, 167, 0.15);
+  color: #f9f8f6;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .typing span { animation: none; opacity: 0.8; }
 }
