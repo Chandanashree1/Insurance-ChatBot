@@ -285,6 +285,65 @@ async function createQuote({
 
 
 /**
+ * Look up a quote by its quote number, scoped to the customer
+ * for the same reason as getPolicyByNumber above.
+ */
+async function getQuoteByNumber(quoteNumber, customerId) {
+    let connection;
+
+    try {
+        connection = await getConnection();
+
+        const result = await connection.execute(
+            `
+            SELECT
+                q.QUOTE_ID,
+                q.QUOTE_NUMBER,
+                q.CUSTOMER_ID,
+                q.VEHICLE_ID,
+                q.PRODUCT_ID,
+                q.VEHICLE_VALUE,
+                q.COVER_FROM,
+                q.COVER_TO,
+                q.QUOTE_STATUS,
+                q.PAYMENT_STATUS,
+                pr.PRODUCT_NAME,
+                pr.PRODUCT_TYPE,
+                v.MAKE,
+                v.MODEL,
+                v.YEAR,
+                v.PLATE_NUMBER,
+                v.PLATE_CODE
+            FROM QUOTE q
+            LEFT JOIN PRODUCT pr ON pr.PRODUCT_ID = q.PRODUCT_ID
+            LEFT JOIN VEHICLE v ON v.VEHICLE_ID = q.VEHICLE_ID
+            WHERE q.QUOTE_NUMBER = :quoteNumber
+              AND q.CUSTOMER_ID = :customerId
+            `,
+            {
+                quoteNumber,
+                customerId
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (result.rows.length === 0) {
+            return null;
+        }
+
+        return result.rows[0];
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+}
+
+
+/**
  * Get the four premium options for a quote.
  */
 async function getQuoteOptions(quoteId) {
@@ -483,6 +542,74 @@ POLICY
 */
 
 /**
+ * Look up a policy by its policy number.
+ *
+ * IMPORTANT: scoped to customerId on purpose. This is what
+ * the policy-status agent calls, so it must be impossible
+ * for it to return a policy belonging to someone else, even
+ * if the caller supplies (or the LLM hallucinates) a
+ * different customer's real policy number.
+ *
+ * NOTE: joins PRODUCT / QUOTE_OPTION / VEHICLE for a richer
+ * status view. Verify these column names against your actual
+ * schema (POLICY_STATUS / CREATED_AT etc. aren't in the INSERT
+ * list above, so they're left out here — add them if they exist).
+ */
+async function getPolicyByNumber(policyNumber, customerId) {
+    let connection;
+
+    try {
+        connection = await getConnection();
+
+        const result = await connection.execute(
+            `
+            SELECT
+                p.POLICY_ID,
+                p.POLICY_NUMBER,
+                p.CUSTOMER_ID,
+                p.PREMIUM,
+                p.COVER_FROM,
+                p.COVER_TO,
+                pr.PRODUCT_NAME,
+                pr.PRODUCT_TYPE,
+                qo.PLAN_NAME,
+                qo.COVERAGE_DETAILS,
+                v.MAKE,
+                v.MODEL,
+                v.YEAR,
+                v.PLATE_NUMBER,
+                v.PLATE_CODE
+            FROM POLICY p
+            LEFT JOIN PRODUCT pr ON pr.PRODUCT_ID = p.PRODUCT_ID
+            LEFT JOIN QUOTE_OPTION qo ON qo.OPTION_ID = p.OPTION_ID
+            LEFT JOIN VEHICLE v ON v.VEHICLE_ID = p.VEHICLE_ID
+            WHERE p.POLICY_NUMBER = :policyNumber
+              AND p.CUSTOMER_ID = :customerId
+            `,
+            {
+                policyNumber,
+                customerId
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
+            }
+        );
+
+        if (result.rows.length === 0) {
+            return null;
+        }
+
+        return result.rows[0];
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+}
+
+
+/**
  * Create policy after successful payment.
  */
 async function createPolicy({
@@ -616,6 +743,7 @@ module.exports = {
     getProducts,
 
     // Quote
+    getQuoteByNumber,
     createQuote,
     getQuoteOptions,
     selectQuoteOption,
@@ -625,6 +753,7 @@ module.exports = {
     updatePaymentStatus,
 
     // Policy
+    getPolicyByNumber,
     createPolicy,
     convertQuote
 

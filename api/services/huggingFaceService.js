@@ -589,6 +589,28 @@ Examples:
 
 "When does my policy expire?"
 
+A message that is just a policy number or a quote number
+(a reference code the customer types on its own) is also POLICY.
+Policy numbers look like POL-2026-00006 and quote numbers look
+like QT-2026-00101. Both are insurance reference numbers the
+customer wants information about.
+
+"POL-2026-00006"
+
+=> POLICY
+
+"QT-2026-00101"
+
+=> POLICY
+
+"Check my quote QT-2026-00001"
+
+=> POLICY
+
+"What is the status of quote QT-2026-00050?"
+
+=> POLICY
+
 ==================================================
 CLAIM
 ==================================================
@@ -665,6 +687,10 @@ OUT_OF_SCOPE
 
 Use OUT_OF_SCOPE when the request is unrelated to insurance.
 
+Never use OUT_OF_SCOPE for a message containing a policy number
+(POL-...) or a quote number (QT-...), even if the message is
+only that code. Those are insurance references => POLICY.
+
 ==================================================
 INSURANCE TYPE
 ==================================================
@@ -720,7 +746,9 @@ RULES
 
 8. Clear purchase/quote/application request = BUY_POLICY.
 
-9. Existing customer policy questions = POLICY.
+9. Existing customer policy or quote questions, and any message
+    containing a policy number (POL-...) or quote number (QT-...)
+    = POLICY.
 
 10. Existing claims = CLAIM.
 

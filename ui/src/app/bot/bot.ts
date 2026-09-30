@@ -98,13 +98,13 @@ export class Bot implements DoCheck, OnInit {
   email = '';
   password = '';
   isLogginIn: boolean = false;
-  isLoggingIn: boolean = false;  
+  isLoggingIn: boolean = false;
   customerId: number | null = null;
   pendingQuestion = '';
   showLoginPopup = false;
   showSignupPopup = false;
 
-    // ----- Auth mode -----
+  // ----- Auth mode -----
   authMode: 'login' | 'signup' = 'login';
 
   signupName = '';
@@ -121,8 +121,8 @@ export class Bot implements DoCheck, OnInit {
     this.signupConfirmPassword = '';
   }
 
-   ngOnInit(): void {
-      this.restoreLoginState(); 
+  ngOnInit(): void {
+    this.restoreLoginState();
     const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
     const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
     const isFresh = shouldRestore && (Date.now() - setAt) < 30000; // only trust a flag set in the last 30s
@@ -137,7 +137,8 @@ export class Bot implements DoCheck, OnInit {
         uiType: 'BUY_POLICY_FORM',
         time: new Date()
       });
-    }}
+    }
+  }
 
   switchToLogin(): void {
     this.authMode = 'login';
@@ -166,9 +167,9 @@ export class Bot implements DoCheck, OnInit {
         this.isSigningUp = false;
 
         if (res.success) {
-            this.isLogginIn = true; 
+          this.isLogginIn = true;
           this.customerId = res.customerId;
-           this.saveLoginState();
+          this.saveLoginState();
           this.showSignupPopup = false;
 
           this.messages.push({
@@ -206,185 +207,185 @@ export class Bot implements DoCheck, OnInit {
   historyError: boolean = false;
 
   historySearchQuery: string = '';
-historyTab: 'all' | 'today' = 'all';
+  historyTab: 'all' | 'today' = 'all';
 
-// ----- Support Center -----
-isSupportCenterOpen: boolean = false;
+  // ----- Support Center -----
+  isSupportCenterOpen: boolean = false;
 
-isMyComplaintsOpen: boolean = false;
+  isMyComplaintsOpen: boolean = false;
 
   // ----- Complaint form state -----
   activeForm: 'complaint' | 'agentConnect' | null = null;
   isSubmittingComplaint: boolean = false;
   applicationFormData: any = {};
-showRatingModal = false;
+  showRatingModal = false;
 
-selectedRating = 0;
+  selectedRating = 0;
 
-ratingFeedback = "";
+  ratingFeedback = "";
 
-isSubmittingRating = false;
-hasUserMessaged: boolean = false;
+  isSubmittingRating = false;
+  hasUserMessaged: boolean = false;
 
-selectRating(rating: number): void {
-  this.selectedRating = rating;
-}
-
-submitRating(): void {
-
-  if (this.isSubmittingRating) {
-    return;
+  selectRating(rating: number): void {
+    this.selectedRating = rating;
   }
 
-  if (this.hasRatedSession) {
-    return;
-  }
+  submitRating(): void {
 
-  if (this.selectedRating === 0) {
-    alert(
-      this.selectedLanguage === 'ar'
-        ? 'يرجى اختيار تقييم.'
-        : 'Please select a rating.'
-    );
-    return;
-  }
-
-  this.isSubmittingRating = true;
-
-  const rating = Number(this.selectedRating);
-  const feedback = this.ratingFeedback?.trim() || '';
-
-  const payload = {
-    customerId: this.customerId ?? null,
-    sessionId: this.sessionId,
-    rating,
-    feedback: feedback || null,
-    language: this.selectedLanguage || 'en'
-  };
-
-  this.http.post<any>(
-    'http://localhost:5000/api/rating',
-    payload
-  ).subscribe({
-
-    next: (response) => {
-
-      console.log('Rating response:', response);
-
-      this.isSubmittingRating = false;
-
-      if (!response?.success) {
-        alert(
-          this.selectedLanguage === 'ar'
-            ? 'تعذر إرسال التقييم.'
-            : 'Unable to submit rating.'
-        );
-        return;
-      }
-
-      // ------------------------------------
-      // Mark current session as rated
-      // ------------------------------------
-      this.hasRatedSession = true;
-
-      // ------------------------------------
-      // Close rating modal
-      // ------------------------------------
-      this.showRatingModal = false;
-
-      // ------------------------------------
-      // Show feedback inside chat
-      // ------------------------------------
-      const stars = '⭐'.repeat(rating);
-
-      this.messages.push({
-        sender: 'user',
-        text: feedback
-          ? `${stars} ${rating}/5\n${feedback}`
-          : `${stars} ${rating}/5`,
-        time: new Date()
-      });
-
-      // ------------------------------------
-      // Bot thank-you message
-      // ------------------------------------
-      const followUpMessage =
-  this.selectedLanguage === 'ar'
-    ? 'نأسف لأن تجربتك لم تكن مرضية. سيقوم أحد وكلائنا بمتابعة ملاحظاتك ومساعدتك قريبًا.'
-    : 'Sorry to hear that. An agent will follow up with you soon.';
-
-const thankYouMessage =
-  this.selectedLanguage === 'ar'
-    ? 'شكرًا لك على ملاحظاتك وتقييمك. نحن نقدر ملاحظاتك.'
-    : 'Thank you for your feedback and rating.';
-
-const messageToShow =
-  response.followUpRequired === true
-    ? followUpMessage
-    : thankYouMessage;
-
-      this.messages.push({
-        sender: 'bot',
-        text: messageToShow,
-        time: new Date()
-      });
-
-      // ------------------------------------
-      // Reset rating fields
-      // ------------------------------------
-      this.selectedRating = 0;
-      this.ratingFeedback = '';
-
-      this.cdr.detectChanges();
-
-      // ------------------------------------
-      // Wait so user can see thank-you
-      // Then start a fresh chat
-      // ------------------------------------
-      setTimeout(() => {
-        this.startFreshChat();
-      }, 2500);
-    },
-
-    error: (err) => {
-
-      console.error(
-        'Rating submission error:',
-        err
-      );
-
-      this.isSubmittingRating = false;
-
-      const backendMessage =
-        err?.error?.message ||
-        err?.error?.error ||
-        (
-          this.selectedLanguage === 'ar'
-            ? 'تعذر إرسال التقييم. يرجى المحاولة مرة أخرى.'
-            : 'Unable to submit rating. Please try again.'
-        );
-
-      alert(backendMessage);
-
-      this.cdr.detectChanges();
+    if (this.isSubmittingRating) {
+      return;
     }
-  });
-}
 
-// ===============================
-// SUPPORT CENTER
-// ===============================
+    if (this.hasRatedSession) {
+      return;
+    }
 
-toggleSupportCenter(): void {
-  this.isSupportCenterOpen = !this.isSupportCenterOpen;
+    if (this.selectedRating === 0) {
+      alert(
+        this.selectedLanguage === 'ar'
+          ? 'يرجى اختيار تقييم.'
+          : 'Please select a rating.'
+      );
+      return;
+    }
 
-  if (this.isSupportCenterOpen) {
-    this.isHistoryOpen = false;
-    this.isMyComplaintsOpen = false;
+    this.isSubmittingRating = true;
+
+    const rating = Number(this.selectedRating);
+    const feedback = this.ratingFeedback?.trim() || '';
+
+    const payload = {
+      customerId: this.customerId ?? null,
+      sessionId: this.sessionId,
+      rating,
+      feedback: feedback || null,
+      language: this.selectedLanguage || 'en'
+    };
+
+    this.http.post<any>(
+      'http://localhost:5000/api/rating',
+      payload
+    ).subscribe({
+
+      next: (response) => {
+
+        console.log('Rating response:', response);
+
+        this.isSubmittingRating = false;
+
+        if (!response?.success) {
+          alert(
+            this.selectedLanguage === 'ar'
+              ? 'تعذر إرسال التقييم.'
+              : 'Unable to submit rating.'
+          );
+          return;
+        }
+
+        // ------------------------------------
+        // Mark current session as rated
+        // ------------------------------------
+        this.hasRatedSession = true;
+
+        // ------------------------------------
+        // Close rating modal
+        // ------------------------------------
+        this.showRatingModal = false;
+
+        // ------------------------------------
+        // Show feedback inside chat
+        // ------------------------------------
+        const stars = '⭐'.repeat(rating);
+
+        this.messages.push({
+          sender: 'user',
+          text: feedback
+            ? `${stars} ${rating}/5\n${feedback}`
+            : `${stars} ${rating}/5`,
+          time: new Date()
+        });
+
+        // ------------------------------------
+        // Bot thank-you message
+        // ------------------------------------
+        const followUpMessage =
+          this.selectedLanguage === 'ar'
+            ? 'نأسف لأن تجربتك لم تكن مرضية. سيقوم أحد وكلائنا بمتابعة ملاحظاتك ومساعدتك قريبًا.'
+            : 'Sorry to hear that. An agent will follow up with you soon.';
+
+        const thankYouMessage =
+          this.selectedLanguage === 'ar'
+            ? 'شكرًا لك على ملاحظاتك وتقييمك. نحن نقدر ملاحظاتك.'
+            : 'Thank you for your feedback and rating.';
+
+        const messageToShow =
+          response.followUpRequired === true
+            ? followUpMessage
+            : thankYouMessage;
+
+        this.messages.push({
+          sender: 'bot',
+          text: messageToShow,
+          time: new Date()
+        });
+
+        // ------------------------------------
+        // Reset rating fields
+        // ------------------------------------
+        this.selectedRating = 0;
+        this.ratingFeedback = '';
+
+        this.cdr.detectChanges();
+
+        // ------------------------------------
+        // Wait so user can see thank-you
+        // Then start a fresh chat
+        // ------------------------------------
+        setTimeout(() => {
+          this.startFreshChat();
+        }, 2500);
+      },
+
+      error: (err) => {
+
+        console.error(
+          'Rating submission error:',
+          err
+        );
+
+        this.isSubmittingRating = false;
+
+        const backendMessage =
+          err?.error?.message ||
+          err?.error?.error ||
+          (
+            this.selectedLanguage === 'ar'
+              ? 'تعذر إرسال التقييم. يرجى المحاولة مرة أخرى.'
+              : 'Unable to submit rating. Please try again.'
+          );
+
+        alert(backendMessage);
+
+        this.cdr.detectChanges();
+      }
+    });
   }
-}
 
-   openSignup(returnTo: 'supportCenter' | 'history' | 'complaints' | 'chat' = 'chat'): void {
+  // ===============================
+  // SUPPORT CENTER
+  // ===============================
+
+  toggleSupportCenter(): void {
+    this.isSupportCenterOpen = !this.isSupportCenterOpen;
+
+    if (this.isSupportCenterOpen) {
+      this.isHistoryOpen = false;
+      this.isMyComplaintsOpen = false;
+    }
+  }
+
+  openSignup(returnTo: 'supportCenter' | 'history' | 'complaints' | 'chat' = 'chat'): void {
     this.authReturnTo = returnTo;
     this.showSignupPopup = true;
     this.showLoginPopup = false;
@@ -394,81 +395,81 @@ toggleSupportCenter(): void {
     this.signupConfirmPassword = '';
   }
 
-  
-
-closeSupportCenter(): void {
-  this.isSupportCenterOpen = false;
-}
 
 
-// ===============================
-// NEW CHAT
-// ===============================
-
-startNewChat(): void {
-
-  if (this.isLoading) {
-    return;
+  closeSupportCenter(): void {
+    this.isSupportCenterOpen = false;
   }
 
-  this.userMessage = '';
-  this.activeForm = null;
-  this.isHistoryOpen = false;
-  this.isMyComplaintsOpen = false;
-  this.isSupportCenterOpen = false;
 
-  this.messages = [
-    { ...WELCOME_MESSAGE }
-  ];
+  // ===============================
+  // NEW CHAT
+  // ===============================
 
-  this.sessionId = this.generateSessionId();
+  startNewChat(): void {
 
-  this.hasRatedSession = false;
-  this.hasUserMessaged = false;
+    if (this.isLoading) {
+      return;
+    }
 
-  this.cdr.detectChanges();
-}
+    this.userMessage = '';
+    this.activeForm = null;
+    this.isHistoryOpen = false;
+    this.isMyComplaintsOpen = false;
+    this.isSupportCenterOpen = false;
 
+    this.messages = [
+      { ...WELCOME_MESSAGE }
+    ];
 
-// ===============================
-// CHAT HISTORY
-// ===============================
+    this.sessionId = this.generateSessionId();
 
-openChatHistory(): void {
+    this.hasRatedSession = false;
+    this.hasUserMessaged = false;
 
-  this.isSupportCenterOpen = false;
-
-  this.isHistoryOpen = true;
-
-  if (this.isLogginIn && this.customerId) {
-
-    this.historySearchQuery = '';
-    this.historyTab = 'all';
-
-    this.fetchHistorySessions();
+    this.cdr.detectChanges();
   }
-}
 
 
-// ===============================
-// MY COMPLAINTS
-// ===============================
+  // ===============================
+  // CHAT HISTORY
+  // ===============================
 
-openMyComplaints(): void {
+  openChatHistory(): void {
 
-  this.isSupportCenterOpen = false;
+    this.isSupportCenterOpen = false;
 
-  this.isHistoryOpen = false;
+    this.isHistoryOpen = true;
 
-  this.isMyComplaintsOpen = true;
-}
+    if (this.isLogginIn && this.customerId) {
 
-openComplaintFromCenter(): void {
+      this.historySearchQuery = '';
+      this.historyTab = 'all';
 
-  this.isMyComplaintsOpen = false;
+      this.fetchHistorySessions();
+    }
+  }
 
-  this.openComplaintForm();
-}
+
+  // ===============================
+  // MY COMPLAINTS
+  // ===============================
+
+  openMyComplaints(): void {
+
+    this.isSupportCenterOpen = false;
+
+    this.isHistoryOpen = false;
+
+    this.isMyComplaintsOpen = true;
+  }
+
+  openComplaintFromCenter(): void {
+
+    this.isMyComplaintsOpen = false;
+
+    this.openComplaintForm();
+  }
 
 
   openLoginFromComplaints(): void {
@@ -477,68 +478,68 @@ openComplaintFromCenter(): void {
   }
 
 
-// ===============================
-// LOGIN FROM SUPPORT CENTER
-// ===============================
+  // ===============================
+  // LOGIN FROM SUPPORT CENTER
+  // ===============================
 
   openLoginFromSupport(): void {
     this.isSupportCenterOpen = false;
     this.isHistoryOpen = false;
-      this.showLoginPopup = true;
+    this.showLoginPopup = true;
     this.openLogin('supportCenter');
   }
-private startFreshChat(): void {
-this.isOpen = false;
-  if (this.isLoading) {
-    return;
-  }
-
-  // ------------------------------------
-  // Generate completely new session
-  // ------------------------------------
-  this.sessionId = this.generateSessionId();
-
-  // ------------------------------------
-  // Clear current conversation
-  // ------------------------------------
-  this.messages = [
-    {
-      sender: 'bot',
-      text: this.translations[this.selectedLanguage].welcome,
-      time: new Date()
+  private startFreshChat(): void {
+    this.isOpen = false;
+    if (this.isLoading) {
+      return;
     }
-  ];
 
-  // ------------------------------------
-  // Reset chat state
-  // ------------------------------------
-  this.userMessage = '';
-  this.pendingQuestion = '';
+    // ------------------------------------
+    // Generate completely new session
+    // ------------------------------------
+    this.sessionId = this.generateSessionId();
 
-  this.activeForm = null;
-  this.isHistoryOpen = false;
+    // ------------------------------------
+    // Clear current conversation
+    // ------------------------------------
+    this.messages = [
+      {
+        sender: 'bot',
+        text: this.translations[this.selectedLanguage].welcome,
+        time: new Date()
+      }
+    ];
 
-  this.hasRatedSession = false;
-  this.hasUserMessaged = false;
+    // ------------------------------------
+    // Reset chat state
+    // ------------------------------------
+    this.userMessage = '';
+    this.pendingQuestion = '';
 
-  this.selectedRating = 0;
-  this.ratingFeedback = '';
+    this.activeForm = null;
+    this.isHistoryOpen = false;
 
-  this.applicationFormData = {};
-  this.selectedDocuments = [];
+    this.hasRatedSession = false;
+    this.hasUserMessaged = false;
 
-  this.cdr.detectChanges();
+    this.selectedRating = 0;
+    this.ratingFeedback = '';
 
-  setTimeout(() => {
-    this.scrollToBottom();
-  }, 100);
-}
-skipRating(): void {
-  this.showRatingModal = false;
-  this.selectedRating = 0;
-  this.ratingFeedback = "";
-  // this.isOpen = false;   // REMOVED — keep chat open
-}
+    this.applicationFormData = {};
+    this.selectedDocuments = [];
+
+    this.cdr.detectChanges();
+
+    setTimeout(() => {
+      this.scrollToBottom();
+    }, 100);
+  }
+  skipRating(): void {
+    this.showRatingModal = false;
+    this.selectedRating = 0;
+    this.ratingFeedback = "";
+    // this.isOpen = false;   // REMOVED — keep chat open
+  }
 
   complaintForm: ComplaintForm = {
     subject: '',
@@ -589,7 +590,7 @@ skipRating(): void {
     'Travel Insurance'
   ];
 
-    authReturnTo: 'supportCenter' | 'history' | 'complaints' | 'chat' = 'chat';
+  authReturnTo: 'supportCenter' | 'history' | 'complaints' | 'chat' = 'chat';
 
   // ----- Agent connect state -----
   isConnectingToAgent: boolean = false;
@@ -604,7 +605,7 @@ skipRating(): void {
     this.activeForm = null;
   }
 
-   goBackFromLogin(): void {
+  goBackFromLogin(): void {
     this.showLoginPopup = false;
 
     switch (this.authReturnTo) {
@@ -623,12 +624,12 @@ skipRating(): void {
     }
   }
 
-    goBackFromSignup(): void {
+  goBackFromSignup(): void {
     this.showSignupPopup = false;
     this.showLoginPopup = true; // keeps authReturnTo as-is, so Login's own back arrow still works correctly
   }
 
-    goBackFromHistory(): void {
+  goBackFromHistory(): void {
     this.isHistoryOpen = false;
     this.isSupportCenterOpen = true;
   }
@@ -639,20 +640,20 @@ skipRating(): void {
   }
 
   get filteredHistorySessions(): HistorySession[] {
-  let list = this.historySessions;
+    let list = this.historySessions;
 
-  if (this.historyTab === 'today') {
-    const today = new Date().toDateString();
-    list = list.filter(s => new Date(s.LAST_MESSAGE_AT).toDateString() === today);
+    if (this.historyTab === 'today') {
+      const today = new Date().toDateString();
+      list = list.filter(s => new Date(s.LAST_MESSAGE_AT).toDateString() === today);
+    }
+
+    const q = this.historySearchQuery.trim().toLowerCase();
+    if (q) {
+      list = list.filter(s => (s.PREVIEW || '').toLowerCase().includes(q));
+    }
+
+    return list;
   }
-
-  const q = this.historySearchQuery.trim().toLowerCase();
-  if (q) {
-    list = list.filter(s => (s.PREVIEW || '').toLowerCase().includes(q));
-  }
-
-  return list;
-}
   submitAgentConnect(): void {
     const f = this.agentForm;
     if (!f.name || !f.email || !f.phone) {
@@ -680,14 +681,14 @@ skipRating(): void {
     return 'sess_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
   }
 
-toggleHistory(): void {
-  this.isHistoryOpen = !this.isHistoryOpen;
-  if (this.isHistoryOpen && this.isLogginIn && this.customerId) {
-    this.historySearchQuery = '';
-    this.historyTab = 'all';
-    this.fetchHistorySessions();
+  toggleHistory(): void {
+    this.isHistoryOpen = !this.isHistoryOpen;
+    if (this.isHistoryOpen && this.isLogginIn && this.customerId) {
+      this.historySearchQuery = '';
+      this.historyTab = 'all';
+      this.fetchHistorySessions();
+    }
   }
-}
 
   closeHistory(): void {
     this.isHistoryOpen = false;
@@ -747,59 +748,59 @@ toggleHistory(): void {
   }
 
   // ----- Login -----
- // ----- Login -----
-login() {
-  if (this.isLoggingIn) return;   // block a second call while one is already in flight
+  // ----- Login -----
+  login() {
+    if (this.isLoggingIn) return;   // block a second call while one is already in flight
 
-  const body = {
-    email: this.email,
-    password: this.password
-  };
+    const body = {
+      email: this.email,
+      password: this.password
+    };
 
-  this.isLoggingIn = true;
+    this.isLoggingIn = true;
 
-  this.http.post<any>("http://localhost:5000/api/login", body)
-    .subscribe({
-      next: (res) => {
-        this.isLoggingIn = false;
+    this.http.post<any>("http://localhost:5000/api/login", body)
+      .subscribe({
+        next: (res) => {
+          this.isLoggingIn = false;
 
-        if (res.success) {
-          this.isLogginIn = true;
-          this.customerId = res.customerId;
-          this.saveLoginState(); 
-          this.showLoginPopup = false;
-          this.messages.push({
-            sender: 'bot',
-            text: this.translations[this.selectedLanguage].loginSuccess,
-            time: new Date()
-          });
-          if (this.pendingQuestion) {
-            this.userMessage = this.pendingQuestion;
-            this.pendingQuestion = '';
-            setTimeout(() => {
-              this.sendMessage();
-            }, 500);
-          }
-        } else {
-          this.isLogginIn = false;
-          if (res.userNotFound) {
-            alert(res.message || 'No account found with this email.');
-            this.signupEmail = this.email;
-            this.openSignup(this.authReturnTo);
+          if (res.success) {
+            this.isLogginIn = true;
+            this.customerId = res.customerId;
+            this.saveLoginState();
+            this.showLoginPopup = false;
+            this.messages.push({
+              sender: 'bot',
+              text: this.translations[this.selectedLanguage].loginSuccess,
+              time: new Date()
+            });
+            if (this.pendingQuestion) {
+              this.userMessage = this.pendingQuestion;
+              this.pendingQuestion = '';
+              setTimeout(() => {
+                this.sendMessage();
+              }, 500);
+            }
           } else {
-            alert(res.message);
+            this.isLogginIn = false;
+            if (res.userNotFound) {
+              alert(res.message || 'No account found with this email.');
+              this.signupEmail = this.email;
+              this.openSignup(this.authReturnTo);
+            } else {
+              alert(res.message);
+            }
           }
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.isLoggingIn = false;
+          console.error('Login error:', err);
+          alert('Something went wrong. Please try again.');
+          this.cdr.detectChanges();
         }
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.isLoggingIn = false;
-        console.error('Login error:', err);
-        alert('Something went wrong. Please try again.');
-        this.cdr.detectChanges();
-      }
-    });
-}
+      });
+  }
 
   @ViewChild('chatContainer') private chatContainer!: ElementRef;
 
@@ -836,32 +837,32 @@ login() {
     }
   }
 
-hasRatedSession: boolean = false;
+  hasRatedSession: boolean = false;
 
-toggleOpen(): void {
-  if (!this.isOpen) {
-    this.isOpen = true;
-    return;
+  toggleOpen(): void {
+    if (!this.isOpen) {
+      this.isOpen = true;
+      return;
+    }
+
+    // No messages sent this session — just close, nothing to rate
+    if (!this.hasUserMessaged) {
+      this.isOpen = false;
+      return;
+    }
+
+    this.showRatingModal = true;
   }
-
-  // No messages sent this session — just close, nothing to rate
-  if (!this.hasUserMessaged) {
-    this.isOpen = false;
-    return;
+  goHome(): void {
+    if (this.isLoading) return;
+    this.userMessage = '';
+    this.activeForm = null;
+    this.isHistoryOpen = false;
+    this.messages = [{ ...WELCOME_MESSAGE }];
+    this.sessionId = this.generateSessionId();
+    this.hasRatedSession = false;
+    this.hasUserMessaged = false;
   }
-
-  this.showRatingModal = true;
-}
-goHome(): void {
-  if (this.isLoading) return;
-  this.userMessage = '';
-  this.activeForm = null;
-  this.isHistoryOpen = false;
-  this.messages = [{ ...WELCOME_MESSAGE }];
-  this.sessionId = this.generateSessionId();
-  this.hasRatedSession = false;
-  this.hasUserMessaged = false;
-}
 
   private scrollToBottom(): void {
     try {
@@ -1101,7 +1102,7 @@ goHome(): void {
     if (!textToSend || this.isLoading) return;
 
     this.messages.push({ sender: 'user', text: textToSend, time: new Date() });
-      this.hasUserMessaged = true; 
+    this.hasUserMessaged = true;
     this.userMessage = '';
     this.isLoading = true;
 
@@ -1150,7 +1151,7 @@ goHome(): void {
     });
   }
 
-    openLogin(returnTo: 'supportCenter' | 'history' | 'complaints' | 'chat' = 'chat') {
+  openLogin(returnTo: 'supportCenter' | 'history' | 'complaints' | 'chat' = 'chat') {
     this.authReturnTo = returnTo;
     this.showLoginPopup = true;
     this.showSignupPopup = false;
@@ -1159,45 +1160,40 @@ goHome(): void {
 
   // Add near your other session helpers in bot.ts
 
-private saveLoginState(): void {
-  try {
-    if (this.isLogginIn && this.customerId) {
-      sessionStorage.setItem('botCustomerId', String(this.customerId));
-      sessionStorage.setItem('botIsLoggedIn', 'true');
-    }
-  } catch { /* ignore */ }
-}
+  private saveLoginState(): void {
+    try {
+      if (this.isLogginIn && this.customerId) {
+        sessionStorage.setItem('botCustomerId', String(this.customerId));
+        sessionStorage.setItem('botIsLoggedIn', 'true');
+      }
+    } catch { /* ignore */ }
+  }
 
-private restoreLoginState(): void {
-  try {
-    const loggedIn = sessionStorage.getItem('botIsLoggedIn') === 'true';
-    const customerId = sessionStorage.getItem('botCustomerId');
-    if (loggedIn && customerId) {
-      this.isLogginIn = true;
-      this.customerId = Number(customerId);
-    }
-  } catch { /* ignore */ }
-}
+  private restoreLoginState(): void {
+    try {
+      const loggedIn = sessionStorage.getItem('botIsLoggedIn') === 'true';
+      const customerId = sessionStorage.getItem('botCustomerId');
+      if (loggedIn && customerId) {
+        this.isLogginIn = true;
+        this.customerId = Number(customerId);
+      }
+    } catch { /* ignore */ }
+  }
 
   onActionClick(action: string) {
 
-    if (["HEALTH", "MOTOR", "TRAVEL", "SURGERY", "HOSPITALIZATION", "ACCIDENT", "CONSULTATION", "YES", "NO", "BUY_HEALTH", "BUY_MOTOR", "BUY_TRAVEL", "PLAN_BASIC", "PLAN_STANDARD", "PLAN_PREMIUM"].includes(action)) {
-
-      this.userMessage = action;
-      this.sendMessage();
-      return;
-    }
-
-    const message =
+    // Some actions have a friendlier written-out phrase to show
+    // as if the user typed it (POLICY, CLAIM, etc). Anything else
+    // - including action strings a backend flow generates on its
+    // own, like SELECT_QUOTE_OPTION_2 or PAY_QUOTE - is sent to
+    // the backend exactly as-is, since these are the same raw
+    // action strings the backend itself expects back.
+    const cannedMessage =
       this.actionMessages[this.selectedLanguage][
       action as keyof typeof this.actionMessages['en']
       ];
 
-    if (!message) {
-      return;
-    }
-
-    this.userMessage = message;
+    this.userMessage = cannedMessage || action;
     this.sendMessage();
   }
   onDocumentsSelected(event: any): void {

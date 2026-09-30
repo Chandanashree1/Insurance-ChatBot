@@ -176,6 +176,15 @@ function normalizeIntent(result) {
 |--------------------------------------------------------------------------
 */
 
+/*
+ * Policy numbers (POL-2026-00006) and quote numbers (QT-2026-00101)
+ * have a fixed format. Recognizing that format is not interpreting
+ * meaning, so it is safe to do without the LLM - and it guarantees
+ * a bare reference number is never misclassified as OUT_OF_SCOPE.
+ */
+const REFERENCE_NUMBER_PATTERN = /\b(?:POL|QT)-\d{4}-\d+\b/i;
+
+
 async function detectIntent(message, conversationHistory = [], context = {}) {
 
     try {
@@ -188,6 +197,22 @@ async function detectIntent(message, conversationHistory = [], context = {}) {
                 confidence: 0,
                 readyToPurchase: false,
                 needsClarification: true
+            };
+        }
+
+
+        if (REFERENCE_NUMBER_PATTERN.test(String(message))) {
+
+            console.log(
+                "\n========== AI INTENT (reference number) =========="
+            );
+
+            return {
+                intent: "POLICY",
+                insuranceType: "UNKNOWN",
+                confidence: 1,
+                readyToPurchase: false,
+                needsClarification: false
             };
         }
 

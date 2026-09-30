@@ -15,6 +15,12 @@ const { detectIntent } = require("../services/intentservice");
 const { retrieveRelevantChunks } = require("../services/ragService");
 
 const {
+    runAgent,
+    setAgentAwaiting,
+    isAgentAwaiting
+} = require("../services/agentService");
+
+const {
     getHistory,
     addMessage,
     clearHistory
@@ -474,14 +480,25 @@ async function processQuoteOptionSelection({
     const flow =
         getPurchaseFlow(customerId);
 
-    if (!flow) return null;
+    console.log("\n========== OPTION SELECTION CHECK ==========");
+    console.log("customerId:", customerId, typeof customerId);
+    console.log("message:", message);
+    console.log("flow found:", Boolean(flow));
+
+    if (!flow) {
+        console.log("-> no flow for this customerId, skipping.");
+        return null;
+    }
 
     const match = String(message)
         .trim()
         .toUpperCase()
         .match(/SELECT_QUOTE_OPTION_(\d+)/);
 
-    if (!match) return null;
+    if (!match) {
+        console.log("-> message doesn't match SELECT_QUOTE_OPTION_N, skipping.");
+        return null;
+    }
 
     const optionNumber =
         Number(match[1]);
@@ -489,7 +506,14 @@ async function processQuoteOptionSelection({
     const data =
         flow.collectedData || {};
 
-    if (!data.quoteId) return null;
+    console.log("collectedData:", JSON.stringify(data));
+
+    if (!data.quoteId) {
+        console.log("-> flow exists but collectedData.quoteId is missing, skipping.");
+        return null;
+    }
+
+    console.log("-> proceeding to selectQuoteOption:", data.quoteId, optionNumber);
 
     const selected =
         await selectQuoteOption(
@@ -579,15 +603,30 @@ async function processPayment({
         return null;
     }
 
+    console.log("\n========== PAYMENT CHECK ==========");
+    console.log("customerId:", customerId, typeof customerId);
+
     const flow =
         getPurchaseFlow(customerId);
 
-    if (!flow) return null;
+    console.log("flow found:", Boolean(flow));
+
+    if (!flow) {
+        console.log("-> no flow for this customerId, skipping.");
+        return null;
+    }
 
     const data =
         flow.collectedData || {};
 
-    if (!data.quoteId) return null;
+    console.log("collectedData:", JSON.stringify(data));
+
+    if (!data.quoteId) {
+        console.log("-> flow exists but collectedData.quoteId is missing, skipping.");
+        return null;
+    }
+
+    console.log("-> proceeding to updatePaymentStatus:", data.quoteId);
 
     const payment =
         await updatePaymentStatus(
@@ -710,6 +749,12 @@ const chat = async (req, res) => {
         } = req.body;
 
         const lang = getLanguage(language);
+
+        console.log("\n========== INCOMING REQUEST ==========");
+        console.log("message:", message);
+        console.log("customerId:", customerId, typeof customerId);
+        console.log("loggedIn:", loggedIn);
+        console.log("sessionId:", sessionId);
 
         // Use sessionId for conversation state.
         // This prevents different conversations from sharing
@@ -1073,6 +1118,79 @@ if (intent === "COMPLAINT") {
     console.log("No known issue matched. Continue with normal complaint flow.");
 }
 
+
+        // --------------------------------------------------
+        // 5b. Policy / quote agent
+        // --------------------------------------------------
+        //
+        // Runs BEFORE the purchase-flow start and out-of-scope
+        // checks on purpose:
+        //
+        //  - POLICY intent (a policy/quote number or question).
+        //  - A short follow-up ("yes", "continue") to a question
+        //    the agent just asked. On its own that reads as
+        //    BUY_POLICY, so without this it would start a brand
+        //    new purchase flow or fall into generic chat.
+        //
+        // Both require a logged-in customer, and every agent tool
+        // is scoped to that customerId. Step 5 above has already
+        // sent logged-out POLICY requests to the login prompt.
+        // --------------------------------------------------
+
+        const isShortFollowUp =
+            String(message).trim().split(/\s+/).length <= 6;
+
+        const isAgentFollowUp =
+            isAgentAwaiting(flowUserId) &&
+            isShortFollowUp &&
+            ["POLICY", "BUY_POLICY", "PAYMENT", "UNKNOWN"]
+                .includes(intent);
+
+        if (
+            (intent === "POLICY" || isAgentFollowUp) &&
+            loggedIn &&
+            customerId
+        ) {
+
+            const agentResult =
+                await runAgent({
+                    message,
+                    history,
+                    language: lang,
+                    customerId
+                });
+
+            // One-shot: only stay "awaiting" if the agent is
+            // still waiting on another answer.
+            setAgentAwaiting(
+                flowUserId,
+                agentResult.awaitingConfirmation
+            );
+
+            addMessage(
+                flowUserId,
+                "assistant",
+                agentResult.reply
+            );
+
+            await saveMessage(
+                customerId,
+                sessionId,
+                "bot",
+                agentResult.reply,
+                lang
+            );
+
+            return res.json({
+                success: true,
+                intent: isAgentFollowUp ? "POLICY" : intent,
+                reply: agentResult.reply,
+                requiresLogin: false,
+                uiType: agentResult.uiType || "TEXT",
+                actions: agentResult.actions || [],
+                data: agentResult.data || []
+            });
+        }
 
         // --------------------------------------------------
         // 6. Out of scope
