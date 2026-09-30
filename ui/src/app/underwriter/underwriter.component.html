@@ -1,0 +1,90 @@
+<!-- LOGIN VIEW -->
+<div class="uw-login-page" *ngIf="!isLoggedIn">
+  <div class="uw-login-card">
+    <h2>Underwriter Login</h2>
+
+    <label>Username</label>
+    <input [(ngModel)]="username" placeholder="underwriter">
+
+    <label>Password</label>
+    <input type="password" [(ngModel)]="password" placeholder="••••••••">
+
+    <div class="uw-error" *ngIf="loginError">{{ loginError }}</div>
+
+    <button (click)="onLogin()">Login</button>
+  </div>
+</div>
+
+<!-- DASHBOARD VIEW -->
+<div class="uw-dashboard" *ngIf="isLoggedIn">
+  <div class="uw-header">
+    <h2>Underwriter Dashboard</h2>
+    <button class="logout-btn" (click)="logout()">Logout</button>
+  </div>
+
+ <div class="uw-body" *ngIf="isLoggedIn">
+
+  <div class="uw-quote-list">
+    <h3>Proposals Pending Review</h3>
+
+    <!-- <div style="color: yellow; font-weight: bold;">DEBUG proposals.length = {{ proposals.length }}</div> -->
+
+    <div
+      class="quote-card"
+      *ngFor="let p of proposals"
+      [class.selected]="selectedProposal?.proposalId === p.proposalId"
+      (click)="selectProposal(p)">
+      <div class="quote-card-top">
+        <span>{{ p.proposalNumber }}</span>
+        <span class="status">{{ p.status }}</span>
+      </div>
+      <div class="quote-card-name">{{ p.customerName }}</div>
+      <div class="quote-card-plan">{{ p.planName }} — OMR {{ p.premium?.toFixed(3) }}</div>
+      <div class="quote-card-value">Vehicle Value: OMR {{ p.vehicleValue }}</div>
+    </div>
+
+    <div class="empty-state" *ngIf="!proposals.length">No proposals pending review.</div>
+  </div>
+
+  <div class="uw-followup-panel">
+    <h3>Underwriting Decision</h3>
+
+    <ng-container *ngIf="selectedProposal; else noSelection">
+
+      <div class="selected-summary">
+        <div><b>{{ selectedProposal.proposalNumber }}</b></div>
+        <div>{{ selectedProposal.customerName }}</div>
+        <div>{{ selectedProposal.planName }} — OMR {{ selectedProposal.premium?.toFixed(3) }}</div>
+        <div>Vehicle Value: OMR {{ selectedProposal.vehicleValue }}</div>
+      </div>
+
+      <label>Note (optional)</label>
+      <textarea [(ngModel)]="decisionNote" rows="3" placeholder="Add a note for the customer..."></textarea>
+
+      <label>Counter-offer Premium (only if countering)</label>
+      <input [(ngModel)]="counterOfferPremium" type="number" placeholder="e.g. 75.000">
+
+      <div class="decision-buttons">
+        <button class="approve-btn" [disabled]="deciding" (click)="decide('APPROVED')">Approve</button>
+        <button class="counter-btn" [disabled]="deciding" (click)="decide('COUNTER_OFFER')">Counter-offer</button>
+        <button class="decline-btn" [disabled]="deciding" (click)="decide('DECLINED')">Decline</button>
+      </div>
+
+    </ng-container>
+
+    <ng-template #noSelection>
+      <div class="empty-state">Select a proposal from the list to review.</div>
+    </ng-template>
+
+    <div class="uw-log">
+      <h4>Decisions this session</h4>
+      <div class="log-row" *ngFor="let entry of decisionSentLog">
+        <span class="log-time">{{ entry.time }}</span>
+        <span class="log-quote">{{ entry.proposalNumber }}</span>
+        <span class="log-msg">{{ entry.decision }}</span>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>

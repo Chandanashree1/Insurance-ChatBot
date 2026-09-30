@@ -138,18 +138,16 @@
       </div>
 
       <!-- payment success -->
-   <!-- payment success -->
-<div class="row bot" *ngIf="msg.type === 'success'">
-  <div class="summary-box success-box">
-    <div class="success-badge">✓</div>
-    <div class="success-title">Payment successful!</div>
-    <div class="row-line" style="width:100%;"><span>Policy No</span><b>{{ msg.policyNumber }}</b></div>
-    <a class="redirect-btn" href="javascript:void(0)" (click)="goToPolicyPage(msg.policyNumber)">View Policy &amp; Download Documents →</a>
-  </div>
-</div>
+      <div class="row bot" *ngIf="msg.type === 'success'">
+        <div class="summary-box success-box">
+          <div class="success-badge">✓</div>
+          <div class="success-title">Payment successful!</div>
+          <div class="row-line" style="width:100%;"><span>Policy No</span><b>{{ msg.policyNumber }}</b></div>
+          <a class="redirect-btn" href="javascript:void(0)" (click)="goToPolicyPage(msg.policyNumber)">View Policy &amp; Download Documents →</a>
+        </div>
+      </div>
 
-      <!-- Buy Policy Form (matches Motor Insurance mockup) -->
-          <!-- Buy Policy Wizard (3 steps in one card) -->
+      <!-- Buy Policy Wizard (3 steps in one card) -->
       <div class="row bot" *ngIf="msg.type === 'policy-form'">
         <div class="policy-card">
 
@@ -163,7 +161,6 @@
               <div class="step" [class.active]="msg.step === 2" [class.done]="(msg.step || 1) > 2">2</div>
               <div class="step-line"></div>
               <div class="step" [class.active]="msg.step === 3">3</div>
-              
             </div>
           </div>
 
@@ -249,6 +246,14 @@
               <input class="form-input" type="number" [(ngModel)]="msg.formData!.vehicleValue" [disabled]="msg.submitted" placeholder="Enter estimated vehicle value">
             </div>
 
+            <div class="inline-notice kyc-verifying" *ngIf="kycVerifying">
+              <span class="kyc-spinner"></span> Verifying identity…
+            </div>
+
+            <div class="inline-notice kyc-verified" *ngIf="kycVerified">
+              ✓ KYC Verified
+            </div>
+
             <div class="inline-notice" *ngIf="formNotice">{{ formNotice }}</div>
 
             <div class="form-actions-row">
@@ -275,57 +280,144 @@
               <div class="vehicle-plate-badge">{{ msg.vehicle?.plateNumber }} {{ msg.vehicle?.plateCode }}</div>
             </div>
 
-           <div class="summary-grid">
-  <div class="summary-cell">
-    <span class="summary-label">Quote No</span>
-    <span class="summary-value">{{ msg.quoteNumber }}</span>
-  </div>
-  <div class="summary-cell">
-    <span class="summary-label">Chassis Number</span>
-    <span class="summary-value">{{ msg.vehicle?.chassisNumber }}</span>
-  </div>
-  <div class="summary-cell">
-    <span class="summary-label">Body Type</span>
-    <span class="summary-value">{{ msg.vehicle?.bodyType }}</span>
-  </div>
-  <div class="summary-cell">
-    <span class="summary-label">Usage Type</span>
-    <span class="summary-value">{{ msg.vehicle?.usageType }}</span>
-  </div>
-  <div class="summary-cell">
-    <span class="summary-label">Valid From</span>
-    <span class="summary-value">{{ msg.coverFrom | date:'d MMM y' }}</span>
-  </div>
-  <div class="summary-cell">
-    <span class="summary-label">Valid To</span>
-    <span class="summary-value">{{ msg.coverTo | date:'d MMM y' }}</span>
-  </div>
-</div>
-
-            <div class="section-label">Select Plan</div>
-            <div class="plan-list">
-              <button
-                class="plan-row"
-                *ngFor="let plan of msg.plans"
-                [class.selected]="msg.selectedOption?.optionId === plan.optionId"
-                (click)="selectPlanForForm(msg, plan)">
-                <span class="plan-check">✓</span>
-                <span class="plan-row-info">
-                  <span class="plan-row-name">{{ plan.planName }}</span>
-                </span>
-                <span class="plan-row-price">OMR {{ plan.premium.toFixed(3) }}</span>
-              </button>
+            <div class="summary-grid">
+              <div class="summary-cell">
+                <span class="summary-label">Quote No</span>
+                <span class="summary-value">{{ msg.quoteNumber }}</span>
+              </div>
+              <div class="summary-cell">
+                <span class="summary-label">Chassis Number</span>
+                <span class="summary-value">{{ msg.vehicle?.chassisNumber }}</span>
+              </div>
+              <div class="summary-cell">
+                <span class="summary-label">Body Type</span>
+                <span class="summary-value">{{ msg.vehicle?.bodyType }}</span>
+              </div>
+              <div class="summary-cell">
+                <span class="summary-label">Usage Type</span>
+                <span class="summary-value">{{ msg.vehicle?.usageType }}</span>
+              </div>
+              <div class="summary-cell">
+                <span class="summary-label">Valid From</span>
+                <span class="summary-value">{{ msg.coverFrom | date:'d MMM y' }}</span>
+              </div>
+              <div class="summary-cell">
+                <span class="summary-label">Valid To</span>
+                <span class="summary-value">{{ msg.coverTo | date:'d MMM y' }}</span>
+              </div>
             </div>
+
+            <!-- Plan list — hidden once an option has been picked and is progressing through underwriting -->
+            <ng-container *ngIf="!msg.selectedOption || (!msg.needsAdditionalInfo && !msg.underwritingPending && !msg.proposalStatus)">
+              <div class="section-label">Select Plan</div>
+              <div class="plan-list">
+                <button
+                  class="plan-row"
+                  *ngFor="let plan of msg.plans"
+                  [class.selected]="msg.selectedOption?.optionId === plan.optionId"
+                  (click)="selectPlanForForm(msg, plan)">
+                  <span class="plan-check">✓</span>
+                  <span class="plan-row-info">
+                    <span class="plan-row-name">{{ plan.planName }}</span>
+                  </span>
+                  <span class="plan-row-price">OMR {{ plan.premium.toFixed(3) }}</span>
+                </button>
+              </div>
+            </ng-container>
 
             <div class="inline-notice" *ngIf="formNotice">{{ formNotice }}</div>
 
-           <button
-  type="button"
-  class="pay-btn"
-  [disabled]="!msg.quoteId || !msg.selectedOption || msg.submitted"
-  (click)="payNowForForm(msg)">
-  Pay Now
-</button>
+            <!-- STATE: Additional info required (Non-STP) -->
+            <div class="additional-info-form" *ngIf="msg.needsAdditionalInfo">
+              <div class="uw-notice-icon">📋</div>
+              <div class="uw-notice-title">Additional Information Required</div>
+              <div class="uw-notice-sub">
+                Your vehicle value requires manual underwriting review. Please provide any additional details (maintenance history, prior claims, usage details) to support your proposal.
+              </div>
+
+              <textarea
+                class="form-input"
+                rows="4"
+                [(ngModel)]="msg.additionalInfoText"
+                [disabled]="msg.submitted"
+                placeholder="Describe your vehicle's condition, usage, or any supporting details..."></textarea>
+
+              <button class="pay-btn" [disabled]="msg.submitted" (click)="submitAdditionalInfo(msg)">
+                {{ msg.submitted ? 'Submitting...' : 'Submit for Review' }}
+              </button>
+            </div>
+
+            <!-- STATE: Proposal pending -->
+            <div class="underwriting-pending" *ngIf="msg.underwritingPending && msg.proposalStatus === 'PENDING'">
+              <div class="uw-pending-icon">⏳</div>
+              <div class="uw-pending-title">Submitted for Underwriting Review</div>
+              <div class="uw-pending-sub">
+                Proposal {{ msg.proposalNumber }} has been submitted. Check back for a decision.
+              </div>
+              <button class="check-status-btn" [disabled]="msg.checkingStatus" (click)="checkProposalStatus(msg)">
+                {{ msg.checkingStatus ? 'Checking...' : 'Check Status' }}
+              </button>
+            </div>
+
+            <!-- STATE: Approved -->
+            <div class="uw-outcome approved" *ngIf="msg.proposalStatus === 'APPROVED'">
+              <div class="uw-notice-icon">✅</div>
+              <div class="uw-notice-title">Proposal Approved</div>
+              <div class="uw-notice-sub" *ngIf="msg.underwriterNote">{{ msg.underwriterNote }}</div>
+              <button class="pay-btn" [disabled]="msg.submitted" (click)="payNowForForm(msg)">
+                Pay Now
+              </button>
+            </div>
+
+            <!-- STATE: Counter-offer, awaiting customer response -->
+            <div class="uw-outcome counter" *ngIf="msg.proposalStatus === 'COUNTER_OFFER'">
+              <div class="uw-notice-icon">💬</div>
+              <div class="uw-notice-title">Counter-Offer Received</div>
+              <div class="uw-notice-sub">
+                The underwriter has proposed a revised premium of <b>OMR {{ msg.counterOfferPremium?.toFixed(3) }}</b>.
+              </div>
+              <div class="uw-notice-sub" *ngIf="msg.underwriterNote">{{ msg.underwriterNote }}</div>
+
+              <div class="decision-buttons">
+                <button class="approve-btn" (click)="respondToCounterOffer(msg, 'ACCEPTED')">Accept</button>
+                <button class="decline-btn" (click)="respondToCounterOffer(msg, 'REJECTED')">Reject</button>
+              </div>
+            </div>
+
+            <!-- STATE: Customer accepted the counter-offer -->
+            <div class="uw-outcome approved" *ngIf="msg.proposalStatus === 'ACCEPTED_PROCEED'">
+              <div class="uw-notice-icon">✅</div>
+              <div class="uw-notice-title">Counter-Offer Accepted</div>
+              <div class="uw-notice-sub">Your premium is now OMR {{ msg.selectedOption?.premium?.toFixed(3) }}.</div>
+              <button class="pay-btn" [disabled]="msg.submitted" (click)="payNowForForm(msg)">
+                Pay Now
+              </button>
+            </div>
+
+            <!-- STATE: Customer rejected the counter-offer -->
+            <div class="uw-outcome declined" *ngIf="msg.proposalStatus === 'REJECTED_BY_CUSTOMER'">
+              <div class="uw-notice-icon">✗</div>
+              <div class="uw-notice-title">Offer Declined</div>
+              <div class="uw-notice-sub">You've declined the revised premium. This proposal is now closed.</div>
+            </div>
+
+            <!-- STATE: Declined by underwriter -->
+            <div class="uw-outcome declined" *ngIf="msg.proposalStatus === 'DECLINED'">
+              <div class="uw-notice-icon">✗</div>
+              <div class="uw-notice-title">Proposal Declined</div>
+              <div class="uw-notice-sub" *ngIf="msg.underwriterNote">{{ msg.underwriterNote }}</div>
+              <div class="uw-notice-sub" *ngIf="!msg.underwriterNote">Unfortunately, this proposal could not be approved. Please contact support for more details.</div>
+            </div>
+
+            <!-- Pay Now button — only for the normal STP path -->
+            <button
+              type="button"
+              class="pay-btn"
+              *ngIf="!msg.needsAdditionalInfo && !msg.underwritingPending && !msg.proposalStatus"
+              [disabled]="!msg.quoteId || !msg.selectedOption || msg.submitted"
+              (click)="payNowForForm(msg)">
+              Pay Now
+            </button>
 
           </ng-container>
 
@@ -342,15 +434,15 @@
               </div>
             </div>
 
-          <a class="redirect-btn" href="javascript:void(0)" (click)="goToPolicyPage(msg.policyNumber)">
-    View Policy &amp; Download Documents →
-  </a>
+            <a class="redirect-btn" href="javascript:void(0)" (click)="goToPolicyPage(msg.policyNumber)">
+              View Policy &amp; Download Documents →
+            </a>
 
           </ng-container>
 
-
         </div>
       </div>
+
     </ng-container>
   </div>
 

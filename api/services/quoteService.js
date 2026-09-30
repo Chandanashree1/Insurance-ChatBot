@@ -1,6 +1,8 @@
 const oracledb = require("oracledb");
 const { getConnection } = require("../config/oracle");
 
+// const { checkStpEligibility } = require("./underwritingService");
+
 
 // ======================================================
 // 1. FIND OR CREATE CUSTOMER
@@ -784,6 +786,7 @@ for (const option of options) {
 // SELECT QUOTE OPTION
 // ======================================================
 
+
 async function selectQuoteOption(quoteId, optionId) {
 
     let connection;
@@ -902,16 +905,6 @@ async function selectQuoteOption(quoteId, optionId) {
         // --------------------------------------------------
         // 5. KEEP QUOTE PENDING
         // --------------------------------------------------
-        //
-        // Selecting an option does NOT mean payment
-        // has happened.
-        //
-        // Therefore:
-        //
-        // QUOTE_STATUS   = PENDING
-        // PAYMENT_STATUS = NOT_PAID
-        //
-        // --------------------------------------------------
 
         await connection.execute(
             `
@@ -940,42 +933,22 @@ async function selectQuoteOption(quoteId, optionId) {
 
         return {
 
+            stp: true,
+
             quote: {
-
-                quoteId:
-                    quote.QUOTE_ID,
-
-                quoteNumber:
-                    quote.QUOTE_NUMBER,
-
-                quoteStatus:
-                    "PENDING",
-
-                paymentStatus:
-                    "NOT_PAID"
-
+                quoteId: quote.QUOTE_ID,
+                quoteNumber: quote.QUOTE_NUMBER,
+                quoteStatus: "PENDING",
+                paymentStatus: "NOT_PAID"
             },
 
             selectedOption: {
-
-                optionId:
-                    selectedOption.OPTION_ID,
-
-                optionNumber:
-                    selectedOption.OPTION_NUMBER,
-
-                planName:
-                    selectedOption.PLAN_NAME,
-
-                premium:
-                    selectedOption.PREMIUM,
-
-                coverageDetails:
-                    selectedOption.COVERAGE_DETAILS,
-
-                isSelected:
-                    "Y"
-
+                optionId: selectedOption.OPTION_ID,
+                optionNumber: selectedOption.OPTION_NUMBER,
+                planName: selectedOption.PLAN_NAME,
+                premium: selectedOption.PREMIUM,
+                coverageDetails: selectedOption.COVERAGE_DETAILS,
+                isSelected: "Y"
             }
 
         };
@@ -1024,7 +997,6 @@ async function selectQuoteOption(quoteId, optionId) {
     }
 
 }
-
 
 module.exports = {
     createQuote,selectQuoteOption

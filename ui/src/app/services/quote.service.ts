@@ -69,4 +69,29 @@ selectOption(quoteId: number, optionId: number): Observable<any> {
   getQuoteByNumber(quoteNumber: string): Observable<any> {
   return this.http.get(`${this.baseUrl}/quotes/number/${quoteNumber}`);
 }
+
+submitProposal(quoteId: number, optionId: number, additionalInfo: string) {
+  return this.http.post<any>('http://localhost:5000/api/proposals', {
+    quoteId, optionId, additionalInfo
+  });
+}
+
+getProposalStatus(quoteId: number) {
+  return this.http.get<any>(`http://localhost:5000/api/proposals/quote/${quoteId}`);
+}
+
+respondToCounterOffer(proposalId: number, response: 'ACCEPTED' | 'REJECTED') {
+  return this.http.post<any>(`http://localhost:5000/api/proposals/${proposalId}/respond`, { response });
+}
+
+escalateKycFailure(payload: CreateQuotePayload): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}/quotes/escalate-kyc`, payload);
+}
+getProposalStatusByQuoteNumber(quoteNumber: string) {
+  return this.http.get<any>(`http://localhost:5000/api/proposals/quote-number/${quoteNumber}`);
+}
+
+verifyKyc(civilIdLicenseNo: string) {
+  return this.http.post<any>(`${this.baseUrl}/quotes/verify-kyc`, { civilIdLicenseNo });
+}
 }

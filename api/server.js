@@ -35,6 +35,8 @@ app.use("/api/customers", customerRoutes);
 app.use("/api", quoteRoutes);
 app.use("/api", paymentRoutes);
 app.use("/api", policyRoutes);
+
+app.use("/api", require("./routes/underwriting.routes"));
  
 app.use("/api", authRoutes);
 app.get("/", (req, res) => {

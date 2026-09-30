@@ -19,7 +19,8 @@ export class App {
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe((e: any) => {
-        this.showWidget = !e.urlAfterRedirects.startsWith('/policy-success');
+        this.showWidget = !e.urlAfterRedirects.startsWith('/policy-success')
+                && !e.urlAfterRedirects.startsWith('/underwriter');
       });
   }
 }

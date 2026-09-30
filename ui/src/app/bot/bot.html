@@ -222,6 +222,24 @@
 
   </button>
 
+  <!-- Check Status -->
+<button
+  class="support-menu-item"
+  (click)="openCheckStatus()">
+
+  <div class="support-item-icon status-icon">
+    <i class="bi bi-hourglass-split"></i>
+  </div>
+
+  <div class="support-item-content">
+    <strong>Check Status</strong>
+    <span>Track your proposal or application status</span>
+  </div>
+
+  <span class="support-arrow">›</span>
+
+</button>
+
 
   <!-- Login / Sign In -->
   <button
@@ -272,6 +290,8 @@
   </div>
   <button class="complaints-close-btn" (click)="isMyComplaintsOpen = false">✕</button>
 </div>
+
+
 
 
   <!-- New / no complaints -->
@@ -326,6 +346,84 @@
   </div>
 
 </div>
+
+
+<div
+  class="complaints-drawer"
+  *ngIf="isCheckStatusOpen"
+  [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+
+  <div class="complaints-header">
+    <button class="login-back-btn" type="button" (click)="goBackFromCheckStatus()" aria-label="Go back">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+    <div>
+      <h2>Check Status</h2>
+      <p>Track your proposal status</p>
+    </div>
+    <button class="complaints-close-btn" (click)="isCheckStatusOpen = false">✕</button>
+  </div>
+
+  <div class="status-lookup-body">
+
+    <div class="status-lookup-form" *ngIf="!statusResult">
+      <label>Quote Number</label>
+      <input
+        type="text"
+        [(ngModel)]="statusQuoteNumber"
+        placeholder="e.g. QT-2026-00112"
+        (keydown.enter)="lookupProposalStatus()">
+
+      <div class="status-error" *ngIf="statusLookupError">{{ statusLookupError }}</div>
+   <button class="register-complaint-btn" [disabled]="isLookingUpStatus" (click)="lookupProposalStatus()">
+     {{ isLookingUpStatus ? 'Checking...' : 'Check Status' }}
+   </button>
+    </div>
+
+    <!-- Result: Pending -->
+    <div class="status-result pending" *ngIf="statusResult && statusResult.status === 'PENDING'">
+      <div class="status-icon-large">⏳</div>
+      <h3>Under Review</h3>
+      <p>Proposal {{ statusResult.proposalNumber }} is still being reviewed by our underwriting team.</p>
+      <button class="register-complaint-btn" (click)="resetStatusLookup()">Check Another</button>
+    </div>
+
+    <!-- Result: Approved -->
+    <div class="status-result approved" *ngIf="statusResult && statusResult.status === 'APPROVED'">
+      <div class="status-icon-large">✅</div>
+      <h3>Approved</h3>
+      <p *ngIf="statusResult.note">{{ statusResult.note }}</p>
+      <p *ngIf="!statusResult.note">Your proposal has been approved. Please return to the chat to complete payment.</p>
+      <button class="register-complaint-btn" (click)="resetStatusLookup()">Check Another</button>
+    </div>
+
+    <!-- Result: Counter-offer -->
+    <div class="status-result counter" *ngIf="statusResult && statusResult.status === 'COUNTER_OFFER'">
+      <div class="status-icon-large">💬</div>
+      <h3>Counter-Offer Received</h3>
+      <p>Revised premium: <b>OMR {{ statusResult.counterOfferPremium?.toFixed(3) }}</b></p>
+      <p *ngIf="statusResult.note">{{ statusResult.note }}</p>
+      <p *ngIf="statusResult.customerResponse">You have already {{ statusResult.customerResponse === 'ACCEPTED' ? 'accepted' : 'rejected' }} this offer.</p>
+      <p *ngIf="!statusResult.customerResponse">Please return to the chat to accept or reject this offer.</p>
+      <button class="register-complaint-btn" (click)="resetStatusLookup()">Check Another</button>
+    </div>
+
+    <!-- Result: Declined -->
+    <div class="status-result declined" *ngIf="statusResult && statusResult.status === 'DECLINED'">
+      <div class="status-icon-large">✗</div>
+      <h3>Declined</h3>
+      <p *ngIf="statusResult.note">{{ statusResult.note }}</p>
+      <p *ngIf="!statusResult.note">Unfortunately, this proposal could not be approved.</p>
+      <button class="register-complaint-btn" (click)="resetStatusLookup()">Check Another</button>
+    </div>
+
+  </div>
+
+</div>
+
+
   <!-- History Drawer -->
  <div class="history-drawer" *ngIf="isHistoryOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
    <div class="history-drawer-header">

@@ -14,14 +14,7 @@ export class PaymentComponent implements OnInit {
   policy: any;
   loading = true;
   error = '';
-
-  documents = [
-    { key: 'policy-document', label: 'Policy Document' },
-    { key: 'policy-schedule', label: 'Policy Schedule' },
-    { key: 'tax-invoice', label: 'Tax Invoice' },
-    { key: 'table-of-benefits', label: 'Table of Benefits' },
-    { key: 'receipt-voucher', label: 'Receipt Voucher' }
-  ];
+  downloading = false;
 
   constructor(
     private route: ActivatedRoute,
@@ -53,11 +46,32 @@ export class PaymentComponent implements OnInit {
     });
   }
 
-  preview(docKey: string): void { console.log('Preview requested:', docKey); }
-  download(docKey: string): void { console.log('Download requested:', docKey); }
+  downloadPolicy(): void {
+    if (!this.policy?.policyNumber) return;
+    this.downloading = true;
+    this.http.get(`http://localhost:5000/api/policies/${this.policy.policyNumber}/document`, {
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Policy-${this.policy.policyNumber}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+        this.downloading = false;
+        this.cdr.detectChanges();
+      },
+      error: () => {
+        this.downloading = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   goHome(): void {
-  sessionStorage.setItem('restoreChatOnLoad', 'true');
-  sessionStorage.setItem('restoreChatOnLoadTime', Date.now().toString());
-  window.location.href = '/';
-}
+    sessionStorage.setItem('restoreChatOnLoad', 'true');
+    sessionStorage.setItem('restoreChatOnLoadTime', Date.now().toString());
+    window.location.href = '/';
+  }
 }
