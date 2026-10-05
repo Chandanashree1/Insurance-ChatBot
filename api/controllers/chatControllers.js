@@ -10,6 +10,8 @@ const {
     convertQuote
 } = require("../services/oracleservice");
 
+const { getProposalByQuoteId } = require("../services/underwritingService");
+
 const { askAI } = require("../services/huggingFaceService");
 const { detectIntent } = require("../services/intentservice");
 const { retrieveRelevantChunks } = require("../services/ragService");
@@ -624,6 +626,67 @@ async function processPayment({
     if (!data.quoteId) {
         console.log("-> flow exists but collectedData.quoteId is missing, skipping.");
         return null;
+    }
+
+    // --------------------------------------------------
+    // UNDERWRITING GATE
+    // --------------------------------------------------
+    //
+    // A quote that was escalated (KYC failure, high value,
+    // payment-failure retry, etc.) has a PROPOSAL row. Payment
+    // must never proceed unless that proposal is APPROVED (or
+    // there is no proposal at all - a normal straight-through
+    // quote). This check lives here, not just in the agent's
+    // prompt, so it holds no matter how PAY_QUOTE is reached.
+    // --------------------------------------------------
+
+    const proposal =
+        await getProposalByQuoteId(data.quoteId);
+
+    console.log("proposal for this quote:", JSON.stringify(proposal));
+
+    if (proposal && proposal.PROPOSAL_STATUS === "DECLINED") {
+        console.log("-> proposal DECLINED, refusing payment.");
+        return {
+            success: false,
+            uiType: "TEXT",
+            reply:
+                language === "ar"
+                    ? `للأسف، تم رفض هذا العرض (${proposal.PROPOSAL_NUMBER}) من قبل قسم الاكتتاب ولا يمكن إتمام الدفع له.` +
+                      (proposal.UNDERWRITER_NOTE ? ` ملاحظة: ${proposal.UNDERWRITER_NOTE}` : "")
+                    : `This quote was declined during underwriting review (proposal ${proposal.PROPOSAL_NUMBER}) and can't be paid for.` +
+                      (proposal.UNDERWRITER_NOTE ? ` Note from underwriting: ${proposal.UNDERWRITER_NOTE}` : ""),
+            actions: [],
+            data: []
+        };
+    }
+
+    if (proposal && proposal.PROPOSAL_STATUS === "PENDING") {
+        console.log("-> proposal still PENDING, refusing payment.");
+        return {
+            success: false,
+            uiType: "TEXT",
+            reply:
+                language === "ar"
+                    ? `هذا العرض (${proposal.PROPOSAL_NUMBER}) لا يزال قيد مراجعة الاكتتاب. سنبلغك بمجرد صدور القرار.`
+                    : `This quote is still under underwriting review (proposal ${proposal.PROPOSAL_NUMBER}). We'll let you know as soon as a decision is made.`,
+            actions: [],
+            data: []
+        };
+    }
+
+    if (proposal && proposal.PROPOSAL_STATUS === "COUNTER_OFFER") {
+        console.log("-> proposal has a COUNTER_OFFER, refusing payment until responded to.");
+        return {
+            success: false,
+            uiType: "TEXT",
+            reply:
+                language === "ar"
+                    ? `قدم المكتتب عرضًا بديلاً بقسط قدره ${proposal.COUNTER_OFFER_PREMIUM}. يرجى الرد على العرض البديل قبل المتابعة للدفع.`
+                    : `The underwriter has made a counter-offer of ${proposal.COUNTER_OFFER_PREMIUM} for this quote. Please respond to the counter-offer before proceeding to payment.`,
+            actions: [],
+            data: []
+        };
     }
 
     console.log("-> proceeding to updatePaymentStatus:", data.quoteId);

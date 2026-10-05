@@ -1,4 +1,4 @@
-const { createQuote,selectQuoteOption} = require("../services/quoteService");
+const { createQuote, selectQuoteOption } = require("../services/quoteService");
 const { submitProposalForUnderwriting } = require("../services/underwritingService");
 const oracledb = require("oracledb");
 const { getConnection } = require("../config/oracle");
@@ -243,26 +243,25 @@ async function selectOption(req, res) {
 
 async function escalateKycFailure(req, res) {
     try {
-        const quoteResult = await createQuote(req.body);
-        const quoteId = quoteResult.quote.quoteId;
-        const firstOption = quoteResult.options[0];
+        const { quoteId, optionId } = req.body;
 
-        await selectQuoteOption(quoteId, firstOption.optionId);
+        if (!quoteId || !optionId) {
+            return res.status(400).json({
+                success: false,
+                message: "quoteId and optionId are required"
+            });
+        }
 
         const proposal = await submitProposalForUnderwriting(
             quoteId,
-            firstOption.optionId,
+            optionId,
             "KYC verification failed",
             "KYC_FAILED"
         );
 
         return res.status(201).json({
             success: true,
-            data: {
-                quoteId,
-                quoteNumber: quoteResult.quote.quoteNumber,
-                proposal
-            }
+            data: { quoteId, proposal }
         });
 
     } catch (err) {
@@ -320,5 +319,5 @@ async function getAllQuotes(req, res) {
 
 
 module.exports = {
-    createMotorQuote,selectOption, getAllQuotes,escalateKycFailure,verifyKyc
+    createMotorQuote, selectOption, getAllQuotes, escalateKycFailure, verifyKyc
 };

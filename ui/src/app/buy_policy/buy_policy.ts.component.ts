@@ -28,7 +28,7 @@ interface PolicyResponse {
   success: boolean;
   message: string;
   data: {
-    policy: { policyId: number; policyNumber: string; [key: string]: any };
+    policy: { policyId: number; policyNumber: string;[key: string]: any };
     quote: any;
   };
 }
@@ -122,22 +122,22 @@ export class BuyPolicyChatComponent implements AfterViewChecked, OnInit {
   disabledQuickReplyGroups = new Set<ChatMessage>();
   disabledPlanGroups = new Set<ChatMessage>();
 
-kycVerifying = false;
-kycVerified = false;
-kycFailedReason: string | null = null;
+  kycVerifying = false;
+  kycVerified = false;
+  kycFailedReason: string | null = null;
 
   constructor(
     private quoteService: QuoteService,
     private router: Router,
     private cdr: ChangeDetectorRef
     // private kycService: KycService
-  ) {}
+  ) { }
 
   goToPolicyPage(policyNumber?: string): void {
-  if (!policyNumber) return;
-  this.saveChatHistory();
-  this.router.navigate(['/policy-success', policyNumber]);
-}
+    if (!policyNumber) return;
+    this.saveChatHistory();
+    this.router.navigate(['/policy-success', policyNumber]);
+  }
 
   // ==================================================
   // CHAT HISTORY SAVE / RESTORE
@@ -157,30 +157,30 @@ kycFailedReason: string | null = null;
       sessionStorage.setItem('chatStage', this.stage);
     } catch { /* storage unavailable, ignore */ }
   }
-  
-private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
-  try {
-    const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
-    const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
-    const isFresh = shouldRestore && (Date.now() - setAt) < 30000; // valid for 30s only
 
-    if (!isFresh) {
-      // stale, expired, or never set — wipe everything so it can never resurrect later
-      sessionStorage.removeItem('chatHistory');
-      sessionStorage.removeItem('chatStage');
-      sessionStorage.removeItem('restoreChatOnLoad');
-      sessionStorage.removeItem('restoreChatOnLoadTime');
+  private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
+    try {
+      const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
+      const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
+      const isFresh = shouldRestore && (Date.now() - setAt) < 30000; // valid for 30s only
+
+      if (!isFresh) {
+        // stale, expired, or never set — wipe everything so it can never resurrect later
+        sessionStorage.removeItem('chatHistory');
+        sessionStorage.removeItem('chatStage');
+        sessionStorage.removeItem('restoreChatOnLoad');
+        sessionStorage.removeItem('restoreChatOnLoadTime');
+        return null;
+      }
+
+      const raw = sessionStorage.getItem('chatHistory');
+      const stage = sessionStorage.getItem('chatStage') as Stage | null;
+      if (!raw || !stage) return null;
+      return { messages: JSON.parse(raw), stage };
+    } catch {
       return null;
     }
-
-    const raw = sessionStorage.getItem('chatHistory');
-    const stage = sessionStorage.getItem('chatStage') as Stage | null;
-    if (!raw || !stage) return null;
-    return { messages: JSON.parse(raw), stage };
-  } catch {
-    return null;
   }
-}
 
   ngOnInit(): void {
     const saved = this.loadChatHistory();
@@ -376,7 +376,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       this.pushBot('text', { text: 'Please enter a plate code before continuing.' });
       return;
     }
-    
+
 
     msg.submitted = true;
     this.data.plateNumber = plateNumber;
@@ -467,7 +467,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
     msg.formData!.productId = productId;
   }
 
-selectPlanForForm(msg: ChatMessage, plan: QuoteOption): void {
+  selectPlanForForm(msg: ChatMessage, plan: QuoteOption): void {
     if (!msg.quoteId || !plan.optionId || msg.submitted) {
       return;
     }
@@ -493,9 +493,9 @@ selectPlanForForm(msg: ChatMessage, plan: QuoteOption): void {
         this.cdr.detectChanges();
       }
     });
-}
+  }
 
-submitAdditionalInfo(msg: ChatMessage): void {
+  submitAdditionalInfo(msg: ChatMessage): void {
     if (!msg.quoteId || !msg.selectedOption?.optionId) return;
     if (!msg.additionalInfoText?.trim()) {
       this.formNotice = 'Please provide the requested information before submitting.';
@@ -525,9 +525,9 @@ submitAdditionalInfo(msg: ChatMessage): void {
         this.cdr.detectChanges();
       }
     });
-}
+  }
 
-checkProposalStatus(msg: ChatMessage): void {
+  checkProposalStatus(msg: ChatMessage): void {
     if (!msg.quoteId) return;
 
     msg.checkingStatus = true;
@@ -557,9 +557,9 @@ checkProposalStatus(msg: ChatMessage): void {
         this.cdr.detectChanges();
       }
     });
-}
+  }
 
-respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void {
+  respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void {
     if (!msg.proposalId) return;
 
     this.quoteService.respondToCounterOffer(msg.proposalId, response).subscribe({
@@ -580,7 +580,7 @@ respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void
         this.cdr.detectChanges();
       }
     });
-}
+  }
   payNowForForm(msg: ChatMessage): void {
     if (!msg.quoteId || !msg.selectedOption || msg.submitted) {
       return;
@@ -589,38 +589,70 @@ respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void
     msg.submitted = true;
     this.formNotice = '';
 
-    this.quoteService.processPayment(msg.quoteId).subscribe({
-      next: (paymentRes: PaymentResponse) => {
-        if (!paymentRes?.data?.success && (paymentRes as any)?.success !== true) {
-          msg.submitted = false;
-          this.formNotice = 'Payment failed. Please try again.';
-          this.cdr.detectChanges();
+    const civilId = msg.formData?.civilIdLicenseNo?.trim();
+
+    this.quoteService.verifyKyc(civilId!).subscribe({
+      next: (kycRes: any) => {
+
+        if (!kycRes.verified) {
+
+          this.quoteService.escalateKycFailure(
+            msg.quoteId!,
+            msg.selectedOption!.optionId,
+            'KYC verification failed'
+          ).subscribe({
+            next: (res: any) => {
+              msg.proposalNumber = res.data.proposal?.proposalNumber;
+              msg.underwritingPending = true;
+              msg.proposalStatus = 'PENDING';
+              msg.submitted = false;
+              this.cdr.detectChanges();
+            },
+            error: () => {
+              msg.submitted = false;
+              this.formNotice = 'Verification failed and could not be submitted for review. Please try again.';
+              this.cdr.detectChanges();
+            }
+          });
+
           return;
         }
 
-        this.quoteService.createPolicy(msg.quoteId!).subscribe({
-          next: (policyRes: PolicyResponse) => {
-            msg.policyNumber = policyRes?.data?.policy?.policyNumber;
-            msg.step = 3;
-            msg.submitted = false;
+        // KYC passed — proceed to payment as before
+        this.quoteService.processPayment(msg.quoteId!).subscribe({
+          next: (paymentRes: PaymentResponse) => {
+            if (!paymentRes?.data?.success && (paymentRes as any)?.success !== true) {
+              msg.submitted = false;
+              this.formNotice = 'Payment failed. Please try again.';
+              this.cdr.detectChanges();
+              return;
+            }
 
-            this.saveChatHistory();
-            this.cdr.detectChanges();
-
-            // setTimeout(() => {
-            //   this.goToPolicyPage(msg.policyNumber);
-            // }, 1500);
+            this.quoteService.createPolicy(msg.quoteId!).subscribe({
+              next: (policyRes: PolicyResponse) => {
+                msg.policyNumber = policyRes?.data?.policy?.policyNumber;
+                msg.step = 3;
+                msg.submitted = false;
+                this.saveChatHistory();
+                this.cdr.detectChanges();
+              },
+              error: (err: HttpErrorResponse) => {
+                msg.submitted = false;
+                this.formNotice = err?.error?.message || 'Payment succeeded but policy creation failed. Please contact support.';
+                this.cdr.detectChanges();
+              }
+            });
           },
           error: (err: HttpErrorResponse) => {
             msg.submitted = false;
-            this.formNotice = err?.error?.message || 'Payment succeeded but policy creation failed. Please contact support.';
+            this.formNotice = err?.error?.message || 'Payment could not be processed.';
             this.cdr.detectChanges();
           }
         });
       },
-      error: (err: HttpErrorResponse) => {
+      error: () => {
         msg.submitted = false;
-        this.formNotice = err?.error?.message || 'Payment could not be processed.';
+        this.formNotice = 'Could not verify your identity right now. Please try again.';
         this.cdr.detectChanges();
       }
     });
@@ -630,7 +662,7 @@ respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void
     msg.step = undefined;
     msg.submitted = false;
   }
-submitPolicyForm(msg: ChatMessage): void {
+  submitPolicyForm(msg: ChatMessage): void {
     if (msg.submitted) return;
     const form = msg.formData!;
 
@@ -665,102 +697,37 @@ submitPolicyForm(msg: ChatMessage): void {
       return;
     }
 
-    // ==================================================
-    // KYC VERIFICATION (DB-BACKED)
-    // ==================================================
-
     msg.submitted = true;
     this.formNotice = '';
-    this.kycVerifying = true;
-    this.kycVerified = false;
-    this.kycFailedReason = null;
-    this.cdr.detectChanges();
 
-    this.quoteService.verifyKyc(form.civilIdLicenseNo!.trim()).subscribe({
-      next: (kycRes: any) => {
-
-        this.kycVerifying = false;
-
-        if (!kycRes.verified) {
-
-          this.kycFailedReason = kycRes.reason;
-          this.cdr.detectChanges();
-
-          this.quoteService.escalateKycFailure({
-            mobileNumber: form.mobileNumber!.trim(),
-            fullName: form.fullName!.trim(),
-            civilIdLicenseNo: form.civilIdLicenseNo!.trim(),
-            plateNumber,
-            plateCode,
-            productId: form.productId!,
-            vehicleValue: form.productId === 'COMPREHENSIVE' ? form.vehicleValue : undefined
-          }).subscribe({
-            next: (res: any) => {
-              msg.quoteId = res.data.quoteId;
-              msg.quoteNumber = res.data.quoteNumber;
-              msg.proposalNumber = res.data.proposal?.proposalNumber;
-              msg.underwritingPending = true;
-              msg.proposalStatus = 'PENDING';
-              msg.step = 2;
-              msg.submitted = false;
-              this.cdr.detectChanges();
-            },
-            error: (err: HttpErrorResponse) => {
-              msg.submitted = false;
-              this.formNotice = 'Verification failed and could not be submitted for review. Please try again.';
-              this.cdr.detectChanges();
-            }
-          });
-
-          return;
-        }
-
-        // KYC passed — show success badge briefly, then proceed
-        this.kycVerified = true;
-        this.cdr.detectChanges();
-
-        setTimeout(() => {
-
-          this.kycVerified = false; // clear before moving on
-
-          this.quoteService.createMotorQuote({
-            mobileNumber: form.mobileNumber!.trim(),
-            fullName: form.fullName!.trim(),
-            civilIdLicenseNo: form.civilIdLicenseNo!.trim(),
-            plateNumber,
-            plateCode,
-            productId: form.productId!,
-            vehicleValue: form.productId === 'COMPREHENSIVE' ? form.vehicleValue : undefined
-          }).subscribe({
-            next: (res: CreateQuoteResponse) => {
-              msg.quoteId = res.data.quote.quoteId;
-              msg.quoteNumber = res.data.quote.quoteNumber;
-              msg.coverFrom = res.data.quote.coverFrom;
-              msg.coverTo = res.data.quote.coverTo;
-              msg.vehicle = res.data.vehicle;
-              msg.plans = res.data.options;
-              msg.step = 2;
-              msg.submitted = false;
-              this.cdr.detectChanges();
-            },
-            error: (err: HttpErrorResponse) => {
-              msg.submitted = false;
-              this.formNotice = err?.error?.message || 'Something went wrong generating your quote. Please check your details.';
-              this.cdr.detectChanges();
-            }
-          });
-
-        }, 600);
-      },
-      error: () => {
-        this.kycVerifying = false;
+    this.quoteService.createMotorQuote({
+      mobileNumber: form.mobileNumber.trim(),
+      fullName: form.fullName.trim(),
+      civilIdLicenseNo: form.civilIdLicenseNo.trim(),
+      plateNumber,
+      plateCode,
+      productId: form.productId,
+      vehicleValue: form.productId === 'COMPREHENSIVE' ? form.vehicleValue : undefined
+    }).subscribe({
+      next: (res: CreateQuoteResponse) => {
+        msg.quoteId = res.data.quote.quoteId;
+        msg.quoteNumber = res.data.quote.quoteNumber;
+        msg.coverFrom = res.data.quote.coverFrom;
+        msg.coverTo = res.data.quote.coverTo;
+        msg.vehicle = res.data.vehicle;
+        msg.plans = res.data.options;
+        msg.step = 2;
         msg.submitted = false;
-        this.formNotice = 'Could not verify your identity right now. Please try again.';
+        this.cdr.detectChanges();
+      },
+      error: (err: HttpErrorResponse) => {
+        msg.submitted = false;
+        this.formNotice = err?.error?.message || 'Something went wrong generating your quote. Please check your details.';
         this.cdr.detectChanges();
       }
     });
-}
-private async generateQuote(): Promise<void> {
+  }
+  private async generateQuote(): Promise<void> {
 
     // ==================================================
     // KYC VERIFICATION (DB-BACKED)
@@ -823,8 +790,8 @@ private async generateQuote(): Promise<void> {
         this.cdr.detectChanges();
       }
     });
-}
-onSelectPlan(msg: ChatMessage, plan: QuoteOption): void {
+  }
+  onSelectPlan(msg: ChatMessage, plan: QuoteOption): void {
     if (this.disabledPlanGroups.has(msg)) return;
     this.disabledPlanGroups.add(msg);
     this.selectedOption = plan;
@@ -854,7 +821,7 @@ onSelectPlan(msg: ChatMessage, plan: QuoteOption): void {
         this.cdr.detectChanges();
       }
     });
-}
+  }
   private async handlePayNow(): Promise<void> {
     this.stage = 'PAYMENT';
     await this.typing(1000);

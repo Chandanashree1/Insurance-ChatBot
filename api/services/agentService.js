@@ -7,6 +7,7 @@ const {
 } = require("./oracleservice");
 const { retrieveRelevantChunks } = require("./ragService");
 const { startPurchaseFlow, updatePurchaseFlow } = require("./purchaseFlowService");
+const { getProposalByQuoteId } = require("./underwritingService");
 
 
 function sleep(ms) {
@@ -227,17 +228,33 @@ RULES
    the wrong tool fails, try the other one before telling the
    customer nothing was found.
 
-6. When getQuoteDetails shows a quote with paymentStatus not
-   "PAID", tell the customer it's still incomplete and ask if
-   they'd like to continue/complete it. Only call
-   resumeIncompleteQuote after they confirm - never resume a
-   quote the customer hasn't asked to continue. Never call
-   resumeIncompleteQuote on a quote that is already paid.
-   A short reply such as "yes", "ok", "continue" or "proceed"
-   answers the last question you asked. Take the quote number
-   from earlier in the conversation and call
-   resumeIncompleteQuote right away - never ask for the quote
-   number or the insurance type again.
+6. getQuoteDetails may return a "proposal" - this means the quote
+   was escalated to underwriting (KYC failure, high value, etc).
+   Check its status before saying anything about continuing or
+   paying:
+     - No proposal at all, or proposal.status is "APPROVED": the
+       quote is a normal in-progress purchase. If paymentStatus
+       is not "PAID", tell the customer it's still incomplete and
+       ask if they'd like to continue/complete it. Only call
+       resumeIncompleteQuote after they confirm - never resume a
+       quote the customer hasn't asked to continue, and never on
+       a quote that is already paid. A short reply such as "yes",
+       "ok", "continue" or "proceed" answers the last question you
+       asked - take the quote number from earlier in the
+       conversation and call resumeIncompleteQuote right away,
+       never asking for the quote number or insurance type again.
+     - proposal.status is "PENDING": tell the customer it's still
+       under underwriting review and they'll be notified once a
+       decision is made. Do not ask if they want to continue, and
+       do not call resumeIncompleteQuote - it will be refused.
+     - proposal.status is "DECLINED": tell the customer plainly
+       that this quote was declined during underwriting review,
+       and share the underwriter's note if one is present. Do not
+       offer to continue or resume it - it cannot be paid for.
+     - proposal.status is "COUNTER_OFFER": tell the customer the
+       underwriter offered a revised premium (state the amount)
+       and that they need to respond to the counter-offer before
+       payment can proceed. Do not call resumeIncompleteQuote.
 
 7. Call at most ONE tool per step.
 
@@ -376,10 +393,18 @@ async function executeTool(toolName, args, context) {
                 ? []
                 : await getQuoteOptions(quote.QUOTE_ID);
 
+        const proposal =
+            await getProposalByQuoteId(quote.QUOTE_ID);
+
         return {
             quote,
             selectedOption: selectedOption || null,
-            availableOptions
+            availableOptions,
+            // Present only when this quote was escalated to
+            // underwriting (KYC failure, high value, etc). Its
+            // status governs what you should tell the customer -
+            // see the rules above.
+            proposal: proposal || null
         };
 
     }
@@ -415,6 +440,34 @@ async function executeTool(toolName, args, context) {
             return {
                 error:
                     "This quote has already been paid and converted to a policy. Look it up as a policy instead."
+            };
+        }
+
+        // Same gate as the actual payment step (processPayment in
+        // chatControllers.js) - checked here too so the agent never
+        // even offers to continue a quote that can't be paid for.
+        const proposal =
+            await getProposalByQuoteId(quote.QUOTE_ID);
+
+        if (proposal && proposal.PROPOSAL_STATUS === "DECLINED") {
+            return {
+                error:
+                    `This quote was declined during underwriting review (proposal ${proposal.PROPOSAL_NUMBER}). It cannot be resumed or paid for.` +
+                    (proposal.UNDERWRITER_NOTE ? ` Underwriter note: ${proposal.UNDERWRITER_NOTE}` : "")
+            };
+        }
+
+        if (proposal && proposal.PROPOSAL_STATUS === "PENDING") {
+            return {
+                error:
+                    `This quote is still under underwriting review (proposal ${proposal.PROPOSAL_NUMBER}). It cannot be paid for until a decision is made.`
+            };
+        }
+
+        if (proposal && proposal.PROPOSAL_STATUS === "COUNTER_OFFER") {
+            return {
+                error:
+                    `The underwriter has made a counter-offer of ${proposal.COUNTER_OFFER_PREMIUM} for this quote (proposal ${proposal.PROPOSAL_NUMBER}). The customer must respond to the counter-offer before this can be resumed for payment.`
             };
         }
 
@@ -743,13 +796,17 @@ async function runAgent({
                 lastUi = result.ui;
             }
 
-            // An unpaid quote was just described: the agent will end
-            // this turn by asking whether to continue, so the next
-            // reply ("yes") must come back to the agent.
+            // An unpaid, resumable quote was just described: the
+            // agent will end this turn by asking whether to continue,
+            // so the next reply ("yes") must come back to the agent.
+            // A quote with a DECLINED/PENDING/COUNTER_OFFER proposal
+            // is NOT resumable - resumeIncompleteQuote will refuse it
+            // anyway, so there's nothing to wait for an answer to.
             if (
                 toolName === "getQuoteDetails" &&
                 result?.quote &&
-                result.quote.PAYMENT_STATUS !== "PAID"
+                result.quote.PAYMENT_STATUS !== "PAID" &&
+                !(result?.proposal && result.proposal.PROPOSAL_STATUS !== "APPROVED")
             ) {
                 awaiting = true;
             }
