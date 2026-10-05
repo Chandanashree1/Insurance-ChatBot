@@ -130,8 +130,8 @@
   <div class="support-center-header">
 
     <div>
-      <h2>Support Center</h2>
-      <p>How can we help you?</p>
+      <h2>{{ tr.supportCenterTitle }}</h2>
+      <p>{{ tr.supportCenterSubtitle }}</p>
     </div>
 
     <button
@@ -141,29 +141,6 @@
     </button>
 
   </div>
-
-
-  <!-- Welcome
-  <div class="support-welcome">
-
-    <div class="welcome-icon">
-      👋
-    </div>
-
-    <div>
-      <h3>
-        {{ isLogginIn ? 'Welcome back!' : 'Welcome!' }}
-      </h3>
-
-      <p>
-        {{ isLogginIn
-          ? 'Manage your conversations and complaints.'
-          : 'Get quick help from our insurance assistant.'
-        }}
-      </p>
-    </div>
-
-  </div> -->
 
 
   <!-- New Chat -->
@@ -176,8 +153,8 @@
     </div>
 
     <div class="support-item-content">
-      <strong>New Chat</strong>
-      <span>Start a new conversation</span>
+      <strong>{{ tr.newChat }}</strong>
+      <span>{{ tr.newChatDesc }}</span>
     </div>
 
     <span class="support-arrow">›</span>
@@ -191,12 +168,12 @@
     (click)="openChatHistory()">
 
     <div class="support-item-icon history-icon">
-    <i class="bi bi-chat-left-text-fill"></i>
+      <i class="bi bi-chat-left-text-fill"></i>
     </div>
 
     <div class="support-item-content">
-      <strong>Chat History</strong>
-      <span>View your past conversations</span>
+      <strong>{{ tr.historyTitle }}</strong>
+      <span>{{ tr.historyDesc }}</span>
     </div>
 
     <span class="support-arrow">›</span>
@@ -214,31 +191,32 @@
     </div>
 
     <div class="support-item-content">
-      <strong>My Complaints</strong>
-      <span>View and track your complaints</span>
+      <strong>{{ tr.myComplaints }}</strong>
+      <span>{{ tr.myComplaintsDesc }}</span>
     </div>
 
     <span class="support-arrow">›</span>
 
   </button>
 
+
   <!-- Check Status -->
-<button
-  class="support-menu-item"
-  (click)="openCheckStatus()">
+  <button
+    class="support-menu-item"
+    (click)="openCheckStatus()">
 
-  <div class="support-item-icon status-icon">
-    <i class="bi bi-hourglass-split"></i>
-  </div>
+    <div class="support-item-icon status-icon">
+      <i class="bi bi-hourglass-split"></i>
+    </div>
 
-  <div class="support-item-content">
-    <strong>Check Status</strong>
-    <span>Track your proposal or application status</span>
-  </div>
+    <div class="support-item-content">
+      <strong>{{ tr.checkStatus }}</strong>
+      <span>{{ tr.checkStatusDesc }}</span>
+    </div>
 
-  <span class="support-arrow">›</span>
+    <span class="support-arrow">›</span>
 
-</button>
+  </button>
 
 
   <!-- Login / Sign In -->
@@ -252,8 +230,8 @@
     </div>
 
     <div class="support-item-content">
-      <strong>Login / Sign In</strong>
-      <span>Access your account</span>
+      <strong>{{ tr.loginSignIn }}</strong>
+      <span>{{ tr.loginSignInDesc }}</span>
     </div>
 
     <span class="support-arrow">›</span>
@@ -261,12 +239,16 @@
   </button>
 
 
-  <!-- Logged in status -->
-  <div
-    class="logged-in-status"
-    *ngIf="isLogginIn">
+  <!-- Logged in status + logout -->
+  <div class="logged-in-row" *ngIf="isLogginIn">
 
-    ✓ You are signed in
+    <div class="logged-in-status">
+      {{ tr.signedIn }}
+    </div>
+
+    <button class="logout-btn" (click)="logout()">
+      {{ tr.logout }}
+    </button>
 
   </div>
 
@@ -278,20 +260,20 @@
   *ngIf="isMyComplaintsOpen"
   [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
 
- <div class="complaints-header">
-  <button class="login-back-btn" type="button" (click)="goBackFromComplaints()" aria-label="Go back">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="15 18 9 12 15 6"/>
-    </svg>
-  </button>
-  <div>
-    <h2>My Complaints</h2>
-    <p>Track your complaints</p>
+  <div class="complaints-header">
+    <button class="login-back-btn" type="button" (click)="goBackFromComplaints()" [attr.aria-label]="tr.goBack">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"/>
+      </svg>
+    </button>
+
+    <div>
+      <h2>{{ tr.myComplaints }}</h2>
+      <p>{{ tr.trackComplaints }}</p>
+    </div>
+
+    <button class="complaints-close-btn" (click)="isMyComplaintsOpen = false">✕</button>
   </div>
-  <button class="complaints-close-btn" (click)="isMyComplaintsOpen = false">✕</button>
-</div>
-
-
 
 
   <!-- New / no complaints -->
@@ -303,17 +285,17 @@
       🎫
     </div>
 
-    <h3>No complaints yet</h3>
+    <h3>{{ tr.noComplaintsTitle }}</h3>
 
     <p>
-      You haven't registered any complaints with us yet.
+      {{ tr.noComplaintsText }}
     </p>
 
     <button
       class="register-complaint-btn"
       (click)="openComplaintFromCenter()">
 
-      + Register Complaint
+      {{ tr.registerComplaintBtn }}
 
     </button>
 
@@ -329,17 +311,17 @@
       🔐
     </div>
 
-    <h3>Sign in to view complaints</h3>
+    <h3>{{ tr.signInToViewComplaints }}</h3>
 
     <p>
-      Login to view and track your complaints.
+      {{ tr.signInToViewComplaintsText }}
     </p>
 
     <button
       class="login-btn"
       (click)="openLoginFromComplaints()">
 
-      Login / Sign In
+      {{ tr.loginSignIn }}
 
     </button>
 
@@ -360,8 +342,8 @@
       </svg>
     </button>
     <div>
-      <h2>Check Status</h2>
-      <p>Track your proposal status</p>
+      <h2>{{ tr.checkStatus }}</h2>
+      <p>{{ tr.checkStatusDesc }}</p>
     </div>
     <button class="complaints-close-btn" (click)="isCheckStatusOpen = false">✕</button>
   </div>
@@ -369,54 +351,54 @@
   <div class="status-lookup-body">
 
     <div class="status-lookup-form" *ngIf="!statusResult">
-      <label>Quote Number</label>
+      <label>{{ tr.quoteNumber }}</label>
       <input
         type="text"
         [(ngModel)]="statusQuoteNumber"
-        placeholder="e.g. QT-2026-00112"
+        placeholder="{{ tr.quoteNumberPlaceholder }}"
         (keydown.enter)="lookupProposalStatus()">
 
       <div class="status-error" *ngIf="statusLookupError">{{ statusLookupError }}</div>
-   <button class="register-complaint-btn" [disabled]="isLookingUpStatus" (click)="lookupProposalStatus()">
-     {{ isLookingUpStatus ? 'Checking...' : 'Check Status' }}
-   </button>
+ <button class="register-complaint-btn" [disabled]="isLookingUpStatus" (click)="lookupProposalStatus()">
+  {{ isLookingUpStatus ? tr.checking : tr.checkStatus }}
+</button>
     </div>
 
     <!-- Result: Pending -->
     <div class="status-result pending" *ngIf="statusResult && statusResult.status === 'PENDING'">
       <div class="status-icon-large">⏳</div>
-      <h3>Under Review</h3>
-      <p>Proposal {{ statusResult.proposalNumber }} is still being reviewed by our underwriting team.</p>
-      <button class="register-complaint-btn" (click)="resetStatusLookup()">Check Another</button>
+      <h3>{{ tr.underReview }}</h3>
+      <p>{{ tr.proposalWord }} {{ statusResult.proposalNumber }} {{ tr.pendingText }}</p>
+   <button class="register-complaint-btn" (click)="resetStatusLookup()">Check Another</button>
     </div>
 
     <!-- Result: Approved -->
     <div class="status-result approved" *ngIf="statusResult && statusResult.status === 'APPROVED'">
       <div class="status-icon-large">✅</div>
-      <h3>Approved</h3>
+      <h3>{{ tr.approved }}</h3>
       <p *ngIf="statusResult.note">{{ statusResult.note }}</p>
-      <p *ngIf="!statusResult.note">Your proposal has been approved. Please return to the chat to complete payment.</p>
-      <button class="register-complaint-btn" (click)="resetStatusLookup()">Check Another</button>
+      <p *ngIf="!statusResult.note">{{ tr.approvedDefault }}</p>
+      <button class="register-complaint-btn" (click)="resetStatusLookup()">{{ tr.checkAnother }}</button>
     </div>
 
     <!-- Result: Counter-offer -->
     <div class="status-result counter" *ngIf="statusResult && statusResult.status === 'COUNTER_OFFER'">
       <div class="status-icon-large">💬</div>
-      <h3>Counter-Offer Received</h3>
-      <p>Revised premium: <b>OMR {{ statusResult.counterOfferPremium?.toFixed(3) }}</b></p>
+      <h3>{{ tr.counterReceived }}</h3>
+     <p>{{ tr.revisedPremium }} <b>OMR {{ statusResult.counterOfferPremium?.toFixed(3) }}</b></p>
       <p *ngIf="statusResult.note">{{ statusResult.note }}</p>
-      <p *ngIf="statusResult.customerResponse">You have already {{ statusResult.customerResponse === 'ACCEPTED' ? 'accepted' : 'rejected' }} this offer.</p>
-      <p *ngIf="!statusResult.customerResponse">Please return to the chat to accept or reject this offer.</p>
-      <button class="register-complaint-btn" (click)="resetStatusLookup()">Check Another</button>
+      <p *ngIf="statusResult.customerResponse"> {{ statusResult.customerResponse === 'ACCEPTED' ? tr.alreadyAccepted : tr.alreadyRejected }}</p>
+      <p *ngIf="!statusResult.customerResponse">{{ tr.counterPending }}</p>
+      <button class="register-complaint-btn" (click)="resetStatusLookup()">{{ tr.checkAnother }}</button>
     </div>
 
     <!-- Result: Declined -->
     <div class="status-result declined" *ngIf="statusResult && statusResult.status === 'DECLINED'">
       <div class="status-icon-large">✗</div>
-      <h3>Declined</h3>
+      <h3>{{ tr.declined }}</h3>
       <p *ngIf="statusResult.note">{{ statusResult.note }}</p>
-      <p *ngIf="!statusResult.note">Unfortunately, this proposal could not be approved.</p>
-      <button class="register-complaint-btn" (click)="resetStatusLookup()">Check Another</button>
+      <p *ngIf="!statusResult.note">{{ tr.declinedDefault }}</p>
+      <button class="register-complaint-btn" (click)="resetStatusLookup()">{{ tr.checkAnother }}</button>
     </div>
 
   </div>
@@ -446,8 +428,8 @@
       </div>
 
       <div class="history-tabs">
-        <button class="history-tab" [class.active]="historyTab === 'all'" (click)="historyTab = 'all'">All</button>
-        <button class="history-tab" [class.active]="historyTab === 'today'" (click)="historyTab = 'today'">Today</button>
+        <button class="history-tab" [class.active]="historyTab === 'all'" (click)="historyTab = 'all'">{{ tr.tabAll }}</button>
+        <button class="history-tab" [class.active]="historyTab === 'today'" (click)="historyTab = 'today'">{{ tr.tabToday }}</button>
       </div>
     </ng-container>
 
@@ -550,8 +532,8 @@
 
       <!-- Buy Policy form: skip the bubble/text entirely, show only the form -->
       <div class="embedded-buy-policy" *ngIf="msg.uiType === 'BUY_POLICY_FORM'">
-        <app-buy-policy-chat [embedded]="true"></app-buy-policy-chat>
-      </div>
+  <app-buy-policy-chat [embedded]="true" [selectedLanguage]="selectedLanguage"></app-buy-policy-chat>
+</div>
 
       <!-- Every other message keeps the normal bubble -->
       <div class="row" [class.user]="msg.sender === 'user'" [class.bot]="msg.sender === 'bot'" *ngIf="msg.uiType !== 'BUY_POLICY_FORM'">

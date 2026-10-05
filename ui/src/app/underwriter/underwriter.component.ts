@@ -1,7 +1,8 @@
-import { Component, OnInit,ChangeDetectorRef } from '@angular/core';
+import { Component, OnInit, ChangeDetectorRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
+import { uwTranslations, UwKey, UwLang } from './underwriter.translations';
 
 interface QuoteRow {
   quoteId: number;
@@ -26,7 +27,6 @@ interface ProposalRow {
   submittedAt: string;
 }
 
-
 @Component({
   selector: 'app-underwriter',
   standalone: true,
@@ -37,14 +37,41 @@ interface ProposalRow {
 export class UnderwriterComponent implements OnInit {
 
   // ==================================================
+  // LANGUAGE
+  // ==================================================
+  selectedLanguage: UwLang = 'en';
+
+  /** Maps backend status / decision codes to translation keys. */
+  private statusKeys: Record<string, UwKey> = {
+    PENDING: 'statusPending',
+    APPROVED: 'statusApproved',
+    COUNTER_OFFER: 'statusCounterOffer',
+    DECLINED: 'statusDeclined'
+  };
+
+  t(key: UwKey): string {
+    return uwTranslations[this.selectedLanguage]?.[key] ?? uwTranslations.en[key] ?? key;
+  }
+
+  /** Translates a backend status/decision code; falls back to the raw value. */
+  statusLabel(code: string): string {
+    const key = this.statusKeys[code];
+    return key ? this.t(key) : code;
+  }
+
+  switchLanguage(lang: UwLang): void {
+    this.selectedLanguage = lang;
+    try { localStorage.setItem('underwriterLang', lang); } catch { /* ignore */ }
+    this.cdr.markForCheck();
+  }
+
+  // ==================================================
   // LOGIN STATE
   // ==================================================
   isLoggedIn = false;
   username = '';
   password = '';
-  loginError = '';
-
-
+  loginFailed = false;
 
   // ==================================================
   // DASHBOARD STATE
@@ -56,29 +83,32 @@ export class UnderwriterComponent implements OnInit {
   sending = false;
 
   proposals: ProposalRow[] = [];
-selectedProposal: ProposalRow | null = null;
-decisionNote = '';
-counterOfferPremium: number | null = null;
-deciding = false;
-decisionSentLog: { proposalNumber: string; decision: string; time: string }[] = [];
+  selectedProposal: ProposalRow | null = null;
+  decisionNote = '';
+  counterOfferPremium: number | null = null;
+  deciding = false;
+  decisionSentLog: { proposalNumber: string; decision: string; time: string }[] = [];
 
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
+  ngOnInit(): void {
+    // Restore the last chosen language
+    try {
+      const saved = localStorage.getItem('underwriterLang');
+      if (saved === 'en' || saved === 'ar') this.selectedLanguage = saved;
+    } catch { /* ignore */ }
 
-ngOnInit(): void {
     this.isLoggedIn = sessionStorage.getItem('underwriterAuth') === 'true';
     if (this.isLoggedIn) {
       this.loadProposals();
     }
-}
+  }
 
-
-loadProposals(): void {
+  loadProposals(): void {
     this.http.get<any>('http://localhost:5000/api/proposals').subscribe({
       next: (res) => {
-        console.log('Proposals received:', res.data);
         this.proposals = res.data || [];
-        this.cdr.detectChanges();   // ← force Angular to re-render now
+        this.cdr.detectChanges();
       },
       error: (err) => {
         console.error('Proposals fetch failed:', err);
@@ -86,17 +116,15 @@ loadProposals(): void {
         this.cdr.detectChanges();
       }
     });
-}
+  }
 
-
-selectProposal(proposal: ProposalRow): void {
+  selectProposal(proposal: ProposalRow): void {
     this.selectedProposal = proposal;
     this.decisionNote = '';
     this.counterOfferPremium = null;
-}
+  }
 
-
-decide(decision: 'APPROVED' | 'COUNTER_OFFER' | 'DECLINED'): void {
+  decide(decision: 'APPROVED' | 'COUNTER_OFFER' | 'DECLINED'): void {
     if (!this.selectedProposal) return;
 
     if (decision === 'COUNTER_OFFER' && (!this.counterOfferPremium || this.counterOfferPremium <= 0)) {
@@ -114,13 +142,13 @@ decide(decision: 'APPROVED' | 'COUNTER_OFFER' | 'DECLINED'): void {
       }
     ).subscribe({
       next: () => {
+        // Store the raw code; it is translated at render time via statusLabel()
         this.decisionSentLog.unshift({
           proposalNumber: this.selectedProposal!.proposalNumber,
           decision,
           time: new Date().toLocaleTimeString()
         });
 
-        // Remove from pending list and clear selection
         this.proposals = this.proposals.filter(p => p.proposalId !== this.selectedProposal!.proposalId);
         this.selectedProposal = null;
         this.decisionNote = '';
@@ -133,28 +161,29 @@ decide(decision: 'APPROVED' | 'COUNTER_OFFER' | 'DECLINED'): void {
         this.cdr.detectChanges();
       }
     });
-}
+  }
 
   // ==================================================
   // LOGIN
   // ==================================================
-onLogin(): void {
+  onLogin(): void {
     if (this.username === 'underwriter' && this.password === 'demo123') {
       sessionStorage.setItem('underwriterAuth', 'true');
       this.isLoggedIn = true;
-      this.loginError = '';
-      this.loadProposals();   // ← fixed
+      this.loginFailed = false;
+      this.loadProposals();
     } else {
-      this.loginError = 'Invalid username or password';
+      this.loginFailed = true;
     }
-}
+  }
 
-logout(): void {
+  logout(): void {
     sessionStorage.removeItem('underwriterAuth');
     this.isLoggedIn = false;
     this.username = '';
     this.password = '';
-}
+    this.loginFailed = false;
+  }
 
   // ==================================================
   // DASHBOARD

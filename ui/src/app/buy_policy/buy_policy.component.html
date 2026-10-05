@@ -1,441 +1,1462 @@
-<div class="widget">
+<div
+  class="widget"
+  [class.rtl]="selectedLanguage === 'ar'"
+  [attr.dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'"
+>
   <div class="top-strip"></div>
 
+  <!-- ================= HEADER ================= -->
   <div class="header">
     <div class="header-left">
-      <div class="menu-icon"><span></span><span></span><span></span></div>
-      <div class="title">Insurance Chatbot</div>
+      <div class="menu-icon">
+        <span></span>
+      @Input() selectedLanguage: 'en' | 'ar' = 'en';  <span></span>
+        <span></span>
+      </div>
+
+      <div class="title">
+        {{ t('insuranceChatbot') }}
+      </div>
     </div>
+
     <div class="header-right">
-      <div class="lang-badge">EN</div>
-      <div class="lang-ar">العربية</div>
+      <div
+        class="lang-badge"
+        [class.active]="selectedLanguage === 'en'"
+        (click)="switchLanguage('en')"
+      >
+        EN
+      </div>
+
+      <div
+        class="lang-ar"
+        [class.active]="selectedLanguage === 'ar'"
+        (click)="switchLanguage('ar')"
+      >
+        العربية
+      </div>
     </div>
   </div>
+
   <div class="tab-underline"></div>
 
+  <!-- ================= CHAT BODY ================= -->
   <div class="chat-body" #chatBody>
+
     <ng-container *ngFor="let msg of messages">
 
-      <!-- plain text bubble -->
-      <div class="row" [ngClass]="msg.from" *ngIf="msg.type === 'text'">
-        <div class="bubble" [ngClass]="msg.from" [innerHTML]="msg.text"></div>
+      <!-- ================= PLAIN TEXT ================= -->
+      <div
+        class="row"
+        [ngClass]="msg.from"
+        *ngIf="msg.type === 'text'"
+      >
+       <div 
+  class="bubble" 
+  [ngClass]="msg.from"
+>
+  {{ msg.translationKey ? t(msg.translationKey) : msg.text }}
+</div>
       </div>
 
-      <!-- typing indicator -->
-      <div class="row bot" *ngIf="msg.type === 'typing'">
-        <div class="typing"><span></span><span></span><span></span></div>
+
+      <!-- ================= TYPING INDICATOR ================= -->
+      <div
+        class="row bot"
+        *ngIf="msg.type === 'typing'"
+      >
+        <div class="typing">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
       </div>
 
-      <!-- quick reply chips -->
-      <div class="row bot" *ngIf="msg.type === 'quick-replies'">
+
+      <!-- ================= QUICK REPLIES ================= -->
+      <div
+        class="row bot"
+        *ngIf="msg.type === 'quick-replies'"
+      >
         <div class="quick-replies">
+
           <button
             class="qr-btn"
             *ngFor="let opt of msg.options"
             [disabled]="disabledQuickReplyGroups.has(msg)"
-            (click)="onQuickReply(msg, opt.value, opt.label)">
+            (click)="onQuickReply(msg, opt.value, opt.label)"
+          >
             {{ opt.label }}
           </button>
+
         </div>
       </div>
 
-      <!-- grouped Mulkiya-only fields (used mid-flow when a quote fails, etc.) -->
-      <div class="row bot" *ngIf="msg.type === 'mulkiya-form'">
-        <div class="form-card">
-          <div class="form-card-title">Vehicle Details (Mulkiya)</div>
 
-          <label class="form-label">Plate Number</label>
+      <!-- ================= MULKIYA FORM ================= -->
+      <div
+        class="row bot"
+        *ngIf="msg.type === 'mulkiya-form'"
+      >
+        <div class="form-card">
+
+          <div class="form-card-title">
+            {{ t('vehicleDetails') }}
+          </div>
+
+          <!-- Plate Number -->
+          <label class="form-label">
+            {{ t('plateNumber') }}
+          </label>
+
           <input
             class="form-input"
             [(ngModel)]="msg.formData!.plateNumber"
             [disabled]="msg.submitted ?? false"
-            placeholder="Enter your plate number">
+            [placeholder]="t('enterPlateNumber')"
+          />
+
 
           <div class="form-row-2">
+
+            <!-- Plate Code -->
             <div class="form-col">
-              <label class="form-label">Plate Code</label>
-              <select class="form-select" [(ngModel)]="msg.formData!.plateCode" [disabled]="msg.submitted">
+
+              <label class="form-label">
+                {{ t('plateCode') }}
+              </label>
+
+              <select
+                class="form-select"
+                [(ngModel)]="msg.formData!.plateCode"
+                [disabled]="msg.submitted"
+              >
                 <option value="M">M</option>
                 <option value="A">A</option>
                 <option value="25">25</option>
-                <option value="OTHER">Other</option>
+                <option value="OTHER">
+                  {{ t('other') }}
+                </option>
               </select>
+
               <input
                 *ngIf="msg.formData!.plateCode === 'OTHER'"
                 class="form-input form-input-mt"
                 [(ngModel)]="msg.formData!.otherPlateCode"
                 [disabled]="msg.submitted"
-                placeholder="Enter plate code">
+                [placeholder]="t('enterOtherPlateCode')"
+              />
+
             </div>
 
+
+            <!-- Plate Type -->
             <div class="form-col">
-              <label class="form-label">Plate Type</label>
-              <select class="form-select" [(ngModel)]="msg.formData!.plateType" [disabled]="msg.submitted">
-                <option value="Oman">Oman</option>
-                <option value="UAE">UAE</option>
-                <option value="Qatar">Qatar</option>
-                <option value="Other">Other</option>
+
+              <label class="form-label">
+                {{ t('plateType') }}
+              </label>
+
+              <select
+                class="form-select"
+                [(ngModel)]="msg.formData!.plateType"
+                [disabled]="msg.submitted"
+              >
+                <option value="Oman">
+                  {{ t('oman') }}
+                </option>
+
+                <option value="UAE">
+                  {{ t('uae') }}
+                </option>
+
+                <option value="Qatar">
+                  {{ t('qatar') }}
+                </option>
+
+                <option value="Other">
+                  {{ t('other') }}
+                </option>
               </select>
+
             </div>
+
           </div>
 
-          <button class="form-submit-btn" [disabled]="msg.submitted" (click)="onSubmitMulkiya(msg)">
-            {{ msg.submitted ? 'Submitted ✓' : 'Continue' }}
+
+          <button
+            class="form-submit-btn"
+            [disabled]="msg.submitted"
+            (click)="onSubmitMulkiya(msg)"
+          >
+            {{ msg.submitted ? t('submitted') : t('continue') }}
           </button>
+
         </div>
       </div>
 
-      <!-- vehicle summary -->
-      <div class="row bot" *ngIf="msg.type === 'summary'">
+
+      <!-- ================= VEHICLE SUMMARY ================= -->
+      <div
+        class="row bot"
+        *ngIf="msg.type === 'summary'"
+      >
         <div class="quote-summary-card">
-          <div class="quote-summary-header">Quote Summary</div>
+
+          <div class="quote-summary-header">
+            {{ t('quoteSummary') }}
+          </div>
+
 
           <div class="vehicle-banner">
+
             <div class="vehicle-banner-info">
-              <div class="vehicle-name">{{ msg.vehicle.make }} {{ msg.vehicle.model }}</div>
-              <div class="vehicle-year">{{ msg.vehicle.year }}</div>
+
+              <div class="vehicle-name">
+                {{ msg.vehicle.make }}
+                {{ msg.vehicle.model }}
+              </div>
+
+              <div class="vehicle-year">
+                {{ msg.vehicle.year }}
+              </div>
+
             </div>
-            <div class="vehicle-plate-badge">{{ msg.vehicle.plateNumber || '' }} {{ msg.vehicle.plateCode || '' }}</div>
+
+            <div class="vehicle-plate-badge">
+              {{ msg.vehicle.plateNumber || '' }}
+              {{ msg.vehicle.plateCode || '' }}
+            </div>
+
           </div>
 
+
           <div class="summary-grid">
+
             <div class="summary-cell">
-              <span class="summary-label">Chassis Number</span>
-              <span class="summary-value">{{ msg.vehicle.chassisNumber }}</span>
+
+              <span class="summary-label">
+                {{ t('chassisNumber') }}
+              </span>
+
+              <span class="summary-value">
+                {{ msg.vehicle.chassisNumber }}
+              </span>
+
             </div>
+
+
             <div class="summary-cell">
-              <span class="summary-label">Body Type</span>
-              <span class="summary-value">{{ msg.vehicle.bodyType }}</span>
+
+              <span class="summary-label">
+                {{ t('bodyType') }}
+              </span>
+
+              <span class="summary-value">
+                {{ msg.vehicle.bodyType }}
+              </span>
+
             </div>
+
+
             <div class="summary-cell">
-              <span class="summary-label">Usage Type</span>
-              <span class="summary-value">{{ msg.vehicle.usageType }}</span>
+
+              <span class="summary-label">
+                {{ t('usageType') }}
+              </span>
+
+              <span class="summary-value">
+                {{ msg.vehicle.usageType }}
+              </span>
+
             </div>
+
           </div>
+
         </div>
       </div>
 
-      <!-- plan option cards -->
-      <div class="row bot" *ngIf="msg.type === 'plans'">
+
+      <!-- ================= PLAN OPTION CARDS ================= -->
+      <div
+        class="row bot"
+        *ngIf="msg.type === 'plans'"
+      >
         <div class="quote-summary-card">
-          <div class="quote-summary-header">Select Plan</div>
+
+          <div class="quote-summary-header">
+            {{ t('selectPlan') }}
+          </div>
+
 
           <div class="plan-list">
+
             <button
               class="plan-row"
               *ngFor="let plan of msg.plans"
-              [class.selected]="disabledPlanGroups.has(msg) && selectedOption?.optionId === plan.optionId"
+              [class.selected]="
+                disabledPlanGroups.has(msg) &&
+                selectedOption?.optionId === plan.optionId
+              "
               [disabled]="disabledPlanGroups.has(msg)"
-              (click)="onSelectPlan(msg, plan)">
-              <span class="plan-check">✓</span>
-              <span class="plan-row-info">
-                <span class="plan-row-name">{{ plan.planName }}</span>
+              (click)="onSelectPlan(msg, plan)"
+            >
+
+              <span class="plan-check">
+                ✓
               </span>
-              <span class="plan-row-price">OMR {{ plan.premium.toFixed(3) }}</span>
+
+              <span class="plan-row-info">
+
+                <span class="plan-row-name">
+                  {{ plan.planName }}
+                </span>
+
+              </span>
+
+              <span class="plan-row-price">
+                OMR {{ plan.premium.toFixed(3) }}
+              </span>
+
             </button>
+
           </div>
+
         </div>
       </div>
 
-      <!-- payment success -->
-      <div class="row bot" *ngIf="msg.type === 'success'">
+
+      <!-- ================= PAYMENT SUCCESS MESSAGE ================= -->
+      <div
+        class="row bot"
+        *ngIf="msg.type === 'success'"
+      >
         <div class="summary-box success-box">
-          <div class="success-badge">✓</div>
-          <div class="success-title">Payment successful!</div>
-          <div class="row-line" style="width:100%;"><span>Policy No</span><b>{{ msg.policyNumber }}</b></div>
-          <a class="redirect-btn" href="javascript:void(0)" (click)="goToPolicyPage(msg.policyNumber)">View Policy &amp; Download Documents →</a>
+
+          <div class="success-badge">
+            ✓
+          </div>
+
+          <div class="success-title">
+            {{ t('paymentSuccessTitle') }}
+          </div>
+
+          <div
+            class="row-line"
+            style="width: 100%;"
+          >
+            <span>
+              {{ t('policyNo') }}
+            </span>
+
+            <b>
+              {{ msg.policyNumber }}
+            </b>
+          </div>
+
+          <a
+            class="redirect-btn"
+            href="javascript:void(0)"
+            (click)="goToPolicyPage(msg.policyNumber)"
+          >
+            {{ t('viewPolicy') }}
+          </a>
+
         </div>
       </div>
 
-      <!-- Buy Policy Wizard (3 steps in one card) -->
-      <div class="row bot" *ngIf="msg.type === 'policy-form'">
+
+      <!-- ====================================================== -->
+      <!-- ================= BUY POLICY WIZARD ================== -->
+      <!-- ====================================================== -->
+
+      <div
+        class="row bot"
+        *ngIf="msg.type === 'policy-form'"
+      >
         <div class="policy-card">
 
           <div class="policy-card-topbar"></div>
 
+
+          <!-- ================= POLICY HEADER ================= -->
           <div class="policy-card-header">
-            <div class="policy-card-title">MOTOR INSURANCE</div>
+
+            <div class="policy-card-title">
+              {{ t('motorInsurance') }}
+            </div>
+
+
             <div class="policy-steps">
-              <div class="step" [class.active]="(msg.step || 1) === 1" [class.done]="(msg.step || 1) > 1">1</div>
-              <div class="step-line"></div>
-              <div class="step" [class.active]="msg.step === 2" [class.done]="(msg.step || 1) > 2">2</div>
-              <div class="step-line"></div>
-              <div class="step" [class.active]="msg.step === 3">3</div>
-            </div>
-          </div>
 
-          <!-- STEP 1: Buy Policy form -->
-          <ng-container *ngIf="(msg.step || 1) === 1">
-
-            <div class="policy-card-subtitle">Buy Policy</div>
-
-            <label class="form-label">Mobile Number <span class="req">*</span></label>
-            <input class="form-input" [(ngModel)]="msg.formData!.mobileNumber" [disabled]="msg.submitted" placeholder="Enter mobile number">
-
-            <div class="section-label">Mulkiya</div>
-            <div class="method-tabs">
-              <button type="button" class="method-tab" [class.active]="msg.formData!.mulkiyaMethod === 'upload'"
-                [disabled]="msg.submitted" (click)="setMulkiyaMethod(msg, 'upload')">Upload</button>
-              <button type="button" class="method-tab" [class.active]="msg.formData!.mulkiyaMethod === 'scan'"
-                [disabled]="msg.submitted" (click)="setMulkiyaMethod(msg, 'scan')">Scan</button>
-              <button type="button" class="method-tab" [class.active]="msg.formData!.mulkiyaMethod === 'enter'"
-                [disabled]="msg.submitted" (click)="setMulkiyaMethod(msg, 'enter')">Enter Details</button>
-            </div>
-
-            <ng-container *ngIf="msg.formData!.mulkiyaMethod === 'enter'">
-              <div class="form-row-2">
-                <div class="form-col">
-                  <label class="form-label">Plate Number <span class="req">*</span></label>
-                  <input class="form-input" [(ngModel)]="msg.formData!.plateNumber" [disabled]="msg.submitted" placeholder="Enter your Plate Number">
-                </div>
-                <div class="form-col">
-                  <label class="form-label">Plate Code <span class="req">*</span></label>
-                  <select class="form-select" [(ngModel)]="msg.formData!.plateCode" [disabled]="msg.submitted">
-                    <option value="" disabled>Select an option</option>
-                    <option value="M">M</option>
-                    <option value="A">A</option>
-                    <option value="25">25</option>
-                    <option value="OTHER">Other</option>
-                  </select>
-                  <input *ngIf="msg.formData!.plateCode === 'OTHER'" class="form-input form-input-mt"
-                    [(ngModel)]="msg.formData!.otherPlateCode" [disabled]="msg.submitted" placeholder="Enter plate code">
-                </div>
+              <!-- STEP 1 -->
+              <div
+                class="step"
+                [class.active]="(msg.step || 1) === 1"
+                [class.done]="(msg.step || 1) > 1"
+              >
+                1
               </div>
 
-              <label class="form-label">Plate Type <span class="req">*</span></label>
-              <select class="form-select" [(ngModel)]="msg.formData!.plateType" [disabled]="msg.submitted">
-                <option value="Oman">Oman</option>
-                <option value="UAE">UAE</option>
-                <option value="Qatar">Qatar</option>
-                <option value="Other">Other</option>
-              </select>
-            </ng-container>
+              <div class="step-line"></div>
 
-            <div class="section-label">Driving License</div>
+
+              <!-- STEP 2 -->
+              <div
+                class="step"
+                [class.active]="msg.step === 2"
+                [class.done]="(msg.step || 1) > 2"
+              >
+                2
+              </div>
+
+              <div class="step-line"></div>
+
+
+              <!-- STEP 3 -->
+              <div
+                class="step"
+                [class.active]="msg.step === 3"
+              >
+                3
+              </div>
+
+            </div>
+
+          </div>
+
+
+          <!-- ================================================== -->
+          <!-- ====================== STEP 1 ==================== -->
+          <!-- ================================================== -->
+
+          <ng-container *ngIf="(msg.step || 1) === 1">
+
+            <div class="policy-card-subtitle">
+              {{ t('buyPolicy') }}
+            </div>
+
+
+            <!-- Mobile Number -->
+            <label class="form-label">
+
+              {{ t('mobileNumber') }}
+
+              <span class="req">
+                *
+              </span>
+
+            </label>
+
+
+            <input
+              class="form-input"
+              [(ngModel)]="msg.formData!.mobileNumber"
+              [disabled]="msg.submitted"
+              [placeholder]="t('enterMobileNumber')"
+            />
+
+
+            <!-- Mulkiya -->
+            <div class="section-label">
+              {{ t('mulkiya') }}
+            </div>
+
+
             <div class="method-tabs">
-              <button type="button" class="method-tab" [class.active]="msg.formData!.licenseMethod === 'upload'"
-                [disabled]="msg.submitted" (click)="setLicenseMethod(msg, 'upload')">Upload</button>
-              <button type="button" class="method-tab" [class.active]="msg.formData!.licenseMethod === 'scan'"
-                [disabled]="msg.submitted" (click)="setLicenseMethod(msg, 'scan')">Scan</button>
-              <button type="button" class="method-tab" [class.active]="msg.formData!.licenseMethod === 'enter'"
-                [disabled]="msg.submitted" (click)="setLicenseMethod(msg, 'enter')">Enter Details</button>
+
+              <button
+                type="button"
+                class="method-tab"
+                [class.active]="
+                  msg.formData!.mulkiyaMethod === 'upload'
+                "
+                [disabled]="msg.submitted"
+                (click)="setMulkiyaMethod(msg, 'upload')"
+              >
+                {{ t('upload') }}
+              </button>
+
+
+              <button
+                type="button"
+                class="method-tab"
+                [class.active]="
+                  msg.formData!.mulkiyaMethod === 'scan'
+                "
+                [disabled]="msg.submitted"
+                (click)="setMulkiyaMethod(msg, 'scan')"
+              >
+                {{ t('scan') }}
+              </button>
+
+
+              <button
+                type="button"
+                class="method-tab"
+                [class.active]="
+                  msg.formData!.mulkiyaMethod === 'enter'
+                "
+                [disabled]="msg.submitted"
+                (click)="setMulkiyaMethod(msg, 'enter')"
+              >
+                {{ t('enterDetails') }}
+              </button>
+
             </div>
 
-            <ng-container *ngIf="msg.formData!.licenseMethod === 'enter'">
-              <label class="form-label">Civil ID / License No <span class="req">*</span></label>
-              <input class="form-input" [(ngModel)]="msg.formData!.civilIdLicenseNo" [disabled]="msg.submitted" placeholder="Enter your Civil ID">
 
-              <label class="form-label">Full Name <span class="req">*</span></label>
-              <input class="form-input" [(ngModel)]="msg.formData!.fullName" [disabled]="msg.submitted" placeholder="Enter your full name">
+            <!-- ================= MULKIYA ENTER ================= -->
+            <ng-container
+              *ngIf="msg.formData!.mulkiyaMethod === 'enter'"
+            >
+
+              <div class="form-row-2">
+
+                <!-- Plate Number -->
+                <div class="form-col">
+
+                  <label class="form-label">
+
+                    {{ t('plateNumber') }}
+
+                    <span class="req">
+                      *
+                    </span>
+
+                  </label>
+
+
+                  <input
+                    class="form-input"
+                    [(ngModel)]="msg.formData!.plateNumber"
+                    [disabled]="msg.submitted"
+                    [placeholder]="t('enterPlateNumber')"
+                  />
+
+                </div>
+
+
+                <!-- Plate Code -->
+                <div class="form-col">
+
+                  <label class="form-label">
+
+                    {{ t('plateCode') }}
+
+                    <span class="req">
+                      *
+                    </span>
+
+                  </label>
+
+
+                  <select
+                    class="form-select"
+                    [(ngModel)]="msg.formData!.plateCode"
+                    [disabled]="msg.submitted"
+                  >
+
+                    <option
+                      value=""
+                      disabled
+                    >
+                      {{ t('selectOption') }}
+                    </option>
+
+                    <option value="M">
+                      M
+                    </option>
+
+                    <option value="A">
+                      A
+                    </option>
+
+                    <option value="25">
+                      25
+                    </option>
+
+                    <option value="OTHER">
+                      {{ t('other') }}
+                    </option>
+
+                  </select>
+
+
+                  <input
+                    *ngIf="msg.formData!.plateCode === 'OTHER'"
+                    class="form-input form-input-mt"
+                    [(ngModel)]="msg.formData!.otherPlateCode"
+                    [disabled]="msg.submitted"
+                    [placeholder]="t('enterOtherPlateCode')"
+                  />
+
+                </div>
+
+              </div>
+
+
+              <!-- Plate Type -->
+              <label class="form-label">
+
+                {{ t('plateType') }}
+
+                <span class="req">
+                  *
+                </span>
+
+              </label>
+
+
+              <select
+                class="form-select"
+                [(ngModel)]="msg.formData!.plateType"
+                [disabled]="msg.submitted"
+              >
+
+                <option value="Oman">
+                  {{ t('oman') }}
+                </option>
+
+                <option value="UAE">
+                  {{ t('uae') }}
+                </option>
+
+                <option value="Qatar">
+                  {{ t('qatar') }}
+                </option>
+
+                <option value="Other">
+                  {{ t('other') }}
+                </option>
+
+              </select>
+
             </ng-container>
 
-            <div class="section-label">Select Product</div>
+
+            <!-- ================= DRIVING LICENSE ================= -->
+            <div class="section-label">
+              {{ t('drivingLicense') }}
+            </div>
+
+
+            <div class="method-tabs">
+
+              <button
+                type="button"
+                class="method-tab"
+                [class.active]="
+                  msg.formData!.licenseMethod === 'upload'
+                "
+                [disabled]="msg.submitted"
+                (click)="setLicenseMethod(msg, 'upload')"
+              >
+                {{ t('upload') }}
+              </button>
+
+
+              <button
+                type="button"
+                class="method-tab"
+                [class.active]="
+                  msg.formData!.licenseMethod === 'scan'
+                "
+                [disabled]="msg.submitted"
+                (click)="setLicenseMethod(msg, 'scan')"
+              >
+                {{ t('scan') }}
+              </button>
+
+
+              <button
+                type="button"
+                class="method-tab"
+                [class.active]="
+                  msg.formData!.licenseMethod === 'enter'
+                "
+                [disabled]="msg.submitted"
+                (click)="setLicenseMethod(msg, 'enter')"
+              >
+                {{ t('enterDetails') }}
+              </button>
+
+            </div>
+
+
+            <!-- License details -->
+            <ng-container
+              *ngIf="msg.formData!.licenseMethod === 'enter'"
+            >
+
+              <label class="form-label">
+
+                {{ t('civilIdLicense') }}
+
+                <span class="req">
+                  *
+                </span>
+
+              </label>
+
+
+              <input
+                class="form-input"
+                [(ngModel)]="msg.formData!.civilIdLicenseNo"
+                [disabled]="msg.submitted"
+                [placeholder]="t('enterCivilId')"
+              />
+
+
+              <label class="form-label">
+
+                {{ t('fullName') }}
+
+                <span class="req">
+                  *
+                </span>
+
+              </label>
+
+
+              <input
+                class="form-input"
+                [(ngModel)]="msg.formData!.fullName"
+                [disabled]="msg.submitted"
+                [placeholder]="t('enterFullName')"
+              />
+
+            </ng-container>
+
+
+            <!-- ================= PRODUCT ================= -->
+            <div class="section-label">
+              {{ t('selectProduct') }}
+            </div>
+
+
             <div class="product-row">
-              <button type="button" class="product-btn" [class.selected]="msg.formData!.productId === 'COMPREHENSIVE'"
-                [disabled]="msg.submitted" (click)="selectProduct(msg, 'COMPREHENSIVE')">
-                <span class="product-check">✓</span> Comprehensive Insurance
+
+              <button
+                type="button"
+                class="product-btn"
+                [class.selected]="
+                  msg.formData!.productId === 'COMPREHENSIVE'
+                "
+                [disabled]="msg.submitted"
+                (click)="selectProduct(msg, 'COMPREHENSIVE')"
+              >
+
+                <span class="product-check">
+                  ✓
+                </span>
+
+                {{ t('comprehensive') }}
+
               </button>
-              <button type="button" class="product-btn" [class.selected]="msg.formData!.productId === 'THIRD_PARTY'"
-                [disabled]="msg.submitted" (click)="selectProduct(msg, 'THIRD_PARTY')">
-                <span class="product-check">✓</span> Third Party Insurance
+
+
+              <button
+                type="button"
+                class="product-btn"
+                [class.selected]="
+                  msg.formData!.productId === 'THIRD_PARTY'
+                "
+                [disabled]="msg.submitted"
+                (click)="selectProduct(msg, 'THIRD_PARTY')"
+              >
+
+                <span class="product-check">
+                  ✓
+                </span>
+
+                {{ t('thirdParty') }}
+
               </button>
+
             </div>
 
-            <div class="form-field" *ngIf="msg.formData!.productId === 'COMPREHENSIVE'">
-              <label class="form-label">Vehicle Value (OMR) <span class="req">*</span></label>
-              <input class="form-input" type="number" [(ngModel)]="msg.formData!.vehicleValue" [disabled]="msg.submitted" placeholder="Enter estimated vehicle value">
+
+            <!-- ================= VEHICLE VALUE ================= -->
+            <div
+              class="form-field"
+              *ngIf="
+                msg.formData!.productId === 'COMPREHENSIVE'
+              "
+            >
+
+              <label class="form-label">
+
+                {{ t('vehicleValue') }}
+
+                <span class="req">
+                  *
+                </span>
+
+              </label>
+
+
+              <input
+                class="form-input"
+                type="number"
+                [(ngModel)]="msg.formData!.vehicleValue"
+                [disabled]="msg.submitted"
+                [placeholder]="t('enterVehicleValue')"
+              />
+
             </div>
 
-            <div class="inline-notice kyc-verifying" *ngIf="kycVerifying">
-              <span class="kyc-spinner"></span> Verifying identity…
+
+            <!-- ================= KYC VERIFYING ================= -->
+            <div
+              class="inline-notice kyc-verifying"
+              *ngIf="kycVerifying"
+            >
+
+              <span class="kyc-spinner"></span>
+
+              {{ t('verifyingIdentity') }}
+
             </div>
 
-            <div class="inline-notice kyc-verified" *ngIf="kycVerified">
-              ✓ KYC Verified
+
+            <!-- ================= KYC VERIFIED ================= -->
+            <div
+              class="inline-notice kyc-verified"
+              *ngIf="kycVerified"
+            >
+
+              ✓ {{ t('kycVerified') }}
+
             </div>
 
-            <div class="inline-notice" *ngIf="formNotice">{{ formNotice }}</div>
 
+            <!-- ================= KYC FAILED ================= -->
+            <div
+              class="inline-notice kyc-failed"
+              *ngIf="kycFailedReason"
+            >
+
+              ✗ {{ t('kycFailed') }}
+
+              —
+              {{ kycFailedReason }}
+
+            </div>
+
+
+            <!-- ================= FORM NOTICE ================= -->
+            <div
+              class="inline-notice"
+              *ngIf="formNotice"
+            >
+              {{ formNotice }}
+            </div>
+
+
+            <!-- ================= FORM ACTIONS ================= -->
             <div class="form-actions-row">
-              <button type="button" class="form-cancel-btn-policy" [disabled]="msg.submitted" (click)="cancelPolicyForm(msg)">
-                Cancel
+
+              <button
+                type="button"
+                class="form-cancel-btn-policy"
+                [disabled]="msg.submitted"
+                (click)="cancelPolicyForm(msg)"
+              >
+                {{ t('cancel') }}
               </button>
-              <button class="get-quote-btn" [disabled]="msg.submitted" (click)="submitPolicyForm(msg)">
-                {{ msg.submitted ? 'Generating...' : 'Get Quote' }}
+
+
+              <button
+                class="get-quote-btn"
+                [disabled]="msg.submitted"
+                (click)="submitPolicyForm(msg)"
+              >
+                {{
+                  msg.submitted
+                    ? t('generating')
+                    : t('getQuote')
+                }}
               </button>
+
             </div>
 
           </ng-container>
 
-          <!-- STEP 2: Quote Summary + Plan selection -->
+
+          <!-- ================================================== -->
+          <!-- ====================== STEP 2 ==================== -->
+          <!-- ================================================== -->
+
           <ng-container *ngIf="msg.step === 2">
 
-            <div class="policy-card-subtitle">Quote Summary</div>
+            <div class="policy-card-subtitle">
+              {{ t('quoteSummary') }}
+            </div>
 
+
+            <!-- Vehicle Banner -->
             <div class="vehicle-banner">
+
               <div class="vehicle-banner-info">
-                <div class="vehicle-name">{{ msg.vehicle?.make }} {{ msg.vehicle?.model }}</div>
-                <div class="vehicle-year">{{ msg.vehicle?.year }}</div>
+
+                <div class="vehicle-name">
+                  {{ msg.vehicle?.make }}
+                  {{ msg.vehicle?.model }}
+                </div>
+
+                <div class="vehicle-year">
+                  {{ msg.vehicle?.year }}
+                </div>
+
               </div>
-              <div class="vehicle-plate-badge">{{ msg.vehicle?.plateNumber }} {{ msg.vehicle?.plateCode }}</div>
+
+
+              <div class="vehicle-plate-badge">
+                {{ msg.vehicle?.plateNumber }}
+                {{ msg.vehicle?.plateCode }}
+              </div>
+
             </div>
 
+
+            <!-- Quote Summary -->
             <div class="summary-grid">
+
               <div class="summary-cell">
-                <span class="summary-label">Quote No</span>
-                <span class="summary-value">{{ msg.quoteNumber }}</span>
+
+                <span class="summary-label">
+                  {{ t('quoteNo') }}
+                </span>
+
+                <span class="summary-value">
+                  {{ msg.quoteNumber }}
+                </span>
+
               </div>
+
+
               <div class="summary-cell">
-                <span class="summary-label">Chassis Number</span>
-                <span class="summary-value">{{ msg.vehicle?.chassisNumber }}</span>
+
+                <span class="summary-label">
+                  {{ t('chassisNumber') }}
+                </span>
+
+                <span class="summary-value">
+                  {{ msg.vehicle?.chassisNumber }}
+                </span>
+
               </div>
+
+
               <div class="summary-cell">
-                <span class="summary-label">Body Type</span>
-                <span class="summary-value">{{ msg.vehicle?.bodyType }}</span>
+
+                <span class="summary-label">
+                  {{ t('bodyType') }}
+                </span>
+
+                <span class="summary-value">
+                  {{ msg.vehicle?.bodyType }}
+                </span>
+
               </div>
+
+
               <div class="summary-cell">
-                <span class="summary-label">Usage Type</span>
-                <span class="summary-value">{{ msg.vehicle?.usageType }}</span>
+
+                <span class="summary-label">
+                  {{ t('usageType') }}
+                </span>
+
+                <span class="summary-value">
+                  {{ msg.vehicle?.usageType }}
+                </span>
+
               </div>
+
+
               <div class="summary-cell">
-                <span class="summary-label">Valid From</span>
-                <span class="summary-value">{{ msg.coverFrom | date:'d MMM y' }}</span>
+
+                <span class="summary-label">
+                  {{ t('validFrom') }}
+                </span>
+
+                <span class="summary-value">
+                  {{ msg.coverFrom | date:'d MMM y' }}
+                </span>
+
               </div>
+
+
               <div class="summary-cell">
-                <span class="summary-label">Valid To</span>
-                <span class="summary-value">{{ msg.coverTo | date:'d MMM y' }}</span>
+
+                <span class="summary-label">
+                  {{ t('validTo') }}
+                </span>
+
+                <span class="summary-value">
+                  {{ msg.coverTo | date:'d MMM y' }}
+                </span>
+
               </div>
+
             </div>
 
-            <!-- Plan list — hidden once an option has been picked and is progressing through underwriting -->
-            <ng-container *ngIf="!msg.selectedOption || (!msg.needsAdditionalInfo && !msg.underwritingPending && !msg.proposalStatus)">
-              <div class="section-label">Select Plan</div>
+
+            <!-- ================= PLAN SELECTION ================= -->
+            <ng-container
+              *ngIf="
+                !msg.selectedOption ||
+                (
+                  !msg.needsAdditionalInfo &&
+                  !msg.underwritingPending &&
+                  !msg.proposalStatus
+                )
+              "
+            >
+
+              <div class="section-label">
+                {{ t('selectPlan') }}
+              </div>
+
+
               <div class="plan-list">
+
                 <button
                   class="plan-row"
                   *ngFor="let plan of msg.plans"
-                  [class.selected]="msg.selectedOption?.optionId === plan.optionId"
-                  (click)="selectPlanForForm(msg, plan)">
-                  <span class="plan-check">✓</span>
-                  <span class="plan-row-info">
-                    <span class="plan-row-name">{{ plan.planName }}</span>
+                  [class.selected]="
+                    msg.selectedOption?.optionId === plan.optionId
+                  "
+                  (click)="selectPlanForForm(msg, plan)"
+                >
+
+                  <span class="plan-check">
+                    ✓
                   </span>
-                  <span class="plan-row-price">OMR {{ plan.premium.toFixed(3) }}</span>
+
+
+                  <span class="plan-row-info">
+
+                    <span class="plan-row-name">
+                      {{ plan.planName }}
+                    </span>
+
+                  </span>
+
+
+                  <span class="plan-row-price">
+                    OMR {{ plan.premium.toFixed(3) }}
+                  </span>
+
                 </button>
+
               </div>
+
             </ng-container>
 
-            <div class="inline-notice" *ngIf="formNotice">{{ formNotice }}</div>
 
-            <!-- STATE: Additional info required (Non-STP) -->
-            <div class="additional-info-form" *ngIf="msg.needsAdditionalInfo">
-              <div class="uw-notice-icon">📋</div>
-              <div class="uw-notice-title">Additional Information Required</div>
-              <div class="uw-notice-sub">
-                Your vehicle value requires manual underwriting review. Please provide any additional details (maintenance history, prior claims, usage details) to support your proposal.
+            <!-- ================= FORM NOTICE ================= -->
+            <div
+              class="inline-notice"
+              *ngIf="formNotice"
+            >
+              {{ formNotice }}
+            </div>
+
+
+            <!-- ================================================= -->
+            <!-- ADDITIONAL INFO REQUIRED -->
+            <!-- ================================================= -->
+
+            <div
+              class="additional-info-form"
+              *ngIf="msg.needsAdditionalInfo"
+            >
+
+              <div class="uw-notice-icon">
+                📋
               </div>
+
+
+              <div class="uw-notice-title">
+                {{ t('additionalInfoRequired') }}
+              </div>
+
+
+              <div class="uw-notice-sub">
+                {{ t('additionalInfoDescription') }}
+              </div>
+
 
               <textarea
                 class="form-input"
                 rows="4"
                 [(ngModel)]="msg.additionalInfoText"
                 [disabled]="msg.submitted"
-                placeholder="Describe your vehicle's condition, usage, or any supporting details..."></textarea>
+                [placeholder]="t('additionalInfoPlaceholder')"
+              ></textarea>
 
-              <button class="pay-btn" [disabled]="msg.submitted" (click)="submitAdditionalInfo(msg)">
-                {{ msg.submitted ? 'Submitting...' : 'Submit for Review' }}
+
+              <button
+                class="pay-btn"
+                [disabled]="msg.submitted"
+                (click)="submitAdditionalInfo(msg)"
+              >
+
+                {{
+                  msg.submitted
+                    ? t('submitting')
+                    : t('submitForReview')
+                }}
+
               </button>
+
             </div>
 
-            <!-- STATE: Proposal pending -->
-            <div class="underwriting-pending" *ngIf="msg.underwritingPending && msg.proposalStatus === 'PENDING'">
-              <div class="uw-pending-icon">⏳</div>
-              <div class="uw-pending-title">Submitted for Underwriting Review</div>
+
+            <!-- ================================================= -->
+            <!-- UNDERWRITING PENDING -->
+            <!-- ================================================= -->
+
+            <div
+              class="underwriting-pending"
+              *ngIf="
+                msg.underwritingPending &&
+                msg.proposalStatus === 'PENDING'
+              "
+            >
+
+              <div class="uw-pending-icon">
+                ⏳
+              </div>
+
+
+              <div class="uw-pending-title">
+                {{ t('submittedForReview') }}
+              </div>
+
+
               <div class="uw-pending-sub">
-                Proposal {{ msg.proposalNumber }} has been submitted. Check back for a decision.
+
+                {{ t('proposalCheckMessage') }}
+
+                <br />
+
+                {{ msg.proposalNumber }}
+
               </div>
-              <button class="check-status-btn" [disabled]="msg.checkingStatus" (click)="checkProposalStatus(msg)">
-                {{ msg.checkingStatus ? 'Checking...' : 'Check Status' }}
+
+
+              <button
+                class="check-status-btn"
+                [disabled]="msg.checkingStatus"
+                (click)="checkProposalStatus(msg)"
+              >
+
+                {{
+                  msg.checkingStatus
+                    ? t('checking')
+                    : t('checkStatus')
+                }}
+
               </button>
+
             </div>
 
-            <!-- STATE: Approved -->
-            <div class="uw-outcome approved" *ngIf="msg.proposalStatus === 'APPROVED'">
-              <div class="uw-notice-icon">✅</div>
-              <div class="uw-notice-title">Proposal Approved</div>
-              <div class="uw-notice-sub" *ngIf="msg.underwriterNote">{{ msg.underwriterNote }}</div>
-              <button class="pay-btn" [disabled]="msg.submitted" (click)="payNowForForm(msg)">
-                Pay Now
+
+            <!-- ================================================= -->
+            <!-- APPROVED -->
+            <!-- ================================================= -->
+
+            <div
+              class="uw-outcome approved"
+              *ngIf="msg.proposalStatus === 'APPROVED'"
+            >
+
+              <div class="uw-notice-icon">
+                ✅
+              </div>
+
+
+              <div class="uw-notice-title">
+                {{ t('proposalApproved') }}
+              </div>
+
+
+              <div
+                class="uw-notice-sub"
+                *ngIf="msg.underwriterNote"
+              >
+                {{ msg.underwriterNote }}
+              </div>
+
+
+              <button
+                class="pay-btn"
+                [disabled]="msg.submitted"
+                (click)="payNowForForm(msg)"
+              >
+                {{ t('payNow') }}
               </button>
+
             </div>
 
-            <!-- STATE: Counter-offer, awaiting customer response -->
-            <div class="uw-outcome counter" *ngIf="msg.proposalStatus === 'COUNTER_OFFER'">
-              <div class="uw-notice-icon">💬</div>
-              <div class="uw-notice-title">Counter-Offer Received</div>
+
+            <!-- ================================================= -->
+            <!-- COUNTER OFFER -->
+            <!-- ================================================= -->
+
+            <div
+              class="uw-outcome counter"
+              *ngIf="msg.proposalStatus === 'COUNTER_OFFER'"
+            >
+
+              <div class="uw-notice-icon">
+                💬
+              </div>
+
+
+              <div class="uw-notice-title">
+                {{ t('counterOfferReceived') }}
+              </div>
+
+
               <div class="uw-notice-sub">
-                The underwriter has proposed a revised premium of <b>OMR {{ msg.counterOfferPremium?.toFixed(3) }}</b>.
+
+                {{ t('counterOfferMessage') }}
+
+                <b>
+                  OMR {{ msg.counterOfferPremium?.toFixed(3) }}
+                </b>.
+
               </div>
-              <div class="uw-notice-sub" *ngIf="msg.underwriterNote">{{ msg.underwriterNote }}</div>
+
+
+              <div
+                class="uw-notice-sub"
+                *ngIf="msg.underwriterNote"
+              >
+                {{ msg.underwriterNote }}
+              </div>
+
 
               <div class="decision-buttons">
-                <button class="approve-btn" (click)="respondToCounterOffer(msg, 'ACCEPTED')">Accept</button>
-                <button class="decline-btn" (click)="respondToCounterOffer(msg, 'REJECTED')">Reject</button>
+
+                <button
+                  class="approve-btn"
+                  (click)="
+                    respondToCounterOffer(
+                      msg,
+                      'ACCEPTED'
+                    )
+                  "
+                >
+                  {{ t('accept') }}
+                </button>
+
+
+                <button
+                  class="decline-btn"
+                  (click)="
+                    respondToCounterOffer(
+                      msg,
+                      'REJECTED'
+                    )
+                  "
+                >
+                  {{ t('reject') }}
+                </button>
+
               </div>
+
             </div>
 
-            <!-- STATE: Customer accepted the counter-offer -->
-            <div class="uw-outcome approved" *ngIf="msg.proposalStatus === 'ACCEPTED_PROCEED'">
-              <div class="uw-notice-icon">✅</div>
-              <div class="uw-notice-title">Counter-Offer Accepted</div>
-              <div class="uw-notice-sub">Your premium is now OMR {{ msg.selectedOption?.premium?.toFixed(3) }}.</div>
-              <button class="pay-btn" [disabled]="msg.submitted" (click)="payNowForForm(msg)">
-                Pay Now
+
+            <!-- ================================================= -->
+            <!-- COUNTER OFFER ACCEPTED -->
+            <!-- ================================================= -->
+
+            <div
+              class="uw-outcome approved"
+              *ngIf="
+                msg.proposalStatus ===
+                'ACCEPTED_PROCEED'
+              "
+            >
+
+              <div class="uw-notice-icon">
+                ✅
+              </div>
+
+
+              <div class="uw-notice-title">
+                {{ t('counterOfferAccepted') }}
+              </div>
+
+
+              <div class="uw-notice-sub">
+
+                {{ t('premiumNow') }}
+
+                <b>
+                  OMR
+                  {{ msg.selectedOption?.premium?.toFixed(3) }}
+                </b>.
+
+              </div>
+
+
+              <button
+                class="pay-btn"
+                [disabled]="msg.submitted"
+                (click)="payNowForForm(msg)"
+              >
+                {{ t('payNow') }}
               </button>
+
             </div>
 
-            <!-- STATE: Customer rejected the counter-offer -->
-            <div class="uw-outcome declined" *ngIf="msg.proposalStatus === 'REJECTED_BY_CUSTOMER'">
-              <div class="uw-notice-icon">✗</div>
-              <div class="uw-notice-title">Offer Declined</div>
-              <div class="uw-notice-sub">You've declined the revised premium. This proposal is now closed.</div>
+
+            <!-- ================================================= -->
+            <!-- COUNTER OFFER REJECTED BY CUSTOMER -->
+            <!-- ================================================= -->
+
+            <div
+              class="uw-outcome declined"
+              *ngIf="
+                msg.proposalStatus ===
+                'REJECTED_BY_CUSTOMER'
+              "
+            >
+
+              <div class="uw-notice-icon">
+                ✗
+              </div>
+
+
+              <div class="uw-notice-title">
+                {{ t('offerDeclined') }}
+              </div>
+
+
+              <div class="uw-notice-sub">
+                {{ t('declinedMessage') }}
+              </div>
+
             </div>
 
-            <!-- STATE: Declined by underwriter -->
-            <div class="uw-outcome declined" *ngIf="msg.proposalStatus === 'DECLINED'">
-              <div class="uw-notice-icon">✗</div>
-              <div class="uw-notice-title">Proposal Declined</div>
-              <div class="uw-notice-sub" *ngIf="msg.underwriterNote">{{ msg.underwriterNote }}</div>
-              <div class="uw-notice-sub" *ngIf="!msg.underwriterNote">Unfortunately, this proposal could not be approved. Please contact support for more details.</div>
+
+            <!-- ================================================= -->
+            <!-- DECLINED BY UNDERWRITER -->
+            <!-- ================================================= -->
+
+            <div
+              class="uw-outcome declined"
+              *ngIf="
+                msg.proposalStatus ===
+                'DECLINED'
+              "
+            >
+
+              <div class="uw-notice-icon">
+                ✗
+              </div>
+
+
+              <div class="uw-notice-title">
+                {{ t('proposalDeclined') }}
+              </div>
+
+
+              <div
+                class="uw-notice-sub"
+                *ngIf="msg.underwriterNote"
+              >
+                {{ msg.underwriterNote }}
+              </div>
+
+
+              <div
+                class="uw-notice-sub"
+                *ngIf="!msg.underwriterNote"
+              >
+                {{ t('defaultDeclinedMessage') }}
+              </div>
+
             </div>
 
-            <!-- Pay Now button — only for the normal STP path -->
+
+            <!-- ================================================= -->
+            <!-- NORMAL STP PAY NOW -->
+            <!-- ================================================= -->
+
             <button
               type="button"
               class="pay-btn"
-              *ngIf="!msg.needsAdditionalInfo && !msg.underwritingPending && !msg.proposalStatus"
-              [disabled]="!msg.quoteId || !msg.selectedOption || msg.submitted"
-              (click)="payNowForForm(msg)">
-              Pay Now
+              *ngIf="
+                !msg.needsAdditionalInfo &&
+                !msg.underwritingPending &&
+                !msg.proposalStatus
+              "
+              [disabled]="
+                !msg.quoteId ||
+                !msg.selectedOption ||
+                msg.submitted
+              "
+              (click)="payNowForForm(msg)"
+            >
+              {{ t('payNow') }}
             </button>
 
           </ng-container>
 
-          <!-- STEP 3: Payment success -->
+
+          <!-- ================================================== -->
+          <!-- ====================== STEP 3 ==================== -->
+          <!-- ================================================== -->
+
           <ng-container *ngIf="msg.step === 3">
 
-            <div class="success-badge">✓</div>
-            <div class="policy-card-subtitle" style="text-align:center;">Your premium payment is successful. Thank you!</div>
-
-            <div class="summary-grid" style="margin-top:12px;">
-              <div class="summary-cell">
-                <span class="summary-label">Policy No</span>
-                <span class="summary-value">{{ msg.policyNumber }}</span>
-              </div>
+            <div class="success-badge">
+              ✓
             </div>
 
-            <a class="redirect-btn" href="javascript:void(0)" (click)="goToPolicyPage(msg.policyNumber)">
-              View Policy &amp; Download Documents →
+
+            <div
+              class="policy-card-subtitle"
+              style="text-align: center;"
+            >
+              {{ t('paymentSuccessful') }}
+            </div>
+
+
+            <div
+              class="summary-grid"
+              style="margin-top: 12px;"
+            >
+
+              <div class="summary-cell">
+
+                <span class="summary-label">
+                  {{ t('policyNo') }}
+                </span>
+
+                <span class="summary-value">
+                  {{ msg.policyNumber }}
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <a
+              class="redirect-btn"
+              href="javascript:void(0)"
+              (click)="goToPolicyPage(msg.policyNumber)"
+            >
+              {{ t('viewPolicy') }}
             </a>
 
           </ng-container>
@@ -444,15 +1465,36 @@
       </div>
 
     </ng-container>
+
   </div>
 
+
+  <!-- ================= INPUT BAR ================= -->
   <div class="input-bar">
-    <button class="icon-btn" title="Home">⌂</button>
+
+    <button
+      class="icon-btn"
+      [title]="t('home')"
+    >
+      ⌂
+    </button>
+
+
     <input
       class="text-input"
       [(ngModel)]="inputValue"
       (keydown.enter)="onSend()"
-      placeholder="Type here...">
-    <button class="send-btn" (click)="onSend()">➤</button>
+      [placeholder]="t('typeHere')"
+    />
+
+
+    <button
+      class="send-btn"
+      (click)="onSend()"
+    >
+      ➤
+    </button>
+
   </div>
+
 </div>

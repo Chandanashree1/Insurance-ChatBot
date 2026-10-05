@@ -109,6 +109,53 @@
   margin: 15px 0 7px;
 }
 
+.widget.rtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.widget.rtl .header-left {
+  flex-direction: row-reverse;
+}
+
+.widget.rtl .header-right {
+  flex-direction: row-reverse;
+}
+
+.widget.rtl .form-row-2 {
+  direction: rtl;
+}
+
+.widget.rtl .form-input,
+.widget.rtl .form-select,
+.widget.rtl textarea {
+  text-align: right;
+  direction: rtl;
+}
+
+.widget.rtl .method-tabs,
+.widget.rtl .product-row,
+.widget.rtl .form-actions-row {
+  direction: rtl;
+}
+
+.widget.rtl .policy-card {
+  direction: rtl;
+}
+
+.widget.rtl .summary-grid {
+  direction: rtl;
+}
+
+.widget.rtl .plan-row {
+  direction: rtl;
+}
+
+.widget.rtl .plan-row-price {
+  margin-left: 0;
+  margin-right: auto;
+}
+
 /* =========================
    METHOD TABS
 ========================= */
@@ -195,6 +242,47 @@
   &:disabled {
     cursor: default;
     opacity: 0.7;
+  }
+}
+
+.kyc-failed {
+  background: rgba(234, 67, 53, 0.12);
+  border: 1px solid rgba(234, 67, 53, 0.35);
+  color: #ea4335;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.decision-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+
+  button {
+    flex: 1;
+    padding: 12px;
+    border: none;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.15s ease;
+
+    &:hover { opacity: 0.9; }
+    &:disabled { opacity: 0.5; cursor: not-allowed; }
+  }
+
+  .approve-btn {
+    background: #22c55e;
+    color: #fff;
+  }
+
+  .decline-btn {
+    background: #ea4335;
+    color: #fff;
   }
 }
 

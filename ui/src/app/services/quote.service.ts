@@ -84,12 +84,8 @@ respondToCounterOffer(proposalId: number, response: 'ACCEPTED' | 'REJECTED') {
   return this.http.post<any>(`http://localhost:5000/api/proposals/${proposalId}/respond`, { response });
 }
 
-escalateKycFailure(quoteId: number, optionId: number, additionalInfo?: string): Observable<any> {
-  return this.http.post<any>(`${this.baseUrl}/quotes/escalate-kyc`, {
-    quoteId,
-    optionId,
-    additionalInfo
-  });
+escalateKycFailure(payload: CreateQuotePayload): Observable<any> {
+  return this.http.post<any>(`${this.baseUrl}/quotes/escalate-kyc`, payload);
 }
 getProposalStatusByQuoteNumber(quoteNumber: string) {
   return this.http.get<any>(`http://localhost:5000/api/proposals/quote-number/${quoteNumber}`);

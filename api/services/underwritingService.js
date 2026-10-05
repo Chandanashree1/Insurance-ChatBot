@@ -48,7 +48,7 @@ async function submitProposalForUnderwriting(quoteId, optionId, additionalInfo, 
             {
                 proposalNumber,
                 quoteId,
-                optionId,
+                optionId: optionId || null,
                 additionalInfo: additionalInfo || null,
                 triggerReason,
                 proposalId: { dir: oracledb.BIND_OUT, type: oracledb.NUMBER }
@@ -82,12 +82,14 @@ async function getProposalByQuoteNumber(quoteNumber) {
         const result = await connection.execute(
             `
             SELECT
-                p.PROPOSAL_ID, p.PROPOSAL_NUMBER, p.QUOTE_ID,
+                p.PROPOSAL_ID, p.PROPOSAL_NUMBER, p.QUOTE_ID, p.OPTION_ID,
                 p.PROPOSAL_STATUS, p.UNDERWRITER_NOTE, p.COUNTER_OFFER_PREMIUM,
                 p.CUSTOMER_RESPONSE, p.TRIGGER_REASON, p.SUBMITTED_AT, p.DECIDED_AT,
-                q.QUOTE_NUMBER
+                q.QUOTE_NUMBER,
+                qo.PLAN_NAME, qo.PREMIUM
             FROM PROPOSAL p
             JOIN QUOTE q ON p.QUOTE_ID = q.QUOTE_ID
+            LEFT JOIN QUOTE_OPTION qo ON p.OPTION_ID = qo.OPTION_ID
             WHERE q.QUOTE_NUMBER = :quoteNumber
             `,
             { quoteNumber },
@@ -100,7 +102,6 @@ async function getProposalByQuoteNumber(quoteNumber) {
         if (connection) await connection.close();
     }
 }
-
 
 async function getPendingProposals() {
     let connection;
@@ -118,7 +119,7 @@ async function getPendingProposals() {
             FROM PROPOSAL p
             JOIN QUOTE q ON p.QUOTE_ID = q.QUOTE_ID
             JOIN CUSTOMER c ON q.CUSTOMER_ID = c.CUSTOMER_ID
-            JOIN QUOTE_OPTION qo ON p.OPTION_ID = qo.OPTION_ID
+            LEFT JOIN QUOTE_OPTION qo ON p.OPTION_ID = qo.OPTION_ID
             WHERE p.PROPOSAL_STATUS = 'PENDING'
             ORDER BY p.SUBMITTED_AT ASC
             `,
@@ -177,7 +178,7 @@ async function getProposalByQuoteId(quoteId) {
                 p.CUSTOMER_RESPONSE, p.TRIGGER_REASON, p.SUBMITTED_AT, p.DECIDED_AT,
                 qo.PLAN_NAME, qo.PREMIUM
             FROM PROPOSAL p
-            JOIN QUOTE_OPTION qo ON p.OPTION_ID = qo.OPTION_ID
+            LEFT JOIN QUOTE_OPTION qo ON p.OPTION_ID = qo.OPTION_ID
             WHERE p.QUOTE_ID = :quoteId
             `,
             { quoteId },
@@ -228,7 +229,10 @@ async function respondToCounterOffer(proposalId, response) {
             { autoCommit: false }
         );
 
-        if (response === 'ACCEPTED') {
+        // Only update QUOTE_OPTION.PREMIUM if this proposal actually
+        // has an attached option — KYC-failed proposals may have
+        // OPTION_ID = NULL, since no plan was ever chosen.
+        if (response === 'ACCEPTED' && proposal.OPTION_ID) {
             await connection.execute(
                 `
                 UPDATE QUOTE_OPTION

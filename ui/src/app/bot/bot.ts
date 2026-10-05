@@ -903,7 +903,11 @@ resetStatusLookup(): void {
     }
   }
 
-  hasRatedSession: boolean = false;
+  get tr() {
+  return this.translations[this.selectedLanguage];
+}
+
+hasRatedSession: boolean = false;
 
   toggleOpen(): void {
     if (!this.isOpen) {
@@ -1085,7 +1089,82 @@ resetStatusLookup(): void {
       historySignInPrompt: 'Sign in to view and save your chat history.',
       historyEmpty: 'No past conversations yet.',
       historyLoading: 'Loading...',
-      historyError: 'Could not load history. Please try again.'
+      historyError: 'Could not load history. Please try again.',
+
+            // Support center
+      supportCenterTitle: 'Support Center',
+      supportCenterSubtitle: 'How can we help you?',
+      newChat: 'New Chat',
+      newChatDesc: 'Start a new conversation',
+      historyDesc: 'View your past conversations',
+      myComplaints: 'My Complaints',
+      myComplaintsDesc: 'View and track your complaints',
+      checkStatus: 'Check Status',
+      checkStatusDesc: 'Track your proposal or application status',
+      loginSignIn: 'Login / Sign In',
+      loginSignInDesc: 'Access your account',
+      signedIn: '✓ You are signed in',
+      logout: 'Logout',
+      goBack: 'Go back',
+
+      // Complaints drawer
+      trackComplaints: 'Track your complaints',
+      noComplaintsTitle: 'No complaints yet',
+      noComplaintsText: "You haven't registered any complaints with us yet.",
+      registerComplaintBtn: '+ Register Complaint',
+      signInToViewComplaints: 'Sign in to view complaints',
+      signInToViewComplaintsText: 'Login to view and track your complaints.',
+
+      // Check status
+      trackProposalStatus: 'Track your proposal status',
+      quoteNumber: 'Quote Number',
+      quoteNumberPlaceholder: 'e.g. QT-2026-00112',
+      checking: 'Checking...',
+      checkAnother: 'Check Another',
+      underReview: 'Under Review',
+      proposalWord: 'Proposal',
+      pendingText: 'is still being reviewed by our underwriting team.',
+      approved: 'Approved',
+      approvedDefault: 'Your proposal has been approved. Please return to the chat to complete payment.',
+      counterReceived: 'Counter-Offer Received',
+      revisedPremium: 'Revised premium:',
+      alreadyAccepted: 'You have already accepted this offer.',
+      alreadyRejected: 'You have already rejected this offer.',
+      counterPending: 'Please return to the chat to accept or reject this offer.',
+      declined: 'Declined',
+      declinedDefault: 'Unfortunately, this proposal could not be approved.',
+      errEnterQuote: 'Please enter your quote number.',
+      errNotFound: 'No proposal found for this quote number.',
+
+      // History
+      searchChats: 'Search chats...',
+      tabAll: 'All',
+      tabToday: 'Today',
+
+      // Login / signup
+      signInTitle: 'Sign In',
+      signInSubtitle: 'Access your insurance account',
+      welcomeBack: 'Welcome back!',
+      loginDesc: 'Sign in to view your chat history and manage your complaints.',
+      email: 'Email',
+      password: 'Password',
+      enterEmail: 'Enter your email',
+      enterPassword: 'Enter your password',
+      signInBtn: 'Sign In',
+      signingIn: 'Signing in...',
+      newHere: 'New here?',
+      createAccount: 'Create an account',
+      signUpTitle: 'Sign Up',
+      signUpSubtitle: 'Create your insurance account',
+      signupDesc: 'Sign up to save your conversations and track complaints.',
+      enterName: 'Enter your name',
+      confirmPassword: 'Confirm Password',
+      reenterPassword: 'Re-enter your password',
+      signUpBtn: 'Sign Up',
+      creatingAccount: 'Creating account...',
+      haveAccount: 'Already have an account?',
+      signInLink: 'Sign in',
+      close: 'Close'
     },
 
     ar: {
@@ -1129,7 +1208,81 @@ resetStatusLookup(): void {
       historySignInPrompt: 'سجّل الدخول لعرض سجل محادثاتك وحفظه.',
       historyEmpty: 'لا توجد محادثات سابقة بعد.',
       historyLoading: 'جارٍ التحميل...',
-      historyError: 'تعذر تحميل السجل. يرجى المحاولة مرة أخرى.'
+      historyError: 'تعذر تحميل السجل. يرجى المحاولة مرة أخرى.',
+            // Support center
+      supportCenterTitle: 'مركز الدعم',
+      supportCenterSubtitle: 'كيف يمكننا مساعدتك؟',
+      newChat: 'محادثة جديدة',
+      newChatDesc: 'ابدأ محادثة جديدة',
+      historyDesc: 'عرض محادثاتك السابقة',
+      myComplaints: 'شكاواي',
+      myComplaintsDesc: 'عرض وتتبع شكاواك',
+      checkStatus: 'التحقق من الحالة',
+      checkStatusDesc: 'تتبع حالة طلبك',
+      loginSignIn: 'تسجيل الدخول',
+      loginSignInDesc: 'الوصول إلى حسابك',
+      signedIn: '✓ لقد سجلت الدخول',
+      logout: 'تسجيل الخروج',
+      goBack: 'رجوع',
+
+      // Complaints drawer
+      trackComplaints: 'تتبع شكاواك',
+      noComplaintsTitle: 'لا توجد شكاوى بعد',
+      noComplaintsText: 'لم تقم بتسجيل أي شكاوى لدينا حتى الآن.',
+      registerComplaintBtn: '+ تسجيل شكوى',
+      signInToViewComplaints: 'سجّل الدخول لعرض الشكاوى',
+      signInToViewComplaintsText: 'سجّل الدخول لعرض شكاواك وتتبعها.',
+
+      // Check status
+      trackProposalStatus: 'تتبع حالة طلبك',
+      quoteNumber: 'رقم عرض السعر',
+      quoteNumberPlaceholder: 'مثال: QT-2026-00112',
+      checking: 'جارٍ التحقق...',
+      checkAnother: 'التحقق من طلب آخر',
+      underReview: 'قيد المراجعة',
+      proposalWord: 'الطلب',
+      pendingText: 'قيد المراجعة من قبل فريق الاكتتاب لدينا.',
+      approved: 'تمت الموافقة',
+      approvedDefault: 'تمت الموافقة على طلبك. يرجى العودة إلى المحادثة لإتمام الدفع.',
+      counterReceived: 'تم استلام عرض مضاد',
+      revisedPremium: 'القسط المعدل:',
+      alreadyAccepted: 'لقد قبلت هذا العرض مسبقًا.',
+      alreadyRejected: 'لقد رفضت هذا العرض مسبقًا.',
+      counterPending: 'يرجى العودة إلى المحادثة لقبول هذا العرض أو رفضه.',
+      declined: 'مرفوض',
+      declinedDefault: 'للأسف، لم تتم الموافقة على هذا الطلب.',
+      errEnterQuote: 'يرجى إدخال رقم عرض السعر.',
+      errNotFound: 'لم يتم العثور على طلب بهذا الرقم.',
+
+      // History
+      searchChats: 'ابحث في المحادثات...',
+      tabAll: 'الكل',
+      tabToday: 'اليوم',
+
+      // Login / signup
+      signInTitle: 'تسجيل الدخول',
+      signInSubtitle: 'الوصول إلى حسابك التأميني',
+      welcomeBack: 'مرحبًا بعودتك!',
+      loginDesc: 'سجّل الدخول لعرض سجل محادثاتك وإدارة شكاواك.',
+      email: 'البريد الإلكتروني',
+      password: 'كلمة المرور',
+      enterEmail: 'أدخل بريدك الإلكتروني',
+      enterPassword: 'أدخل كلمة المرور',
+      signInBtn: 'تسجيل الدخول',
+      signingIn: 'جارٍ تسجيل الدخول...',
+      newHere: 'جديد هنا؟',
+      createAccount: 'إنشاء حساب',
+      signUpTitle: 'إنشاء حساب',
+      signUpSubtitle: 'أنشئ حسابك التأميني',
+      signupDesc: 'سجّل لحفظ محادثاتك وتتبع شكاواك.',
+      enterName: 'أدخل اسمك',
+      confirmPassword: 'تأكيد كلمة المرور',
+      reenterPassword: 'أعد إدخال كلمة المرور',
+      signUpBtn: 'إنشاء حساب',
+      creatingAccount: 'جارٍ إنشاء الحساب...',
+      haveAccount: 'لديك حساب بالفعل؟',
+      signInLink: 'تسجيل الدخول',
+      close: 'إغلاق'
     }
   };
 
@@ -1226,14 +1379,50 @@ resetStatusLookup(): void {
 
   // Add near your other session helpers in bot.ts
 
-  private saveLoginState(): void {
-    try {
-      if (this.isLogginIn && this.customerId) {
-        sessionStorage.setItem('botCustomerId', String(this.customerId));
-        sessionStorage.setItem('botIsLoggedIn', 'true');
-      }
-    } catch { /* ignore */ }
-  }
+private saveLoginState(): void {
+  try {
+    if (this.isLogginIn && this.customerId) {
+      sessionStorage.setItem('botCustomerId', String(this.customerId));
+      sessionStorage.setItem('botIsLoggedIn', 'true');
+    }
+  } catch { /* ignore */ }
+}
+
+// ===============================
+// LOGOUT
+// ===============================
+
+logout(): void {
+
+  // Clear login state
+  this.isLogginIn = false;
+  this.customerId = null;
+
+  try {
+    sessionStorage.removeItem('botIsLoggedIn');
+    sessionStorage.removeItem('botCustomerId');
+  } catch { /* ignore */ }
+
+  // Reset any user-specific UI state
+  this.isHistoryOpen = false;
+  this.isMyComplaintsOpen = false;
+  this.isCheckStatusOpen = false;
+  this.historySessions = [];
+
+  // Start a fresh conversation, since the old one was tied to the logged-in user
+  this.messages = [
+    {
+      sender: 'bot',
+      text: this.translations[this.selectedLanguage].welcome,
+      time: new Date()
+    }
+  ];
+  this.sessionId = this.generateSessionId();
+  this.hasUserMessaged = false;
+  this.hasRatedSession = false;
+
+  this.cdr.detectChanges();
+}
 
   private restoreLoginState(): void {
     try {

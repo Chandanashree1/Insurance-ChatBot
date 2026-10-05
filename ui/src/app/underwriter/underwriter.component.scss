@@ -7,6 +7,55 @@
   background: #161922;
 }
 
+.uw-login-lang {
+  position: fixed;
+  top: 20px;
+  right: 24px;      /* stays top-right, in Arabic too */
+  z-index: 10;
+}
+
+.uw-lang-switch {
+  display: flex;
+  gap: 8px;
+
+  .lang-btn {
+    width: auto;            /* overrides the card's full-width button */
+    margin: 0;
+    padding: 6px 14px;
+    background: transparent;
+    border: 1px solid #3b4252;
+    color: #cbd5e1;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &:hover {
+      border-color: #3b82f6;
+    }
+
+    &.active {
+      background: #3b82f6;
+      border-color: #3b82f6;
+      color: #fff;
+    }
+  }
+}
+
+.uw-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.uw-root[dir='rtl'] {
+  text-align: right;
+
+  .uw-header-actions {
+    flex-direction: row-reverse;
+  }
+}
+
 .uw-login-card {
   background: #242936;
   padding: 32px;
@@ -70,6 +119,12 @@
   .approve-btn { background: #22c55e; color: #fff; }
   .counter-btn { background: #3b82f6; color: #fff; }
   .decline-btn { background: #ea4335; color: #fff; }
+}
+
+.no-plan-note {
+  font-size: 12px;
+  color: #8a92a6;
+  font-style: italic;
 }
 
 .reason-badge {

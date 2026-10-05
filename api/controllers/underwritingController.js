@@ -30,6 +30,9 @@ async function getProposalStatusByQuoteNumber(req, res) {
     try {
         const { quoteNumber } = req.params;
 
+        // Prevent browser from caching this — status can change anytime
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+
         const proposal = await getProposalByQuoteNumber(quoteNumber);
 
         if (!proposal) {
@@ -43,6 +46,9 @@ async function getProposalStatusByQuoteNumber(req, res) {
                 proposalNumber: proposal.PROPOSAL_NUMBER,
                 quoteId: proposal.QUOTE_ID,
                 quoteNumber: proposal.QUOTE_NUMBER,
+                optionId: proposal.OPTION_ID,
+                planName: proposal.PLAN_NAME,
+                premium: proposal.PREMIUM,
                 status: proposal.PROPOSAL_STATUS,
                 note: proposal.UNDERWRITER_NOTE,
                 counterOfferPremium: proposal.COUNTER_OFFER_PREMIUM,
@@ -134,10 +140,12 @@ async function decideProposalController(req, res) {
     }
 }
 
-
 async function getProposalStatus(req, res) {
     try {
         const { quoteId } = req.params;
+
+        // Prevent browser from caching this — status can change anytime
+        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
 
         const proposal = await getProposalByQuoteId(quoteId);
 
