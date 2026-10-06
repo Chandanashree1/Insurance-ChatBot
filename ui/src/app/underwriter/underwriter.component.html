@@ -3,18 +3,10 @@
   <!-- Language switcher (reused in both views) -->
   <ng-template #langSwitch>
     <div class="uw-lang-switch">
-      <button
-        type="button"
-        class="lang-btn"
-        [class.active]="selectedLanguage === 'en'"
-        (click)="switchLanguage('en')">
+      <button type="button" class="lang-btn" [class.active]="selectedLanguage === 'en'" (click)="switchLanguage('en')">
         EN
       </button>
-      <button
-        type="button"
-        class="lang-btn"
-        [class.active]="selectedLanguage === 'ar'"
-        (click)="switchLanguage('ar')">
+      <button type="button" class="lang-btn" [class.active]="selectedLanguage === 'ar'" (click)="switchLanguage('ar')">
         العربية
       </button>
     </div>
@@ -60,11 +52,8 @@
       <div class="uw-quote-list">
         <h3>{{ t('proposalsPendingReview') }}</h3>
 
-        <div
-          class="quote-card"
-          *ngFor="let p of proposals"
-          [class.selected]="selectedProposal?.proposalId === p.proposalId"
-          (click)="selectProposal(p)">
+        <div class="quote-card" *ngFor="let p of proposals"
+          [class.selected]="selectedProposal?.proposalId === p.proposalId" (click)="selectProposal(p)">
 
           <div class="quote-card-top">
             <span>{{ p.proposalNumber }}</span>
@@ -73,13 +62,12 @@
 
           <div class="quote-card-name">{{ p.customerName }}</div>
 
-          <div class="quote-card-plan" *ngIf="p.triggerReason !== 'KYC_FAILED'">
+          <div class="quote-card-plan" *ngIf="p.planName">
             {{ p.planName }} — OMR {{ p.premium?.toFixed(3) }}
           </div>
-          <div class="quote-card-no-plan" *ngIf="p.triggerReason === 'KYC_FAILED'">
+          <div class="quote-card-no-plan" *ngIf="!p.planName">
             {{ t('noPlanSelected') }}
           </div>
-
           <div class="quote-card-value">{{ t('vehicleValue') }}: OMR {{ p.vehicleValue }}</div>
         </div>
 
@@ -95,26 +83,20 @@
           <div class="selected-summary">
             <div><b>{{ selectedProposal.proposalNumber }}</b></div>
             <div>{{ selectedProposal.customerName }}</div>
-            <div *ngIf="selectedProposal.triggerReason !== 'KYC_FAILED'">
+            <div *ngIf="selectedProposal.planName">
               {{ selectedProposal.planName }} — OMR {{ selectedProposal.premium?.toFixed(3) }}
             </div>
-            <div *ngIf="selectedProposal.triggerReason === 'KYC_FAILED'" class="no-plan-note">
+            <div *ngIf="!selectedProposal.planName" class="no-plan-note">
               {{ t('noPlanSelected') }}
             </div>
             <div>{{ t('vehicleValue') }}: OMR {{ selectedProposal.vehicleValue }}</div>
           </div>
 
           <label>{{ t('noteOptional') }}</label>
-          <textarea
-            [(ngModel)]="decisionNote"
-            rows="3"
-            [placeholder]="t('notePlaceholder')"></textarea>
+          <textarea [(ngModel)]="decisionNote" rows="3" [placeholder]="t('notePlaceholder')"></textarea>
 
           <label>{{ t('counterOfferLabel') }}</label>
-          <input
-            [(ngModel)]="counterOfferPremium"
-            type="number"
-            [placeholder]="t('counterOfferPlaceholder')">
+          <input [(ngModel)]="counterOfferPremium" type="number" [placeholder]="t('counterOfferPlaceholder')">
 
           <div class="decision-buttons">
             <button class="approve-btn" [disabled]="deciding" (click)="decide('APPROVED')">
