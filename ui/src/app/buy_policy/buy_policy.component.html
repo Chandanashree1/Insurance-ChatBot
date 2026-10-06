@@ -4,7 +4,7 @@
   [attr.dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'"
 >
   <div class="top-strip"></div>
-
+ 
   <!-- ================= HEADER ================= -->
   <div class="header">
     <div class="header-left">
@@ -13,12 +13,12 @@
       @Input() selectedLanguage: 'en' | 'ar' = 'en';  <span></span>
         <span></span>
       </div>
-
+ 
       <div class="title">
         {{ t('insuranceChatbot') }}
       </div>
     </div>
-
+ 
     <div class="header-right">
       <div
         class="lang-badge"
@@ -27,7 +27,7 @@
       >
         EN
       </div>
-
+ 
       <div
         class="lang-ar"
         [class.active]="selectedLanguage === 'ar'"
@@ -37,29 +37,29 @@
       </div>
     </div>
   </div>
-
+ 
   <div class="tab-underline"></div>
-
+ 
   <!-- ================= CHAT BODY ================= -->
   <div class="chat-body" #chatBody>
-
+ 
     <ng-container *ngFor="let msg of messages">
-
+ 
       <!-- ================= PLAIN TEXT ================= -->
       <div
         class="row"
         [ngClass]="msg.from"
         *ngIf="msg.type === 'text'"
       >
-       <div 
-  class="bubble" 
+       <div
+  class="bubble"
   [ngClass]="msg.from"
 >
   {{ msg.translationKey ? t(msg.translationKey) : msg.text }}
 </div>
       </div>
-
-
+ 
+ 
       <!-- ================= TYPING INDICATOR ================= -->
       <div
         class="row bot"
@@ -71,15 +71,15 @@
           <span></span>
         </div>
       </div>
-
-
+ 
+ 
       <!-- ================= QUICK REPLIES ================= -->
       <div
         class="row bot"
         *ngIf="msg.type === 'quick-replies'"
       >
         <div class="quick-replies">
-
+ 
           <button
             class="qr-btn"
             *ngFor="let opt of msg.options"
@@ -88,44 +88,44 @@
           >
             {{ opt.label }}
           </button>
-
+ 
         </div>
       </div>
-
-
+ 
+ 
       <!-- ================= MULKIYA FORM ================= -->
       <div
         class="row bot"
         *ngIf="msg.type === 'mulkiya-form'"
       >
         <div class="form-card">
-
+ 
           <div class="form-card-title">
             {{ t('vehicleDetails') }}
           </div>
-
+ 
           <!-- Plate Number -->
           <label class="form-label">
             {{ t('plateNumber') }}
           </label>
-
+ 
           <input
             class="form-input"
             [(ngModel)]="msg.formData!.plateNumber"
             [disabled]="msg.submitted ?? false"
             [placeholder]="t('enterPlateNumber')"
           />
-
-
+ 
+ 
           <div class="form-row-2">
-
+ 
             <!-- Plate Code -->
             <div class="form-col">
-
+ 
               <label class="form-label">
                 {{ t('plateCode') }}
               </label>
-
+ 
               <select
                 class="form-select"
                 [(ngModel)]="msg.formData!.plateCode"
@@ -138,7 +138,7 @@
                   {{ t('other') }}
                 </option>
               </select>
-
+ 
               <input
                 *ngIf="msg.formData!.plateCode === 'OTHER'"
                 class="form-input form-input-mt"
@@ -146,17 +146,17 @@
                 [disabled]="msg.submitted"
                 [placeholder]="t('enterOtherPlateCode')"
               />
-
+ 
             </div>
-
-
+ 
+ 
             <!-- Plate Type -->
             <div class="form-col">
-
+ 
               <label class="form-label">
                 {{ t('plateType') }}
               </label>
-
+ 
               <select
                 class="form-select"
                 [(ngModel)]="msg.formData!.plateType"
@@ -165,25 +165,25 @@
                 <option value="Oman">
                   {{ t('oman') }}
                 </option>
-
+ 
                 <option value="UAE">
                   {{ t('uae') }}
                 </option>
-
+ 
                 <option value="Qatar">
                   {{ t('qatar') }}
                 </option>
-
+ 
                 <option value="Other">
                   {{ t('other') }}
                 </option>
               </select>
-
+ 
             </div>
-
+ 
           </div>
-
-
+ 
+ 
           <button
             class="form-submit-btn"
             [disabled]="msg.submitted"
@@ -191,106 +191,106 @@
           >
             {{ msg.submitted ? t('submitted') : t('continue') }}
           </button>
-
+ 
         </div>
       </div>
-
-
+ 
+ 
       <!-- ================= VEHICLE SUMMARY ================= -->
       <div
         class="row bot"
         *ngIf="msg.type === 'summary'"
       >
         <div class="quote-summary-card">
-
+ 
           <div class="quote-summary-header">
             {{ t('quoteSummary') }}
           </div>
-
-
+ 
+ 
           <div class="vehicle-banner">
-
+ 
             <div class="vehicle-banner-info">
-
+ 
               <div class="vehicle-name">
                 {{ msg.vehicle.make }}
                 {{ msg.vehicle.model }}
               </div>
-
+ 
               <div class="vehicle-year">
                 {{ msg.vehicle.year }}
               </div>
-
+ 
             </div>
-
+ 
             <div class="vehicle-plate-badge">
               {{ msg.vehicle.plateNumber || '' }}
               {{ msg.vehicle.plateCode || '' }}
             </div>
-
+ 
           </div>
-
-
+ 
+ 
           <div class="summary-grid">
-
+ 
             <div class="summary-cell">
-
+ 
               <span class="summary-label">
                 {{ t('chassisNumber') }}
               </span>
-
+ 
               <span class="summary-value">
                 {{ msg.vehicle.chassisNumber }}
               </span>
-
+ 
             </div>
-
-
+ 
+ 
             <div class="summary-cell">
-
+ 
               <span class="summary-label">
                 {{ t('bodyType') }}
               </span>
-
+ 
               <span class="summary-value">
                 {{ msg.vehicle.bodyType }}
               </span>
-
+ 
             </div>
-
-
+ 
+ 
             <div class="summary-cell">
-
+ 
               <span class="summary-label">
                 {{ t('usageType') }}
               </span>
-
+ 
               <span class="summary-value">
                 {{ msg.vehicle.usageType }}
               </span>
-
+ 
             </div>
-
+ 
           </div>
-
+ 
         </div>
       </div>
-
-
+ 
+ 
       <!-- ================= PLAN OPTION CARDS ================= -->
       <div
         class="row bot"
         *ngIf="msg.type === 'plans'"
       >
         <div class="quote-summary-card">
-
+ 
           <div class="quote-summary-header">
             {{ t('selectPlan') }}
           </div>
-
-
+ 
+ 
           <div class="plan-list">
-
+ 
             <button
               class="plan-row"
               *ngFor="let plan of msg.plans"
@@ -301,46 +301,46 @@
               [disabled]="disabledPlanGroups.has(msg)"
               (click)="onSelectPlan(msg, plan)"
             >
-
+ 
               <span class="plan-check">
                 ✓
               </span>
-
+ 
               <span class="plan-row-info">
-
+ 
                 <span class="plan-row-name">
                   {{ plan.planName }}
                 </span>
-
+ 
               </span>
-
+ 
               <span class="plan-row-price">
                 OMR {{ plan.premium.toFixed(3) }}
               </span>
-
+ 
             </button>
-
+ 
           </div>
-
+ 
         </div>
       </div>
-
-
+ 
+ 
       <!-- ================= PAYMENT SUCCESS MESSAGE ================= -->
       <div
         class="row bot"
         *ngIf="msg.type === 'success'"
       >
         <div class="summary-box success-box">
-
+ 
           <div class="success-badge">
             ✓
           </div>
-
+ 
           <div class="success-title">
             {{ t('paymentSuccessTitle') }}
           </div>
-
+ 
           <div
             class="row-line"
             style="width: 100%;"
@@ -348,12 +348,12 @@
             <span>
               {{ t('policyNo') }}
             </span>
-
+ 
             <b>
               {{ msg.policyNumber }}
             </b>
           </div>
-
+ 
           <a
             class="redirect-btn"
             href="javascript:void(0)"
@@ -361,34 +361,34 @@
           >
             {{ t('viewPolicy') }}
           </a>
-
+ 
         </div>
       </div>
-
-
+ 
+ 
       <!-- ====================================================== -->
       <!-- ================= BUY POLICY WIZARD ================== -->
       <!-- ====================================================== -->
-
+ 
       <div
         class="row bot"
         *ngIf="msg.type === 'policy-form'"
       >
         <div class="policy-card">
-
+ 
           <div class="policy-card-topbar"></div>
-
-
+ 
+ 
           <!-- ================= POLICY HEADER ================= -->
           <div class="policy-card-header">
-
+ 
             <div class="policy-card-title">
               {{ t('motorInsurance') }}
             </div>
-
-
+ 
+ 
             <div class="policy-steps">
-
+ 
               <!-- STEP 1 -->
               <div
                 class="step"
@@ -397,10 +397,10 @@
               >
                 1
               </div>
-
+ 
               <div class="step-line"></div>
-
-
+ 
+ 
               <!-- STEP 2 -->
               <div
                 class="step"
@@ -409,10 +409,10 @@
               >
                 2
               </div>
-
+ 
               <div class="step-line"></div>
-
-
+ 
+ 
               <!-- STEP 3 -->
               <div
                 class="step"
@@ -420,51 +420,51 @@
               >
                 3
               </div>
-
+ 
             </div>
-
+ 
           </div>
-
-
+ 
+ 
           <!-- ================================================== -->
           <!-- ====================== STEP 1 ==================== -->
           <!-- ================================================== -->
-
+ 
           <ng-container *ngIf="(msg.step || 1) === 1">
-
+ 
             <div class="policy-card-subtitle">
               {{ t('buyPolicy') }}
             </div>
-
-
+ 
+ 
             <!-- Mobile Number -->
             <label class="form-label">
-
+ 
               {{ t('mobileNumber') }}
-
+ 
               <span class="req">
                 *
               </span>
-
+ 
             </label>
-
-
+ 
+ 
             <input
               class="form-input"
               [(ngModel)]="msg.formData!.mobileNumber"
               [disabled]="msg.submitted"
               [placeholder]="t('enterMobileNumber')"
             />
-
-
+ 
+ 
             <!-- Mulkiya -->
             <div class="section-label">
               {{ t('mulkiya') }}
             </div>
-
-
+ 
+ 
             <div class="method-tabs">
-
+ 
               <button
                 type="button"
                 class="method-tab"
@@ -476,8 +476,8 @@
               >
                 {{ t('upload') }}
               </button>
-
-
+ 
+ 
               <button
                 type="button"
                 class="method-tab"
@@ -489,8 +489,8 @@
               >
                 {{ t('scan') }}
               </button>
-
-
+ 
+ 
               <button
                 type="button"
                 class="method-tab"
@@ -502,87 +502,87 @@
               >
                 {{ t('enterDetails') }}
               </button>
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================= MULKIYA ENTER ================= -->
             <ng-container
               *ngIf="msg.formData!.mulkiyaMethod === 'enter'"
             >
-
+ 
               <div class="form-row-2">
-
+ 
                 <!-- Plate Number -->
                 <div class="form-col">
-
+ 
                   <label class="form-label">
-
+ 
                     {{ t('plateNumber') }}
-
+ 
                     <span class="req">
                       *
                     </span>
-
+ 
                   </label>
-
-
+ 
+ 
                   <input
                     class="form-input"
                     [(ngModel)]="msg.formData!.plateNumber"
                     [disabled]="msg.submitted"
                     [placeholder]="t('enterPlateNumber')"
                   />
-
+ 
                 </div>
-
-
+ 
+ 
                 <!-- Plate Code -->
                 <div class="form-col">
-
+ 
                   <label class="form-label">
-
+ 
                     {{ t('plateCode') }}
-
+ 
                     <span class="req">
                       *
                     </span>
-
+ 
                   </label>
-
-
+ 
+ 
                   <select
                     class="form-select"
                     [(ngModel)]="msg.formData!.plateCode"
                     [disabled]="msg.submitted"
                   >
-
+ 
                     <option
                       value=""
                       disabled
                     >
                       {{ t('selectOption') }}
                     </option>
-
+ 
                     <option value="M">
                       M
                     </option>
-
+ 
                     <option value="A">
                       A
                     </option>
-
+ 
                     <option value="25">
                       25
                     </option>
-
+ 
                     <option value="OTHER">
                       {{ t('other') }}
                     </option>
-
+ 
                   </select>
-
-
+ 
+ 
                   <input
                     *ngIf="msg.formData!.plateCode === 'OTHER'"
                     class="form-input form-input-mt"
@@ -590,59 +590,59 @@
                     [disabled]="msg.submitted"
                     [placeholder]="t('enterOtherPlateCode')"
                   />
-
+ 
                 </div>
-
+ 
               </div>
-
-
+ 
+ 
               <!-- Plate Type -->
               <label class="form-label">
-
+ 
                 {{ t('plateType') }}
-
+ 
                 <span class="req">
                   *
                 </span>
-
+ 
               </label>
-
-
+ 
+ 
               <select
                 class="form-select"
                 [(ngModel)]="msg.formData!.plateType"
                 [disabled]="msg.submitted"
               >
-
+ 
                 <option value="Oman">
                   {{ t('oman') }}
                 </option>
-
+ 
                 <option value="UAE">
                   {{ t('uae') }}
                 </option>
-
+ 
                 <option value="Qatar">
                   {{ t('qatar') }}
                 </option>
-
+ 
                 <option value="Other">
                   {{ t('other') }}
                 </option>
-
+ 
               </select>
-
+ 
             </ng-container>
-
-
+ 
+ 
             <!-- ================= DRIVING LICENSE ================= -->
             <div class="section-label">
               {{ t('drivingLicense') }}
             </div>
-
-
+ 
+ 
             <div class="method-tabs">
-
+ 
               <button
                 type="button"
                 class="method-tab"
@@ -654,8 +654,8 @@
               >
                 {{ t('upload') }}
               </button>
-
-
+ 
+ 
               <button
                 type="button"
                 class="method-tab"
@@ -667,8 +667,8 @@
               >
                 {{ t('scan') }}
               </button>
-
-
+ 
+ 
               <button
                 type="button"
                 class="method-tab"
@@ -680,63 +680,63 @@
               >
                 {{ t('enterDetails') }}
               </button>
-
+ 
             </div>
-
-
+ 
+ 
             <!-- License details -->
             <ng-container
               *ngIf="msg.formData!.licenseMethod === 'enter'"
             >
-
+ 
               <label class="form-label">
-
+ 
                 {{ t('civilIdLicense') }}
-
+ 
                 <span class="req">
                   *
                 </span>
-
+ 
               </label>
-
-
+ 
+ 
               <input
                 class="form-input"
                 [(ngModel)]="msg.formData!.civilIdLicenseNo"
                 [disabled]="msg.submitted"
                 [placeholder]="t('enterCivilId')"
               />
-
-
+ 
+ 
               <label class="form-label">
-
+ 
                 {{ t('fullName') }}
-
+ 
                 <span class="req">
                   *
                 </span>
-
+ 
               </label>
-
-
+ 
+ 
               <input
                 class="form-input"
                 [(ngModel)]="msg.formData!.fullName"
                 [disabled]="msg.submitted"
                 [placeholder]="t('enterFullName')"
               />
-
+ 
             </ng-container>
-
-
+ 
+ 
             <!-- ================= PRODUCT ================= -->
             <div class="section-label">
               {{ t('selectProduct') }}
             </div>
-
-
+ 
+ 
             <div class="product-row">
-
+ 
               <button
                 type="button"
                 class="product-btn"
@@ -746,16 +746,16 @@
                 [disabled]="msg.submitted"
                 (click)="selectProduct(msg, 'COMPREHENSIVE')"
               >
-
+ 
                 <span class="product-check">
                   ✓
                 </span>
-
+ 
                 {{ t('comprehensive') }}
-
+ 
               </button>
-
-
+ 
+ 
               <button
                 type="button"
                 class="product-btn"
@@ -765,18 +765,18 @@
                 [disabled]="msg.submitted"
                 (click)="selectProduct(msg, 'THIRD_PARTY')"
               >
-
+ 
                 <span class="product-check">
                   ✓
                 </span>
-
+ 
                 {{ t('thirdParty') }}
-
+ 
               </button>
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================= VEHICLE VALUE ================= -->
             <div
               class="form-field"
@@ -784,18 +784,18 @@
                 msg.formData!.productId === 'COMPREHENSIVE'
               "
             >
-
+ 
               <label class="form-label">
-
+ 
                 {{ t('vehicleValue') }}
-
+ 
                 <span class="req">
                   *
                 </span>
-
+ 
               </label>
-
-
+ 
+ 
               <input
                 class="form-input"
                 type="number"
@@ -803,48 +803,48 @@
                 [disabled]="msg.submitted"
                 [placeholder]="t('enterVehicleValue')"
               />
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================= KYC VERIFYING ================= -->
             <div
               class="inline-notice kyc-verifying"
               *ngIf="kycVerifying"
             >
-
+ 
               <span class="kyc-spinner"></span>
-
+ 
               {{ t('verifyingIdentity') }}
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================= KYC VERIFIED ================= -->
             <div
               class="inline-notice kyc-verified"
               *ngIf="kycVerified"
             >
-
+ 
               ✓ {{ t('kycVerified') }}
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================= KYC FAILED ================= -->
             <div
               class="inline-notice kyc-failed"
               *ngIf="kycFailedReason"
             >
-
+ 
               ✗ {{ t('kycFailed') }}
-
+ 
               —
               {{ kycFailedReason }}
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================= FORM NOTICE ================= -->
             <div
               class="inline-notice"
@@ -852,11 +852,11 @@
             >
               {{ formNotice }}
             </div>
-
-
+ 
+ 
             <!-- ================= FORM ACTIONS ================= -->
             <div class="form-actions-row">
-
+ 
               <button
                 type="button"
                 class="form-cancel-btn-policy"
@@ -865,8 +865,8 @@
               >
                 {{ t('cancel') }}
               </button>
-
-
+ 
+ 
               <button
                 class="get-quote-btn"
                 [disabled]="msg.submitted"
@@ -878,131 +878,131 @@
                     : t('getQuote')
                 }}
               </button>
-
+ 
             </div>
-
+ 
           </ng-container>
-
-
+ 
+ 
           <!-- ================================================== -->
           <!-- ====================== STEP 2 ==================== -->
           <!-- ================================================== -->
-
+ 
           <ng-container *ngIf="msg.step === 2">
-
+ 
             <div class="policy-card-subtitle">
               {{ t('quoteSummary') }}
             </div>
-
-
+ 
+ 
             <!-- Vehicle Banner -->
             <div class="vehicle-banner">
-
+ 
               <div class="vehicle-banner-info">
-
+ 
                 <div class="vehicle-name">
                   {{ msg.vehicle?.make }}
                   {{ msg.vehicle?.model }}
                 </div>
-
+ 
                 <div class="vehicle-year">
                   {{ msg.vehicle?.year }}
                 </div>
-
+ 
               </div>
-
-
+ 
+ 
               <div class="vehicle-plate-badge">
                 {{ msg.vehicle?.plateNumber }}
                 {{ msg.vehicle?.plateCode }}
               </div>
-
+ 
             </div>
-
-
+ 
+ 
             <!-- Quote Summary -->
             <div class="summary-grid">
-
+ 
               <div class="summary-cell">
-
+ 
                 <span class="summary-label">
                   {{ t('quoteNo') }}
                 </span>
-
+ 
                 <span class="summary-value">
                   {{ msg.quoteNumber }}
                 </span>
-
+ 
               </div>
-
-
+ 
+ 
               <div class="summary-cell">
-
+ 
                 <span class="summary-label">
                   {{ t('chassisNumber') }}
                 </span>
-
+ 
                 <span class="summary-value">
                   {{ msg.vehicle?.chassisNumber }}
                 </span>
-
+ 
               </div>
-
-
+ 
+ 
               <div class="summary-cell">
-
+ 
                 <span class="summary-label">
                   {{ t('bodyType') }}
                 </span>
-
+ 
                 <span class="summary-value">
                   {{ msg.vehicle?.bodyType }}
                 </span>
-
+ 
               </div>
-
-
+ 
+ 
               <div class="summary-cell">
-
+ 
                 <span class="summary-label">
                   {{ t('usageType') }}
                 </span>
-
+ 
                 <span class="summary-value">
                   {{ msg.vehicle?.usageType }}
                 </span>
-
+ 
               </div>
-
-
+ 
+ 
               <div class="summary-cell">
-
+ 
                 <span class="summary-label">
                   {{ t('validFrom') }}
                 </span>
-
+ 
                 <span class="summary-value">
                   {{ msg.coverFrom | date:'d MMM y' }}
                 </span>
-
+ 
               </div>
-
-
+ 
+ 
               <div class="summary-cell">
-
+ 
                 <span class="summary-label">
                   {{ t('validTo') }}
                 </span>
-
+ 
                 <span class="summary-value">
                   {{ msg.coverTo | date:'d MMM y' }}
                 </span>
-
+ 
               </div>
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================= PLAN SELECTION ================= -->
             <ng-container
               *ngIf="
@@ -1014,14 +1014,14 @@
                 )
               "
             >
-
+ 
               <div class="section-label">
                 {{ t('selectPlan') }}
               </div>
-
-
+ 
+ 
               <div class="plan-list">
-
+ 
                 <button
                   class="plan-row"
                   *ngFor="let plan of msg.plans"
@@ -1030,32 +1030,32 @@
                   "
                   (click)="selectPlanForForm(msg, plan)"
                 >
-
+ 
                   <span class="plan-check">
                     ✓
                   </span>
-
-
+ 
+ 
                   <span class="plan-row-info">
-
+ 
                     <span class="plan-row-name">
                       {{ plan.planName }}
                     </span>
-
+ 
                   </span>
-
-
+ 
+ 
                   <span class="plan-row-price">
                     OMR {{ plan.premium.toFixed(3) }}
                   </span>
-
+ 
                 </button>
-
+ 
               </div>
-
+ 
             </ng-container>
-
-
+ 
+ 
             <!-- ================= FORM NOTICE ================= -->
             <div
               class="inline-notice"
@@ -1063,32 +1063,32 @@
             >
               {{ formNotice }}
             </div>
-
-
+ 
+ 
             <!-- ================================================= -->
             <!-- ADDITIONAL INFO REQUIRED -->
             <!-- ================================================= -->
-
+ 
             <div
               class="additional-info-form"
               *ngIf="msg.needsAdditionalInfo"
             >
-
+ 
               <div class="uw-notice-icon">
                 📋
               </div>
-
-
+ 
+ 
               <div class="uw-notice-title">
                 {{ t('additionalInfoRequired') }}
               </div>
-
-
+ 
+ 
               <div class="uw-notice-sub">
                 {{ t('additionalInfoDescription') }}
               </div>
-
-
+ 
+ 
               <textarea
                 class="form-input"
                 rows="4"
@@ -1096,29 +1096,29 @@
                 [disabled]="msg.submitted"
                 [placeholder]="t('additionalInfoPlaceholder')"
               ></textarea>
-
-
+ 
+ 
               <button
                 class="pay-btn"
                 [disabled]="msg.submitted"
                 (click)="submitAdditionalInfo(msg)"
               >
-
+ 
                 {{
                   msg.submitted
                     ? t('submitting')
                     : t('submitForReview')
                 }}
-
+ 
               </button>
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================================================= -->
             <!-- UNDERWRITING PENDING -->
             <!-- ================================================= -->
-
+ 
             <div
               class="underwriting-pending"
               *ngIf="
@@ -1126,72 +1126,72 @@
                 msg.proposalStatus === 'PENDING'
               "
             >
-
+ 
               <div class="uw-pending-icon">
                 ⏳
               </div>
-
-
+ 
+ 
               <div class="uw-pending-title">
                 {{ t('submittedForReview') }}
               </div>
-
-
+ 
+ 
               <div class="uw-pending-sub">
-
+ 
                 {{ t('proposalCheckMessage') }}
-
+ 
                 <br />
-
+ 
                 {{ msg.proposalNumber }}
-
+ 
               </div>
-
-
+ 
+ 
               <button
                 class="check-status-btn"
                 [disabled]="msg.checkingStatus"
                 (click)="checkProposalStatus(msg)"
               >
-
+ 
                 {{
                   msg.checkingStatus
                     ? t('checking')
                     : t('checkStatus')
                 }}
-
+ 
               </button>
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================================================= -->
             <!-- APPROVED -->
             <!-- ================================================= -->
-
+ 
             <div
               class="uw-outcome approved"
               *ngIf="msg.proposalStatus === 'APPROVED'"
             >
-
+ 
               <div class="uw-notice-icon">
                 ✅
               </div>
-
-
+ 
+ 
               <div class="uw-notice-title">
                 {{ t('proposalApproved') }}
               </div>
-
-
+ 
+ 
               <div
                 class="uw-notice-sub"
                 *ngIf="msg.underwriterNote"
               >
                 {{ msg.underwriterNote }}
               </div>
-
-
+ 
+ 
               <button
                 class="pay-btn"
                 [disabled]="msg.submitted"
@@ -1199,50 +1199,50 @@
               >
                 {{ t('payNow') }}
               </button>
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================================================= -->
             <!-- COUNTER OFFER -->
             <!-- ================================================= -->
-
+ 
             <div
               class="uw-outcome counter"
               *ngIf="msg.proposalStatus === 'COUNTER_OFFER'"
             >
-
+ 
               <div class="uw-notice-icon">
                 💬
               </div>
-
-
+ 
+ 
               <div class="uw-notice-title">
                 {{ t('counterOfferReceived') }}
               </div>
-
-
+ 
+ 
               <div class="uw-notice-sub">
-
+ 
                 {{ t('counterOfferMessage') }}
-
+ 
                 <b>
                   OMR {{ msg.counterOfferPremium?.toFixed(3) }}
                 </b>.
-
+ 
               </div>
-
-
+ 
+ 
               <div
                 class="uw-notice-sub"
                 *ngIf="msg.underwriterNote"
               >
                 {{ msg.underwriterNote }}
               </div>
-
-
+ 
+ 
               <div class="decision-buttons">
-
+ 
                 <button
                   class="approve-btn"
                   (click)="
@@ -1254,8 +1254,8 @@
                 >
                   {{ t('accept') }}
                 </button>
-
-
+ 
+ 
                 <button
                   class="decline-btn"
                   (click)="
@@ -1267,16 +1267,16 @@
                 >
                   {{ t('reject') }}
                 </button>
-
+ 
               </div>
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================================================= -->
             <!-- COUNTER OFFER ACCEPTED -->
             <!-- ================================================= -->
-
+ 
             <div
               class="uw-outcome approved"
               *ngIf="
@@ -1284,29 +1284,29 @@
                 'ACCEPTED_PROCEED'
               "
             >
-
+ 
               <div class="uw-notice-icon">
                 ✅
               </div>
-
-
+ 
+ 
               <div class="uw-notice-title">
                 {{ t('counterOfferAccepted') }}
               </div>
-
-
+ 
+ 
               <div class="uw-notice-sub">
-
+ 
                 {{ t('premiumNow') }}
-
+ 
                 <b>
                   OMR
                   {{ msg.selectedOption?.premium?.toFixed(3) }}
                 </b>.
-
+ 
               </div>
-
-
+ 
+ 
               <button
                 class="pay-btn"
                 [disabled]="msg.submitted"
@@ -1314,14 +1314,14 @@
               >
                 {{ t('payNow') }}
               </button>
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================================================= -->
             <!-- COUNTER OFFER REJECTED BY CUSTOMER -->
             <!-- ================================================= -->
-
+ 
             <div
               class="uw-outcome declined"
               *ngIf="
@@ -1329,28 +1329,28 @@
                 'REJECTED_BY_CUSTOMER'
               "
             >
-
+ 
               <div class="uw-notice-icon">
                 ✗
               </div>
-
-
+ 
+ 
               <div class="uw-notice-title">
                 {{ t('offerDeclined') }}
               </div>
-
-
+ 
+ 
               <div class="uw-notice-sub">
                 {{ t('declinedMessage') }}
               </div>
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================================================= -->
             <!-- DECLINED BY UNDERWRITER -->
             <!-- ================================================= -->
-
+ 
             <div
               class="uw-outcome declined"
               *ngIf="
@@ -1358,39 +1358,39 @@
                 'DECLINED'
               "
             >
-
+ 
               <div class="uw-notice-icon">
                 ✗
               </div>
-
-
+ 
+ 
               <div class="uw-notice-title">
                 {{ t('proposalDeclined') }}
               </div>
-
-
+ 
+ 
               <div
                 class="uw-notice-sub"
                 *ngIf="msg.underwriterNote"
               >
                 {{ msg.underwriterNote }}
               </div>
-
-
+ 
+ 
               <div
                 class="uw-notice-sub"
                 *ngIf="!msg.underwriterNote"
               >
                 {{ t('defaultDeclinedMessage') }}
               </div>
-
+ 
             </div>
-
-
+ 
+ 
             <!-- ================================================= -->
             <!-- NORMAL STP PAY NOW -->
             <!-- ================================================= -->
-
+ 
             <button
               type="button"
               class="pay-btn"
@@ -1408,49 +1408,49 @@
             >
               {{ t('payNow') }}
             </button>
-
+ 
           </ng-container>
-
-
+ 
+ 
           <!-- ================================================== -->
           <!-- ====================== STEP 3 ==================== -->
           <!-- ================================================== -->
-
+ 
           <ng-container *ngIf="msg.step === 3">
-
+ 
             <div class="success-badge">
               ✓
             </div>
-
-
+ 
+ 
             <div
               class="policy-card-subtitle"
               style="text-align: center;"
             >
               {{ t('paymentSuccessful') }}
             </div>
-
-
+ 
+ 
             <div
               class="summary-grid"
               style="margin-top: 12px;"
             >
-
+ 
               <div class="summary-cell">
-
+ 
                 <span class="summary-label">
                   {{ t('policyNo') }}
                 </span>
-
+ 
                 <span class="summary-value">
                   {{ msg.policyNumber }}
                 </span>
-
+ 
               </div>
-
+ 
             </div>
-
-
+ 
+ 
             <a
               class="redirect-btn"
               href="javascript:void(0)"
@@ -1458,43 +1458,44 @@
             >
               {{ t('viewPolicy') }}
             </a>
-
+ 
           </ng-container>
-
+ 
         </div>
       </div>
-
+ 
     </ng-container>
-
+ 
   </div>
-
-
+ 
+ 
   <!-- ================= INPUT BAR ================= -->
   <div class="input-bar">
-
+ 
     <button
       class="icon-btn"
       [title]="t('home')"
     >
       ⌂
     </button>
-
-
+ 
+ 
     <input
       class="text-input"
       [(ngModel)]="inputValue"
       (keydown.enter)="onSend()"
       [placeholder]="t('typeHere')"
     />
-
-
+ 
+ 
     <button
       class="send-btn"
       (click)="onSend()"
     >
       ➤
     </button>
-
+ 
   </div>
-
+ 
 </div>
+ 

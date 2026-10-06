@@ -6,14 +6,14 @@ import { QuoteService, QuoteOption, CreateQuoteResponse } from '../services/quot
 import { Router } from '@angular/router';
 import {translations,TranslationKey} from './translations';
 // import { KycService } from '../services/kyc.service';
-
-
+ 
+ 
 interface SelectOptionResponse {
   success: boolean;
   message: string;
   data: any;
 }
-
+ 
 interface PaymentResponse {
   success: boolean;
   message: string;
@@ -24,7 +24,7 @@ interface PaymentResponse {
     selectedOption?: any;
   };
 }
-
+ 
 interface PolicyResponse {
   success: boolean;
   message: string;
@@ -33,7 +33,7 @@ interface PolicyResponse {
     quote: any;
   };
 }
-
+ 
 /** Single shared shape for both the Mulkiya-only form and the full Buy-Policy form. */
 interface ChatFormData {
   mobileNumber?: string;
@@ -48,7 +48,7 @@ interface ChatFormData {
   productId?: string;
   vehicleValue?: number;
 }
-
+ 
 interface FlowData {
   mobileNumber?: string;
   plateNumber?: string;
@@ -58,7 +58,7 @@ interface FlowData {
   productId?: string;
   vehicleValue?: number;
 }
-
+ 
 type Stage =
   | 'ASK_MOBILE'
   | 'ASK_VEHICLE_DETAILS'
@@ -72,22 +72,22 @@ type Stage =
   | 'PLAN_SELECTION'
   | 'PAYMENT'
   | 'DONE';
-
+ 
 interface ChatMessage {
   from: 'bot' | 'user';
   type: 'text' | 'typing' | 'quick-replies' | 'plans' | 'summary' | 'success' | 'mulkiya-form' | 'policy-form';
-
+ 
   text?: string;
-
+ 
   // ADD THIS
   translationKey?: keyof typeof translations.en;
-
+ 
   options?: {
     label: string;
     value: string;
     translationKey?: keyof typeof translations.en;
   }[];
-
+ 
   vehicle?: any;
   plans?: QuoteOption[];
   policyNumber?: string;
@@ -117,11 +117,11 @@ interface ChatMessage {
   styleUrls: ['./buy_policy.component.scss']
 })
 export class BuyPolicyChatComponent implements AfterViewChecked, OnInit {
-
+ 
   @Input() embedded: boolean = false;
-
+ 
   @ViewChild('chatBody') chatBodyRef!: ElementRef<HTMLDivElement>;
-
+ 
   messages: ChatMessage[] = [];
   inputValue = '';
   stage: Stage = 'ASK_MOBILE';
@@ -131,18 +131,18 @@ export class BuyPolicyChatComponent implements AfterViewChecked, OnInit {
   formNotice = '';
   disabledQuickReplyGroups = new Set<ChatMessage>();
   disabledPlanGroups = new Set<ChatMessage>();
-
+ 
 kycVerifying = false;
 kycVerified = false;
 kycFailedReason: string | null = null;
-
+ 
   constructor(
     private quoteService: QuoteService,
     private router: Router,
     private cdr: ChangeDetectorRef
     // private kycService: KycService
   ) {}
-
+ 
   goToPolicyPage(policyNumber?: string): void {
   if (!policyNumber) return;
   this.saveChatHistory();
@@ -150,58 +150,58 @@ kycFailedReason: string | null = null;
 }
     translations = translations;
 @Input() selectedLanguage: 'en' | 'ar' = 'en';
-
+ 
 // translations = {
 //   en: {
 //     insuranceChatbot: 'Insurance Chatbot',
 //     arabic: 'العربية',
-
+ 
 //     motorInsurance: 'MOTOR INSURANCE',
 //     buyPolicy: 'Buy Policy',
-
+ 
 //     mobileNumber: 'Mobile Number',
 //     enterMobileNumber: 'Enter mobile number',
-
+ 
 //     mulkiya: 'Mulkiya',
 //     upload: 'Upload',
 //     scan: 'Scan',
 //     enterDetails: 'Enter Details',
-
+ 
 //     plateNumber: 'Plate Number',
 //     enterPlateNumber: 'Enter your Plate Number',
-
+ 
 //     plateCode: 'Plate Code',
 //     selectOption: 'Select an option',
 //     other: 'Other',
 //     enterPlateCode: 'Enter plate code',
-
+ 
 //     plateType: 'Plate Type',
 //     oman: 'Oman',
 //     uae: 'UAE',
 //     qatar: 'Qatar',
-
+ 
 //     drivingLicense: 'Driving License',
 //     civilIdLicense: 'Civil ID / License No',
 //     enterCivilId: 'Enter your Civil ID',
-
+ 
 //     fullName: 'Full Name',
 //     enterFullName: 'Enter your full name',
-
+ 
 //     selectProduct: 'Select Product',
 //     comprehensive: 'Comprehensive Insurance',
 //     thirdParty: 'Third Party Insurance',
-
+ 
 //     vehicleValue: 'Vehicle Value (OMR)',
 //     enterVehicleValue: 'Enter estimated vehicle value',
-
+ 
 //     cancel: 'Cancel',
 //     getQuote: 'Get Quote',
 //     generating: 'Generating...',
-
+ 
 //     verifyingIdentity: 'Verifying identity…',
 //     kycVerified: 'KYC Verified',
 //     kycFailed: 'KYC Failed',
-
+ 
 //     quoteSummary: 'Quote Summary',
 //     quoteNo: 'Quote No',
 //     chassisNumber: 'Chassis Number',
@@ -210,17 +210,17 @@ kycFailedReason: string | null = null;
 //     validFrom: 'Valid From',
 //     validTo: 'Valid To',
 //     selectPlan: 'Select Plan',
-
+ 
 //     payNow: 'Pay Now',
-
+ 
 //     paymentSuccessful: 'Your premium payment is successful. Thank you!',
 //     policyNo: 'Policy No',
 //     viewPolicy: 'View Policy & Download Documents →',
-
+ 
 //     submittedForReview: 'Submitted for Underwriting Review',
 //     checkStatus: 'Check Status',
 //     checking: 'Checking...',
-
+ 
 //     proposalApproved: 'Proposal Approved',
 //     counterOfferReceived: 'Counter-Offer Received',
 //     accept: 'Accept',
@@ -229,60 +229,60 @@ kycFailedReason: string | null = null;
 //     offerDeclined: 'Offer Declined',
 //     proposalDeclined: 'Proposal Declined',
 //     enterOtherPlateCode: 'Enter other plate code',
-
-    
+ 
+   
 //   },
-
+ 
 //   ar: {
 //     insuranceChatbot: 'روبوت التأمين',
 //     arabic: 'العربية',
-
+ 
 //     motorInsurance: 'تأمين المركبات',
 //     buyPolicy: 'شراء وثيقة تأمين',
-
+ 
 //     mobileNumber: 'رقم الهاتف المحمول',
 //     enterMobileNumber: 'أدخل رقم الهاتف المحمول',
-
+ 
 //     mulkiya: 'الملكية',
 //     upload: 'رفع',
 //     scan: 'مسح',
 //     enterDetails: 'إدخال التفاصيل',
-
+ 
 //     plateNumber: 'رقم اللوحة',
 //     enterPlateNumber: 'أدخل رقم اللوحة',
-
+ 
 //     plateCode: 'رمز اللوحة',
 //     selectOption: 'اختر خيارًا',
 //     other: 'أخرى',
 //     enterPlateCode: 'أدخل رمز اللوحة',
-
+ 
 //     plateType: 'نوع اللوحة',
 //     oman: 'عُمان',
 //     uae: 'الإمارات',
 //     qatar: 'قطر',
-
+ 
 //     drivingLicense: 'رخصة القيادة',
 //     civilIdLicense: 'رقم البطاقة المدنية / الرخصة',
 //     enterCivilId: 'أدخل رقم البطاقة المدنية',
-
+ 
 //     fullName: 'الاسم الكامل',
 //     enterFullName: 'أدخل اسمك الكامل',
-
+ 
 //     selectProduct: 'اختر نوع التأمين',
 //     comprehensive: 'تأمين شامل',
 //     thirdParty: 'تأمين ضد الغير',
-
+ 
 //     vehicleValue: 'قيمة المركبة (ريال عماني)',
 //     enterVehicleValue: 'أدخل القيمة التقديرية للمركبة',
-
+ 
 //     cancel: 'إلغاء',
 //     getQuote: 'احصل على عرض سعر',
 //     generating: 'جارٍ إنشاء العرض...',
-
+ 
 //     verifyingIdentity: 'جارٍ التحقق من الهوية…',
 //     kycVerified: 'تم التحقق من الهوية',
 //     kycFailed: 'فشل التحقق من الهوية',
-
+ 
 //     quoteSummary: 'ملخص عرض السعر',
 //     quoteNo: 'رقم العرض',
 //     chassisNumber: 'رقم الهيكل',
@@ -291,17 +291,17 @@ kycFailedReason: string | null = null;
 //     validFrom: 'صالح من',
 //     validTo: 'صالح حتى',
 //     selectPlan: 'اختر الخطة',
-
+ 
 //     payNow: 'ادفع الآن',
-
+ 
 //     paymentSuccessful: 'تم دفع قسط التأمين بنجاح. شكرًا لك!',
 //     policyNo: 'رقم الوثيقة',
 //     viewPolicy: 'عرض الوثيقة وتنزيل المستندات →',
-
+ 
 //     submittedForReview: 'تم إرسال الطلب للمراجعة التأمينية',
 //     checkStatus: 'تحقق من الحالة',
 //     checking: 'جارٍ التحقق...',
-
+ 
 //     proposalApproved: 'تمت الموافقة على الطلب',
 //     counterOfferReceived: 'تم استلام عرض مضاد',
 //     accept: 'قبول',
@@ -312,7 +312,7 @@ kycFailedReason: string | null = null;
 //     enterOtherPlateCode: 'أدخل رمز اللوحة الآخر',
 //   }
 // };
-
+ 
 t(key: keyof typeof translations.en): string {
   return this.translations[this.selectedLanguage][key];
 }
@@ -320,8 +320,8 @@ switchLanguage(language: 'en' | 'ar'): void {
   this.selectedLanguage = language;
   this.cdr.markForCheck();
 }
-
-
+ 
+ 
   // ==================================================
   // CHAT HISTORY SAVE / RESTORE
   // ==================================================
@@ -333,20 +333,20 @@ switchLanguage(language: 'en' | 'ar'): void {
   // a fresh start, even if stale history happens to be
   // sitting in sessionStorage.
   // ==================================================
-
+ 
   private saveChatHistory(): void {
     try {
       sessionStorage.setItem('chatHistory', JSON.stringify(this.messages));
       sessionStorage.setItem('chatStage', this.stage);
     } catch { /* storage unavailable, ignore */ }
   }
-  
+ 
 private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
   try {
     const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
     const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
     const isFresh = shouldRestore && (Date.now() - setAt) < 30000; // valid for 30s only
-
+ 
     if (!isFresh) {
       // stale, expired, or never set — wipe everything so it can never resurrect later
       sessionStorage.removeItem('chatHistory');
@@ -355,7 +355,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       sessionStorage.removeItem('restoreChatOnLoadTime');
       return null;
     }
-
+ 
     const raw = sessionStorage.getItem('chatHistory');
     const stage = sessionStorage.getItem('chatStage') as Stage | null;
     if (!raw || !stage) return null;
@@ -364,7 +364,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
     return null;
   }
 }
-
+ 
   ngOnInit(): void {
     const saved = this.loadChatHistory();
     if (saved) {
@@ -376,24 +376,24 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       sessionStorage.removeItem('restoreChatOnLoad');
       return;
     }
-
+ 
     // No restore flag → always a genuinely fresh start.
     // Clear any stale leftovers so they can never silently resurrect later.
     sessionStorage.removeItem('chatHistory');
     sessionStorage.removeItem('chatStage');
     sessionStorage.removeItem('restoreChatOnLoad');
-
+ 
     if (this.embedded) {
       // Already routed here by the main chatbot — skip our own
       // greeting/"type buy policy" onboarding and show the form directly.
       this.startBuyPolicyFlow();
     } else {
-      this.pushBot('text', { 
+      this.pushBot('text', {
   translationKey: 'helloMessage'
 });
     }
   }
-
+ 
   private emptyPolicyForm(): ChatFormData {
     return {
       mobileNumber: '',
@@ -409,18 +409,18 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       vehicleValue: 0
     };
   }
-
+ 
   ngAfterViewChecked(): void {
     this.scrollToBottom();
   }
-
+ 
   private scrollToBottom(): void {
     try {
       const el = this.chatBodyRef.nativeElement;
       el.scrollTop = el.scrollHeight;
     } catch { /* noop */ }
   }
-
+ 
   private pushBot(type: ChatMessage['type'], msg: Partial<ChatMessage>): ChatMessage {
     const full: ChatMessage = {
       from: 'bot',
@@ -428,12 +428,12 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       submitted: false,
       ...msg
     };
-
+ 
     this.messages.push(full);
     this.cdr.detectChanges();
     return full;
   }
-
+ 
   private pushUser(text: string): void {
     this.messages.push({
       from: 'user',
@@ -443,7 +443,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
     });
     this.cdr.detectChanges();
   }
-
+ 
   private async typing(ms = 600): Promise<void> {
     const t = this.pushBot('typing', {});
     await this.wait(ms);
@@ -451,39 +451,39 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
     if (idx > -1) this.messages.splice(idx, 1);
     this.cdr.detectChanges();
   }
-
+ 
   private wait(ms: number): Promise<void> {
     return new Promise(r => setTimeout(r, ms));
   }
-
+ 
   onQuickReply(msg: ChatMessage, value: string, label: string): void {
     if (this.disabledQuickReplyGroups.has(msg)) return;
     this.disabledQuickReplyGroups.add(msg);
     this.pushUser(label);
     this.handlePicked(value);
   }
-
+ 
   onSend(): void {
     const val = this.inputValue.trim();
     if (!val) return;
     this.pushUser(val);
     this.inputValue = '';
-
+ 
     if (val.toLowerCase().includes('buy policy')) {
       this.askInsuranceType();
       return;
     }
-
+ 
     this.handleTyped(val);
   }
-
+ 
   private async handleTyped(text: string): Promise<void> {
     switch (this.stage) {
-
+ 
       case 'ASK_MOBILE': {
         if (!/^\d{7,9}$/.test(text.replace(/\s/g, ''))) {
           await this.typing(400);
-         this.pushBot('text', { 
+         this.pushBot('text', {
   translationKey: 'invalidMobile'
 });
           return;
@@ -497,12 +497,12 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
         });
         break;
       }
-
+ 
       case 'ASK_VEHICLE_DETAILS': {
         this.pushBot('text', { text: 'Please fill in the vehicle details above and tap Continue 👆' });
         break;
       }
-
+ 
       case 'ASK_CIVIL_ID': {
         this.data.civilIdLicenseNo = text.trim();
         this.stage = 'ASK_FULL_NAME';
@@ -510,7 +510,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
         this.pushBot('text', { text: "Thanks. What's your full name as it appears on your license?" });
         break;
       }
-
+ 
       case 'ASK_FULL_NAME': {
         this.data.fullName = text.trim();
         this.stage = 'ASK_PRODUCT';
@@ -524,7 +524,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
         });
         break;
       }
-
+ 
       case 'ASK_VEHICLE_VALUE': {
         const val = Number(text.replace(/[^\d.]/g, ''));
         if (!val || val <= 0) {
@@ -536,23 +536,23 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
         await this.generateQuote();
         break;
       }
-
+ 
       case 'ASK_FORM': {
         this.pushBot('text', { text: 'Please fill in the form above and tap Get Quote 👆' });
         break;
       }
-
+ 
       default:
         this.pushBot('text', { text: "I'm still working on your previous step above 👆" });
     }
   }
-
+ 
   onSubmitMulkiya(msg: ChatMessage): void {
     if (msg.submitted) return;
     const form = msg.formData!;
     const plateNumber = form.plateNumber.trim();
     const plateCode = form.plateCode === 'OTHER' ? form.otherPlateCode.trim() : form.plateCode;
-
+ 
     if (!plateNumber) {
       this.pushBot('text', { text: 'Please enter a plate number before continuing.' });
       return;
@@ -561,16 +561,16 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       this.pushBot('text', { text: 'Please enter a plate code before continuing.' });
       return;
     }
-    
-
+   
+ 
     msg.submitted = true;
     this.data.plateNumber = plateNumber;
     this.data.plateCode = plateCode;
-
+ 
     this.pushUser(`Plate: ${plateNumber} (${plateCode}) — ${form.plateType}`);
     this.afterPlateCode();
   }
-
+ 
   private async handlePicked(value: string): Promise<void> {
     if (this.stage === 'ASK_INSURANCE_TYPE') {
       if (value === 'MOTOR') {
@@ -581,7 +581,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       }
       return;
     }
-
+ 
     if (this.stage === 'ASK_PRODUCT') {
       this.data.productId = value;
       if (value === 'COMPREHENSIVE') {
@@ -593,23 +593,23 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       }
       return;
     }
-
+ 
     if (this.stage === 'PLAN_SELECTION' && value === '__pay') {
       await this.handlePayNow();
     }
   }
-
+ 
   private async afterPlateCode(): Promise<void> {
     this.stage = 'ASK_CIVIL_ID';
     await this.typing(400);
     this.pushBot('text', { text: 'Now for your driving license — what\'s your Civil ID / License number?' });
   }
-
+ 
   startBuyPolicyFlow(): void {
     this.stage = 'ASK_FORM';
     this.pushBot('policy-form', { formData: this.emptyPolicyForm(), step: 1 });
   }
-
+ 
   private async askInsuranceType(): Promise<void> {
     this.stage = 'ASK_INSURANCE_TYPE';
     await this.typing(400);
@@ -623,7 +623,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       ]
     });
   }
-
+ 
   /** Upload/Scan are UI-only placeholders until the backend for document parsing is wired in. */
   setMulkiyaMethod(msg: ChatMessage, method: 'upload' | 'scan' | 'enter'): void {
     if (msg.submitted) return;
@@ -635,7 +635,7 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
     }
     msg.formData!.mulkiyaMethod = method;
   }
-
+ 
   setLicenseMethod(msg: ChatMessage, method: 'upload' | 'scan' | 'enter'): void {
     if (msg.submitted) return;
     if (method !== 'enter') {
@@ -646,22 +646,22 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
     }
     msg.formData!.licenseMethod = method;
   }
-
+ 
   selectProduct(msg: ChatMessage, productId: string): void {
     if (msg.submitted) return;
     msg.formData!.productId = productId;
   }
-
+ 
 selectPlanForForm(msg: ChatMessage, plan: QuoteOption): void {
     if (!msg.quoteId || !plan.optionId || msg.submitted) {
       return;
     }
-
+ 
     this.formNotice = '';
-
+ 
     this.quoteService.selectOption(msg.quoteId, plan.optionId).subscribe({
       next: (res: any) => {
-
+ 
         if (res.data.needsAdditionalInfo) {
           msg.selectedOption = plan;
           msg.needsAdditionalInfo = true;
@@ -669,7 +669,7 @@ selectPlanForForm(msg: ChatMessage, plan: QuoteOption): void {
           this.cdr.detectChanges();
           return;
         }
-
+ 
         msg.selectedOption = res.data.selectedOption || plan;
         this.cdr.detectChanges();
       },
@@ -679,17 +679,17 @@ selectPlanForForm(msg: ChatMessage, plan: QuoteOption): void {
       }
     });
 }
-
+ 
 submitAdditionalInfo(msg: ChatMessage): void {
     if (!msg.quoteId || !msg.selectedOption?.optionId) return;
     if (!msg.additionalInfoText?.trim()) {
       this.formNotice = 'Please provide the requested information before submitting.';
       return;
     }
-
+ 
     msg.submitted = true;
     this.formNotice = '';
-
+ 
     this.quoteService.submitProposal(
       msg.quoteId,
       msg.selectedOption.optionId,
@@ -711,19 +711,19 @@ submitAdditionalInfo(msg: ChatMessage): void {
       }
     });
 }
-
+ 
 checkProposalStatus(msg: ChatMessage): void {
     if (!msg.quoteId) return;
-
+ 
     msg.checkingStatus = true;
-
+ 
     this.quoteService.getProposalStatus(msg.quoteId).subscribe({
       next: (res: any) => {
         msg.proposalId = res.data.proposalId;   // ← ADDED
         msg.proposalStatus = res.data.status;
         msg.counterOfferPremium = res.data.counterOfferPremium;
         msg.underwriterNote = res.data.note;
-
+ 
         // Populate selectedOption so payNowForForm() has what it needs
         if (res.data.optionId && !msg.selectedOption) {
           msg.selectedOption = {
@@ -734,7 +734,7 @@ checkProposalStatus(msg: ChatMessage): void {
             coverageDetails: ''
           };
         }
-
+ 
         msg.checkingStatus = false;
         this.cdr.detectChanges();
       },
@@ -744,10 +744,10 @@ checkProposalStatus(msg: ChatMessage): void {
       }
     });
 }
-
+ 
 respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void {
     if (!msg.proposalId) return;
-
+ 
     this.quoteService.respondToCounterOffer(msg.proposalId, response).subscribe({
       next: () => {
         if (response === 'ACCEPTED') {
@@ -771,17 +771,17 @@ respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void
     if (!msg.quoteId || !msg.selectedOption || msg.submitted) {
       return;
     }
-
+ 
     msg.submitted = true;
     this.formNotice = '';
-
+ 
     const civilId = msg.formData?.civilIdLicenseNo?.trim();
-
+ 
     this.quoteService.verifyKyc(civilId!).subscribe({
       next: (kycRes: any) => {
-
+ 
         if (!kycRes.verified) {
-
+ 
           this.quoteService.escalateKycFailure(
             msg.quoteId!,
             msg.selectedOption!.optionId,
@@ -800,10 +800,10 @@ respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void
               this.cdr.detectChanges();
             }
           });
-
+ 
           return;
         }
-
+ 
         // KYC passed — proceed to payment as before
         this.quoteService.processPayment(msg.quoteId!).subscribe({
           next: (paymentRes: PaymentResponse) => {
@@ -813,7 +813,7 @@ respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void
               this.cdr.detectChanges();
               return;
             }
-
+ 
             this.quoteService.createPolicy(msg.quoteId!).subscribe({
               next: (policyRes: PolicyResponse) => {
                 msg.policyNumber = policyRes?.data?.policy?.policyNumber;
@@ -843,7 +843,7 @@ respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void
       }
     });
 }
-
+ 
   cancelPolicyForm(msg: ChatMessage): void {
     msg.step = undefined;
     msg.submitted = false;
@@ -851,7 +851,7 @@ respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void
 submitPolicyForm(msg: ChatMessage): void {
     if (msg.submitted) return;
     const form = msg.formData!;
-
+ 
     if (!form.mobileNumber?.trim() || !/^\d{7,9}$/.test(form.mobileNumber.replace(/\s/g, ''))) {
       this.formNotice = 'Please enter a valid mobile number.';
       return;
@@ -882,29 +882,29 @@ submitPolicyForm(msg: ChatMessage): void {
       this.formNotice = 'Please enter a valid vehicle value.';
       return;
     }
-
  
-
+ 
+ 
     msg.submitted = true;
     this.formNotice = '';
 //     this.kycVerifying = true;
 //     this.kycVerified = false;
 //     this.kycFailedReason = null;
 //     this.cdr.detectChanges();
-
+ 
 //     this.quoteService.verifyKyc(form.civilIdLicenseNo!.trim()).subscribe({
 //       next: (kycRes: any) => {
-
+ 
 //         this.kycVerifying = false;
-
+ 
 //        if (!kycRes.verified) {
-
+ 
 //   this.kycFailedReason = kycRes.reason;
 //   this.cdr.detectChanges();
-
+ 
 //   // Show the red "KYC Failed" message briefly before escalating
 //   setTimeout(() => {
-
+ 
 //     this.quoteService.escalateKycFailure({
 //       mobileNumber: form.mobileNumber!.trim(),
 //       fullName: form.fullName!.trim(),
@@ -931,19 +931,19 @@ submitPolicyForm(msg: ChatMessage): void {
 //         this.cdr.detectChanges();
 //       }
 //     });
-
+ 
 //   }, 900); // let the red "KYC Failed" message show for ~0.9s
-
+ 
 //   return;
 // }
 //         // KYC passed — show success badge briefly, then proceed
 //         this.kycVerified = true;
 //         this.cdr.detectChanges();
-
+ 
 //         setTimeout(() => {
-
+ 
 //           this.kycVerified = false; // clear before moving on
-
+ 
           this.quoteService.createMotorQuote({
             // mobileNumber: form.mobileNumber!.trim(),
             // fullName: form.fullName!.trim(),
@@ -974,7 +974,7 @@ submitPolicyForm(msg: ChatMessage): void {
       //         this.cdr.detectChanges();
       //       }
       //     });
-
+ 
       //   }, 600);
       // },
       // error: () => {
@@ -985,19 +985,19 @@ submitPolicyForm(msg: ChatMessage): void {
       }
     });
 }
-private async generateQuote(): Promise<void> {
-
+private async generateQuote(): Promise<void> {   
+ 
     // ==================================================
     // KYC VERIFICATION (DB-BACKED)
     // ==================================================
-
+ 
     this.kycVerifying = true;
-
+ 
     this.quoteService.verifyKyc(this.data.civilIdLicenseNo!).subscribe({
       next: async (kycRes: any) => {
-
+ 
         this.kycVerifying = false;
-
+ 
         if (!kycRes.verified) {
           await this.typing(400);
           this.pushBot('text', { text: `Sorry — ${kycRes.reason}. Please re-check your details.` });
@@ -1005,11 +1005,11 @@ private async generateQuote(): Promise<void> {
           this.cdr.detectChanges();
           return;
         }
-
+ 
         this.stage = 'GENERATING';
         await this.typing(900);
         this.pushBot('text', { text: 'Give me a moment while I generate your quote...' });
-
+ 
         this.quoteService.createMotorQuote({
           mobileNumber: this.data.mobileNumber!,
           fullName: this.data.fullName!,
@@ -1054,10 +1054,10 @@ onSelectPlan(msg: ChatMessage, plan: QuoteOption): void {
     this.disabledPlanGroups.add(msg);
     this.selectedOption = plan;
     this.pushUser(`Selected: ${plan.planName} — OMR ${plan.premium.toFixed(3)}`);
-
+ 
     this.quoteService.selectOption(this.quoteId!, plan.optionId).subscribe({
       next: async (res: any) => {
-
+ 
         if (res.data.needsAdditionalInfo) {
           await this.typing(500);
           this.pushBot('text', {
@@ -1067,7 +1067,7 @@ onSelectPlan(msg: ChatMessage, plan: QuoteOption): void {
           this.cdr.detectChanges();
           return;
         }
-
+ 
         await this.typing(400);
         this.pushBot('text', { text: `Great choice! Your total premium is OMR ${plan.premium.toFixed(3)}. Ready to pay?` });
         this.pushBot('quick-replies', { options: [{ label: 'Pay Now', value: '__pay' }] });
@@ -1084,7 +1084,7 @@ onSelectPlan(msg: ChatMessage, plan: QuoteOption): void {
     this.stage = 'PAYMENT';
     await this.typing(1000);
     this.pushBot('text', { text: 'Processing your payment...' });
-
+ 
     this.quoteService.processPayment(this.quoteId!).subscribe({
       next: (paymentRes: PaymentResponse) => {
         if (!paymentRes?.data?.success && (paymentRes as any)?.success !== true) {

@@ -969,64 +969,149 @@ hasRatedSession: boolean = false;
   }
 
   submitComplaint(): void {
-    const f = this.complaintForm;
+  const f = this.complaintForm;
 
-    if (!f.subject || !f.fullName || !f.email || !f.mobile || !f.product || !f.message) {
-      alert(
-        this.selectedLanguage === 'ar'
-          ? 'يرجى تعبئة جميع الحقول المطلوبة.'
-          : 'Please fill out all required fields.'
-      );
-      return;
-    }
+  // Validate required fields
+  if (
+    !f.subject ||
+    !f.fullName ||
+    !f.email ||
+    !f.mobile ||
+    !f.product ||
+    !f.message
+  ) {
+    alert(
+      this.selectedLanguage === 'ar'
+        ? 'يرجى تعبئة جميع الحقول المطلوبة.'
+        : 'Please fill out all required fields.'
+    );
+    return;
+  }
 
-    this.isSubmittingComplaint = true;
+  this.isSubmittingComplaint = true;
 
-    const payload = {
-      subject: f.subject,
-      fullName: f.fullName,
-      email: f.email,
-      mobile: f.mobile,
-      product: f.product,
-      message: f.message,
-      language: this.selectedLanguage
-    };
+  const payload = {
+    subject: f.subject,
+    fullName: f.fullName,
+    email: f.email,
+    mobile: f.mobile,
+    product: f.product,
+    message: f.message,
+    language: this.selectedLanguage
+  };
 
-    this.http.post<any>('http://localhost:5000/api/complaint', payload).subscribe({
+  this.http
+    .post<any>(
+      'http://localhost:5000/api/complaint',
+      payload
+    )
+    .subscribe({
+
       next: (response) => {
+
         this.isSubmittingComplaint = false;
         this.activeForm = null;
 
-        if (response && response.success) {
-          this.messages.push({
-            sender: 'bot',
-            text: this.translations[this.selectedLanguage].complaintSuccess,
-            time: new Date()
+        // -----------------------------------------
+        // Complaint submitted successfully
+        // -----------------------------------------
 
-          });
-        } else {
+        if (response?.success) {
+
+          let botMessage = '';
+
+          // ---------------------------------------
+          // Complaint found in RAG
+          // ---------------------------------------
+
+          if (response.complaintFound === true) {
+
+            botMessage =
+              response.message ||
+              (
+                this.selectedLanguage === 'ar'
+                  ? 'تم العثور على حل لهذه الشكوى.'
+                  : 'We found a solution for your complaint.'
+              );
+
+          }
+
+          // ---------------------------------------
+          // Complaint NOT found in RAG
+          // ---------------------------------------
+
+          else {
+
+            botMessage =
+              response.message ||
+              (
+                this.selectedLanguage === 'ar'
+                  ? 'شكراً لتسجيل شكواك. سيتصل بك أحد وكلائنا للمساعدة.'
+                  : 'Thank you for registering your complaint. Our support agent will call you back to assist you.'
+              );
+
+          }
+
+          // ---------------------------------------
+          // Show bot response
+          // ---------------------------------------
+
           this.messages.push({
             sender: 'bot',
-            text: this.translations[this.selectedLanguage].complaintError,
+            text: botMessage,
             time: new Date()
           });
+
         }
 
+        // -----------------------------------------
+        // Backend returned success=false
+        // -----------------------------------------
+
+        else {
+
+          this.messages.push({
+            sender: 'bot',
+            text:
+              response?.message ||
+              this.translations[this.selectedLanguage].complaintError,
+            time: new Date()
+          });
+
+        }
+
+        // Reset form
         this.resetComplaintForm();
+
         this.cdr.detectChanges();
       },
+
+      // -------------------------------------------
+      // API error
+      // -------------------------------------------
+
       error: (err) => {
-        console.error('Complaint Submission Failure:', err);
+
+        console.error(
+          'Complaint Submission Failure:',
+          err
+        );
+
         this.isSubmittingComplaint = false;
+
         this.messages.push({
           sender: 'bot',
-          text: this.translations[this.selectedLanguage].complaintError,
+          text:
+            this.selectedLanguage === 'ar'
+              ? 'تعذر تسجيل الشكوى حالياً. سيتصل بك أحد وكلائنا للمساعدة.'
+              : 'We are unable to process your complaint right now. Our support agent will call you back to assist you.',
           time: new Date()
         });
+
         this.cdr.detectChanges();
       }
     });
-  }
+}
 
   // ----- Quick action tiles -----
   quickAction(action: QuickAction): void {

@@ -12,8 +12,9 @@ const quoteRoutes = require("./routes/quoteRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
 const policyRoutes = require("./routes/policyRoutes");
 const authRoutes = require("./routes/authRoutes");
+const complaintRoutes = require("./routes/complaintRoutes");
 // const insuranceApplicationRoutes = require("./routes/insuranceApplicationRoutes");
-
+const complaintFollowUpRoutes = require("./routes/complaintFollowUpRoutes");
 // const connectDB = require("./db"); 
 
 const app = express();
@@ -38,10 +39,13 @@ app.use("/api", policyRoutes);
 
 app.use("/api", require("./routes/underwriting.routes"));
  
+app.use("/api/complaint",complaintRoutes);
+app.use("/api/complaint-followup",complaintFollowUpRoutes);
 app.use("/api", authRoutes);
 app.get("/", (req, res) => {
     res.send("Insurance Chatbot Backend is Running");
 });
+
 
 const PORT = process.env.PORT || 5000;
 
