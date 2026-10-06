@@ -29,6 +29,7 @@ interface ChatMessage {
   }[];
   showLoginButton?: boolean;
   form?: InsuranceForm;
+    isWelcome?: boolean; 
 }
 
 type QuickAction = 'buyPolicy' | 'rop' | 'renew' | 'complaint' | 'chatWithUs';
@@ -79,11 +80,12 @@ interface HistorySession {
   PREVIEW: string;
 }
 
-const WELCOME_MESSAGE: ChatMessage = {
-  sender: 'bot',
-  text: 'Welcome to ABC Insurance ! 😊. You can get help for these functions as mentioned below.',
-  time: new Date()
-};
+// const WELCOME_MESSAGE: ChatMessage = {
+//   sender: 'bot',
+//   text: 'Welcome to ABC Insurance ! 😊. You can get help for these functions as mentioned below.',
+//   time: new Date()
+// };
+
 
 @Component({
   selector: 'app-bot', // Matches your component selector tag
@@ -121,7 +123,18 @@ export class Bot implements DoCheck, OnInit {
     this.signupConfirmPassword = '';
   }
 
+  
+private buildWelcomeMessage(): ChatMessage {
+  return {
+    sender: 'bot',
+    text: this.translations[this.selectedLanguage].welcome,
+    time: new Date(),
+    isWelcome: true
+  };
+}
+
   ngOnInit(): void {
+      this.messages = [this.buildWelcomeMessage()];  
     this.restoreLoginState();
     const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
     const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
@@ -198,6 +211,7 @@ export class Bot implements DoCheck, OnInit {
       }
     });
   }
+
 
   // ----- Session / history state -----
   sessionId: string = this.generateSessionId();
@@ -484,9 +498,8 @@ resetStatusLookup(): void {
     this.isMyComplaintsOpen = false;
     this.isSupportCenterOpen = false;
 
-    this.messages = [
-      { ...WELCOME_MESSAGE }
-    ];
+    this.messages = [this.buildWelcomeMessage()];
+  
 
     this.sessionId = this.generateSessionId();
 
@@ -568,14 +581,15 @@ resetStatusLookup(): void {
     // ------------------------------------
     // Clear current conversation
     // ------------------------------------
-    this.messages = [
-      {
-        sender: 'bot',
-        text: this.translations[this.selectedLanguage].welcome,
-        time: new Date()
-      }
-    ];
+    // this.messages = [
+    //   {
+    //     sender: 'bot',
+    //     text: this.translations[this.selectedLanguage].welcome,
+    //     time: new Date()
+    //   }
+    // ];
 
+    this.messages = [this.buildWelcomeMessage()];
     // ------------------------------------
     // Reset chat state
     // ------------------------------------
@@ -790,7 +804,7 @@ resetStatusLookup(): void {
       next: (res) => {
         if (res && res.success) {
           this.messages = [
-            { ...WELCOME_MESSAGE },
+             this.buildWelcomeMessage(),
             ...res.messages.map((m: any) => ({
               sender: (m.ROLE === 'user' ? 'user' : 'bot') as 'user' | 'bot',
               text: m.CONTENT,
@@ -872,7 +886,8 @@ resetStatusLookup(): void {
 
   isOpen: boolean = false;
 
-  messages: ChatMessage[] = [{ ...WELCOME_MESSAGE }];
+  messages: ChatMessage[] = [];
+  // messages: ChatMessage[] = [{ ...WELCOME_MESSAGE }];
 
   userMessage: string = '';
   // selectedCustomerId: number = 1;
@@ -892,7 +907,7 @@ resetStatusLookup(): void {
     private cdr: ChangeDetectorRef
   ) { }
 
-  private previousLength = this.messages.length;
+ private previousLength = 0;
 
   ngDoCheck(): void {
     if (this.messages.length !== this.previousLength) {
@@ -928,7 +943,7 @@ hasRatedSession: boolean = false;
     this.userMessage = '';
     this.activeForm = null;
     this.isHistoryOpen = false;
-    this.messages = [{ ...WELCOME_MESSAGE }];
+   this.messages = [this.buildWelcomeMessage()];
     this.sessionId = this.generateSessionId();
     this.hasRatedSession = false;
     this.hasUserMessaged = false;
@@ -1131,7 +1146,9 @@ hasRatedSession: boolean = false;
     this.userMessage = this.translations[this.selectedLanguage][key];
     this.sendMessage();
   }
+ 
 
+ 
   translations = {
     en: {
       title: "Insurance Chatbot",
@@ -1370,7 +1387,9 @@ hasRatedSession: boolean = false;
       close: 'إغلاق'
     }
   };
-
+ t(key: keyof typeof this.translations.en): string {
+  return this.translations[this.selectedLanguage][key];
+}
   private readonly actionMessages = {
     en: {
       POLICY: 'Show my policy',
@@ -1391,14 +1410,17 @@ hasRatedSession: boolean = false;
 
   setLanguage(lang: 'en' | 'ar') {
     this.selectedLanguage = lang;
+     this.messages = this.messages.map(m =>
+    m.isWelcome ? { ...m, text: this.translations[lang].welcome } : m
+  );
 
-    this.messages = [
-      {
-        sender: 'bot',
-        text: this.translations[lang].welcome,
-        time: new Date()
-      }
-    ];
+    // this.messages = [
+    //   {
+    //     sender: 'bot',
+    //     text: this.translations[lang].welcome,
+    //     time: new Date()
+    //   }
+    // ];
   }
 
   sendMessage() {
@@ -1495,13 +1517,15 @@ logout(): void {
   this.historySessions = [];
 
   // Start a fresh conversation, since the old one was tied to the logged-in user
-  this.messages = [
-    {
-      sender: 'bot',
-      text: this.translations[this.selectedLanguage].welcome,
-      time: new Date()
-    }
-  ];
+  // this.messages = [
+  //   {
+  //     sender: 'bot',
+  //     text: this.translations[this.selectedLanguage].welcome,
+  //     time: new Date()
+  //   }
+  // ];
+
+  this.messages = [this.buildWelcomeMessage()];
   this.sessionId = this.generateSessionId();
   this.hasUserMessaged = false;
   this.hasRatedSession = false;
