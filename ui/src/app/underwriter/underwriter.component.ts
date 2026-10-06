@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { uwTranslations, UwKey, UwLang } from './underwriter.translations';
+import {ComplaintFlwUp} from '../services/complaint-flw-up'
 
 interface QuoteRow {
   quoteId: number;
@@ -89,7 +90,7 @@ export class UnderwriterComponent implements OnInit {
   deciding = false;
   decisionSentLog: { proposalNumber: string; decision: string; time: string }[] = [];
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private flwUp:ComplaintFlwUp) { }
 
   ngOnInit(): void {
     // Restore the last chosen language
@@ -102,6 +103,7 @@ export class UnderwriterComponent implements OnInit {
     if (this.isLoggedIn) {
       this.loadProposals();
     }
+    this.loadComplaints()
   }
 
   loadProposals(): void {
@@ -219,5 +221,72 @@ export class UnderwriterComponent implements OnInit {
       },
       error: () => { this.sending = false; }
     });
+  }
+
+  complaints: any[] = [];
+  selectedComplaint: any = null;
+  complaintMessage: string = '';
+
+  loadComplaints() {
+    this.flwUp.getNonStpComplaints()
+      .subscribe({
+        next: (response) => {
+          this.complaints = response.complaints;
+          console.log('complaints received:', this.complaints);
+
+        },
+        error: (error) => {
+          console.error('Error loading complaints:', error);
+        }
+      });
+  }
+  selectComplaint(complaint: any): void {
+    this.selectedComplaint = complaint;
+    // Clear message box when opening another complaint
+    this.complaintMessage = '';
+    console.log(
+      'Selected Complaint:',
+      complaint
+    );
+  }
+
+  callCustomer(complaint: any): void {
+    if (!complaint) {
+      return;
+    }
+
+    console.log(
+      'Calling customer:',
+      complaint.FULL_NAME
+    );
+
+    console.log(
+      'Mobile:',
+      complaint.MOBILE
+    );
+  }
+
+  sendComplaintMessage(): void {
+
+    if (!this.selectedComplaint) {
+      return;
+    }
+
+    if (!this.complaintMessage.trim()) {
+      return;
+    }
+
+    console.log(
+      'Complaint ID:',
+      this.selectedComplaint.COMPLAINT_ID
+    );
+
+    console.log(
+      'Message:',
+      this.complaintMessage
+    );
+
+    // API / DB connection will be added next
+
   }
 }
