@@ -1,450 +1,415 @@
 <button class="launcher" (click)="toggleOpen()" [class.open]="isOpen" aria-label="Toggle policy assistant chat">
 
-<svg *ngIf="!isOpen" viewBox="70 35 260 380" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <radialGradient id="bodyShine2" cx="35%" cy="25%" r="75%">
-      <stop offset="0%" stop-color="#93c5fd" />
-      <stop offset="100%" stop-color="#272e52" />
-    </radialGradient>
-    <linearGradient id="visorGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#1a2035" />
-      <stop offset="100%" stop-color="#0b0d17" />
-    </linearGradient>
-    <radialGradient id="eyeGlow2" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#93c5fd" />
-      <stop offset="100%" stop-color="#3b82f6" />
-    </radialGradient>
-    <filter id="softGlow2" x="-30%" y="-30%" width="500%" height="600%">
-      <feGaussianBlur stdDeviation="5" result="blur" />
-      <feMerge>
-        <feMergeNode in="blur" />
-        <feMergeNode in="SourceGraphic" />
-      </feMerge>
-    </filter>
-  </defs>
+  <svg *ngIf="!isOpen" viewBox="70 35 260 380" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <radialGradient id="bodyShine2" cx="35%" cy="25%" r="75%">
+        <stop offset="0%" stop-color="#93c5fd" />
+        <stop offset="100%" stop-color="#272e52" />
+      </radialGradient>
+      <linearGradient id="visorGrad2" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#1a2035" />
+        <stop offset="100%" stop-color="#0b0d17" />
+      </linearGradient>
+      <radialGradient id="eyeGlow2" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#93c5fd" />
+        <stop offset="100%" stop-color="#3b82f6" />
+      </radialGradient>
+      <filter id="softGlow2" x="-30%" y="-30%" width="500%" height="600%">
+        <feGaussianBlur stdDeviation="5" result="blur" />
+        <feMerge>
+          <feMergeNode in="blur" />
+          <feMergeNode in="SourceGraphic" />
+        </feMerge>
+      </filter>
+    </defs>
 
-  <g id="bot2">
-    <animateTransform attributeName="transform" type="translate" values="0,0; 0,-9; 0,0" keyTimes="0;0.5;1" dur="2.8s"
-      repeatCount="indefinite" />
+    <g id="bot2">
+      <animateTransform attributeName="transform" type="translate" values="0,0; 0,-9; 0,0" keyTimes="0;0.5;1" dur="2.8s"
+        repeatCount="indefinite" />
 
-    <line x1="200" y1="95" x2="200" y2="65" stroke="#3b4258" stroke-width="6" stroke-linecap="round" />
-    <circle cx="200" cy="55" r="12" fill="#3b82f6">
-      <animate attributeName="r" values="10;15;10" dur="1.6s" repeatCount="indefinite" />
-      <animate attributeName="opacity" values="1;0.6;1" dur="1.6s" repeatCount="indefinite" />
-    </circle>
+      <line x1="200" y1="95" x2="200" y2="65" stroke="#3b4258" stroke-width="6" stroke-linecap="round" />
+      <circle cx="200" cy="55" r="12" fill="#3b82f6">
+        <animate attributeName="r" values="10;15;10" dur="1.6s" repeatCount="indefinite" />
+        <animate attributeName="opacity" values="1;0.6;1" dur="1.6s" repeatCount="indefinite" />
+      </circle>
 
-    <ellipse cx="200" cy="330" rx="95" ry="80" fill="url(#bodyShine2)" stroke="#3b4258" stroke-width="2" />
-    <ellipse cx="200" cy="335" rx="45" ry="35" fill="#0b0d17" opacity="0.85" />
-    <circle cx="200" cy="335" r="8" fill="#60a5fa" />
+      <ellipse cx="200" cy="330" rx="95" ry="80" fill="url(#bodyShine2)" stroke="#3b4258" stroke-width="2" />
+      <ellipse cx="200" cy="335" rx="45" ry="35" fill="#0b0d17" opacity="0.85" />
+      <circle cx="200" cy="335" r="8" fill="#60a5fa" />
 
-    <g transform-origin="120 320">
-      <animateTransform attributeName="transform" type="rotate" values="0 120 320; -12 120 320; 0 120 320"
-        keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite" />
-      <ellipse cx="105" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#3b4258" stroke-width="2" />
+      <g transform-origin="120 320">
+        <animateTransform attributeName="transform" type="rotate" values="0 120 320; -12 120 320; 0 120 320"
+          keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite" />
+        <ellipse cx="105" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#3b4258" stroke-width="2" />
+      </g>
+
+      <g transform-origin="280 320">
+        <animateTransform attributeName="transform" type="rotate" values="0 280 320; 12 280 320; 0 280 320"
+          keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite" />
+        <ellipse cx="295" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#3b4258" stroke-width="2" />
+      </g>
+
+      <circle cx="200" cy="190" r="105" fill="url(#bodyShine2)" stroke="#3b4258" stroke-width="2" />
+
+      <circle cx="90" cy="190" r="18" fill="#0b0d17" />
+      <circle cx="310" cy="190" r="18" fill="#0b0d17" />
+
+      <path
+        d="M115,165 Q115,140 145,140 Q200,135 255,140 Q285,140 285,165 Q285,225 250,240 Q200,255 150,240 Q115,225 115,165 Z"
+        fill="url(#visorGrad2)" />
+      <path d="M130,155 Q200,130 270,155 Q220,155 200,165 Q170,158 130,155 Z" fill="#ffffff" opacity="0.08" />
+
+      <g id="eyes2" transform-origin="200 190">
+        <animateTransform attributeName="transform" type="scale" values="1,1; 1,1; 1,0.1; 1,1; 1,1"
+          keyTimes="0;0.85;0.9;0.95;1" additive="sum" dur="3.5s" repeatCount="indefinite" />
+        <circle cx="168" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)" />
+        <circle cx="232" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)" />
+      </g>
+
+      <path d="M180,220 Q200,232 220,220" fill="none" stroke="#60a5fa" stroke-width="5" stroke-linecap="round" />
     </g>
+  </svg>
 
-    <g transform-origin="280 320">
-      <animateTransform attributeName="transform" type="rotate" values="0 280 320; 12 280 320; 0 280 320"
-        keyTimes="0;0.5;1" dur="2.4s" repeatCount="indefinite" />
-      <ellipse cx="295" cy="345" rx="24" ry="34" fill="url(#bodyShine2)" stroke="#3b4258" stroke-width="2" />
-    </g>
-
-    <circle cx="200" cy="190" r="105" fill="url(#bodyShine2)" stroke="#3b4258" stroke-width="2" />
-
-    <circle cx="90" cy="190" r="18" fill="#0b0d17" />
-    <circle cx="310" cy="190" r="18" fill="#0b0d17" />
-
-    <path
-      d="M115,165 Q115,140 145,140 Q200,135 255,140 Q285,140 285,165 Q285,225 250,240 Q200,255 150,240 Q115,225 115,165 Z"
-      fill="url(#visorGrad2)" />
-    <path d="M130,155 Q200,130 270,155 Q220,155 200,165 Q170,158 130,155 Z" fill="#ffffff" opacity="0.08" />
-
-    <g id="eyes2" transform-origin="200 190">
-      <animateTransform attributeName="transform" type="scale" values="1,1; 1,1; 1,0.1; 1,1; 1,1"
-        keyTimes="0;0.85;0.9;0.95;1" additive="sum" dur="3.5s" repeatCount="indefinite" />
-      <circle cx="168" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)" />
-      <circle cx="232" cy="190" r="14" fill="url(#eyeGlow2)" filter="url(#softGlow2)" />
-    </g>
-
-    <path d="M180,220 Q200,232 220,220" fill="none" stroke="#60a5fa" stroke-width="5" stroke-linecap="round" />
-  </g>
-</svg>
-
-  <svg *ngIf="isOpen" class="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-    <line x1="18" y1="6" x2="6" y2="18"/>
-    <line x1="6" y1="6" x2="18" y2="18"/>
+  <svg *ngIf="isOpen" class="close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+    stroke-linecap="round">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
   </svg>
 
 </button>
 
 <div class="folder" [class.visible]="isOpen" [class.rtl]="selectedLanguage === 'ar'">
 
- <div class="header">
-  <div class="header-top">
+  <div class="header">
+    <div class="header-top">
 
-    <!-- Support Center Menu Button -->
-    <button
-      class="hamburger-btn"
-      (click)="toggleSupportCenter()"
-      aria-label="Open Support Center">
+      <!-- Support Center Menu Button -->
+      <button class="hamburger-btn" (click)="toggleSupportCenter()" aria-label="Open Support Center">
 
-      <svg viewBox="0 0 24 24" fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
 
-        <line x1="3" y1="6" x2="21" y2="6"/>
-        <line x1="3" y1="12" x2="21" y2="12"/>
-        <line x1="3" y1="18" x2="21" y2="18"/>
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <line x1="3" y1="12" x2="21" y2="12" />
+          <line x1="3" y1="18" x2="21" y2="18" />
 
-      </svg>
+        </svg>
 
-    </button>
-
-    <div class="header-text">
-      <h1>{{ translations[selectedLanguage].title }}</h1>
-    </div>
-
-    <div class="language-switch">
-      <button
-        [class.active]="selectedLanguage === 'en'"
-        (click)="setLanguage('en')">
-        EN
       </button>
 
-      <button
-        [class.active]="selectedLanguage === 'ar'"
-        (click)="setLanguage('ar')">
-        العربية
+      <div class="header-text">
+        <h1>{{ translations[selectedLanguage].title }}</h1>
+      </div>
+
+      <div class="language-switch">
+        <button [class.active]="selectedLanguage === 'en'" (click)="setLanguage('en')">
+          EN
+        </button>
+
+        <button [class.active]="selectedLanguage === 'ar'" (click)="setLanguage('ar')">
+          العربية
+        </button>
+      </div>
+
+    </div>
+  </div>
+  <!-- SUPPORT CENTER -->
+  <div class="support-center" *ngIf="isSupportCenterOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+
+    <div class="support-center-header">
+
+      <div>
+        <h2>{{ tr.supportCenterTitle }}</h2>
+        <p>{{ tr.supportCenterSubtitle }}</p>
+      </div>
+
+      <button class="support-close-btn" (click)="closeSupportCenter()">
+        ✕
       </button>
+
     </div>
 
-  </div>
-</div>
-<!-- SUPPORT CENTER -->
-<div
-  class="support-center"
-  *ngIf="isSupportCenterOpen"
-  [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
 
-  <div class="support-center-header">
+    <!-- New Chat -->
+    <button class="support-menu-item new-chat-item" (click)="startNewChat()">
 
-    <div>
-      <h2>{{ tr.supportCenterTitle }}</h2>
-      <p>{{ tr.supportCenterSubtitle }}</p>
-    </div>
+      <div class="support-item-icon">
+        +
+      </div>
 
-    <button
-      class="support-close-btn"
-      (click)="closeSupportCenter()">
-      ✕
-    </button>
+      <div class="support-item-content">
+        <strong>{{ tr.newChat }}</strong>
+        <span>{{ tr.newChatDesc }}</span>
+      </div>
 
-  </div>
-
-
-  <!-- New Chat -->
-  <button
-    class="support-menu-item new-chat-item"
-    (click)="startNewChat()">
-
-    <div class="support-item-icon">
-      +
-    </div>
-
-    <div class="support-item-content">
-      <strong>{{ tr.newChat }}</strong>
-      <span>{{ tr.newChatDesc }}</span>
-    </div>
-
-    <span class="support-arrow">›</span>
-
-  </button>
-
-
-  <!-- Chat History -->
-  <button
-    class="support-menu-item"
-    (click)="openChatHistory()">
-
-    <div class="support-item-icon history-icon">
-      <i class="bi bi-chat-left-text-fill"></i>
-    </div>
-
-    <div class="support-item-content">
-      <strong>{{ tr.historyTitle }}</strong>
-      <span>{{ tr.historyDesc }}</span>
-    </div>
-
-    <span class="support-arrow">›</span>
-
-  </button>
-
-
-  <!-- My Complaints -->
-  <button
-    class="support-menu-item"
-    (click)="openMyComplaints()">
-
-    <div class="support-item-icon complaint-icon">
-      <i class="bi bi-file-earmark-text-fill"></i>
-    </div>
-
-    <div class="support-item-content">
-      <strong>{{ tr.myComplaints }}</strong>
-      <span>{{ tr.myComplaintsDesc }}</span>
-    </div>
-
-    <span class="support-arrow">›</span>
-
-  </button>
-
-
-  <!-- Check Status -->
-  <button
-    class="support-menu-item"
-    (click)="openCheckStatus()">
-
-    <div class="support-item-icon status-icon">
-      <i class="bi bi-hourglass-split"></i>
-    </div>
-
-    <div class="support-item-content">
-      <strong>{{ tr.checkStatus }}</strong>
-      <span>{{ tr.checkStatusDesc }}</span>
-    </div>
-
-    <span class="support-arrow">›</span>
-
-  </button>
-
-
-  <!-- Login / Sign In -->
-  <button
-    class="support-menu-item login-item"
-    *ngIf="!isLogginIn"
-    (click)="openLoginFromSupport()">
-
-    <div class="support-item-icon login-icon">
-      <i class="bi bi-lock-fill"></i>
-    </div>
-
-    <div class="support-item-content">
-      <strong>{{ tr.loginSignIn }}</strong>
-      <span>{{ tr.loginSignInDesc }}</span>
-    </div>
-
-    <span class="support-arrow">›</span>
-
-  </button>
-
-
-  <!-- Logged in status + logout -->
-  <div class="logged-in-row" *ngIf="isLogginIn">
-
-    <div class="logged-in-status">
-      {{ tr.signedIn }}
-    </div>
-
-    <button class="logout-btn" (click)="logout()">
-      {{ tr.logout }}
-    </button>
-
-  </div>
-
-</div>
-
-<!-- MY COMPLAINTS -->
-<div
-  class="complaints-drawer"
-  *ngIf="isMyComplaintsOpen"
-  [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
-
-  <div class="complaints-header">
-    <button class="login-back-btn" type="button" (click)="goBackFromComplaints()" [attr.aria-label]="tr.goBack">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
-    </button>
-
-    <div>
-      <h2>{{ tr.myComplaints }}</h2>
-      <p>{{ tr.trackComplaints }}</p>
-    </div>
-
-    <button class="complaints-close-btn" (click)="isMyComplaintsOpen = false">✕</button>
-  </div>
-
-
-  <!-- New / no complaints -->
-  <div
-    class="complaints-empty"
-    *ngIf="isLogginIn">
-
-    <div class="complaints-empty-icon">
-      🎫
-    </div>
-
-    <h3>{{ tr.noComplaintsTitle }}</h3>
-
-    <p>
-      {{ tr.noComplaintsText }}
-    </p>
-
-    <button
-      class="register-complaint-btn"
-      (click)="openComplaintFromCenter()">
-
-      {{ tr.registerComplaintBtn }}
+      <span class="support-arrow">›</span>
 
     </button>
 
-  </div>
 
+    <!-- Chat History -->
+    <button class="support-menu-item" (click)="openChatHistory()">
 
-  <!-- Guest user -->
-  <div
-    class="complaints-login"
-    *ngIf="!isLogginIn">
+      <div class="support-item-icon history-icon">
+        <i class="bi bi-chat-left-text-fill"></i>
+      </div>
 
-    <div class="complaints-empty-icon">
-      🔐
-    </div>
+      <div class="support-item-content">
+        <strong>{{ tr.historyTitle }}</strong>
+        <span>{{ tr.historyDesc }}</span>
+      </div>
 
-    <h3>{{ tr.signInToViewComplaints }}</h3>
-
-    <p>
-      {{ tr.signInToViewComplaintsText }}
-    </p>
-
-    <button
-      class="login-btn"
-      (click)="openLoginFromComplaints()">
-
-      {{ tr.loginSignIn }}
+      <span class="support-arrow">›</span>
 
     </button>
 
-  </div>
 
-</div>
+    <!-- My Complaints -->
+    <button class="support-menu-item" (click)="openMyComplaints()">
 
+      <div class="support-item-icon complaint-icon">
+        <i class="bi bi-file-earmark-text-fill"></i>
+      </div>
 
-<div
-  class="complaints-drawer"
-  *ngIf="isCheckStatusOpen"
-  [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+      <div class="support-item-content">
+        <strong>{{ tr.myComplaints }}</strong>
+        <span>{{ tr.myComplaintsDesc }}</span>
+      </div>
 
-  <div class="complaints-header">
-    <button class="login-back-btn" type="button" (click)="goBackFromCheckStatus()" aria-label="Go back">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="15 18 9 12 15 6"/>
-      </svg>
+      <span class="support-arrow">›</span>
+
     </button>
-    <div>
-      <h2>{{ tr.checkStatus }}</h2>
-      <p>{{ tr.checkStatusDesc }}</p>
-    </div>
-    <button class="complaints-close-btn" (click)="isCheckStatusOpen = false">✕</button>
-  </div>
 
-  <div class="status-lookup-body">
 
-    <div class="status-lookup-form" *ngIf="!statusResult">
-      <label>{{ tr.quoteNumber }}</label>
-      <input
-        type="text"
-        [(ngModel)]="statusQuoteNumber"
-        placeholder="{{ tr.quoteNumberPlaceholder }}"
-        (keydown.enter)="lookupProposalStatus()">
+    <!-- Check Status -->
+    <button class="support-menu-item" (click)="openCheckStatus()">
 
-      <div class="status-error" *ngIf="statusLookupError">{{ statusLookupError }}</div>
- <button class="register-complaint-btn" [disabled]="isLookingUpStatus" (click)="lookupProposalStatus()">
-  {{ isLookingUpStatus ? tr.checking : tr.checkStatus }}
-</button>
-    </div>
+      <div class="support-item-icon status-icon">
+        <i class="bi bi-hourglass-split"></i>
+      </div>
 
-    <!-- Result: Pending -->
-    <div class="status-result pending" *ngIf="statusResult && statusResult.status === 'PENDING'">
-      <div class="status-icon-large">⏳</div>
-      <h3>{{ tr.underReview }}</h3>
-      <p>{{ tr.proposalWord }} {{ statusResult.proposalNumber }} {{ tr.pendingText }}</p>
-   <button class="register-complaint-btn" (click)="resetStatusLookup()">Check Another</button>
-    </div>
+      <div class="support-item-content">
+        <strong>{{ tr.checkStatus }}</strong>
+        <span>{{ tr.checkStatusDesc }}</span>
+      </div>
 
-    <!-- Result: Approved -->
-    <div class="status-result approved" *ngIf="statusResult && statusResult.status === 'APPROVED'">
-      <div class="status-icon-large">✅</div>
-      <h3>{{ tr.approved }}</h3>
-      <p *ngIf="statusResult.note">{{ statusResult.note }}</p>
-      <p *ngIf="!statusResult.note">{{ tr.approvedDefault }}</p>
-      <button class="register-complaint-btn" (click)="resetStatusLookup()">{{ tr.checkAnother }}</button>
-    </div>
+      <span class="support-arrow">›</span>
 
-    <!-- Result: Counter-offer -->
-    <div class="status-result counter" *ngIf="statusResult && statusResult.status === 'COUNTER_OFFER'">
-      <div class="status-icon-large">💬</div>
-      <h3>{{ tr.counterReceived }}</h3>
-     <p>{{ tr.revisedPremium }} <b>OMR {{ statusResult.counterOfferPremium?.toFixed(3) }}</b></p>
-      <p *ngIf="statusResult.note">{{ statusResult.note }}</p>
-      <p *ngIf="statusResult.customerResponse"> {{ statusResult.customerResponse === 'ACCEPTED' ? tr.alreadyAccepted : tr.alreadyRejected }}</p>
-      <p *ngIf="!statusResult.customerResponse">{{ tr.counterPending }}</p>
-      <button class="register-complaint-btn" (click)="resetStatusLookup()">{{ tr.checkAnother }}</button>
-    </div>
+    </button>
 
-    <!-- Result: Declined -->
-    <div class="status-result declined" *ngIf="statusResult && statusResult.status === 'DECLINED'">
-      <div class="status-icon-large">✗</div>
-      <h3>{{ tr.declined }}</h3>
-      <p *ngIf="statusResult.note">{{ statusResult.note }}</p>
-      <p *ngIf="!statusResult.note">{{ tr.declinedDefault }}</p>
-      <button class="register-complaint-btn" (click)="resetStatusLookup()">{{ tr.checkAnother }}</button>
+
+    <!-- Login / Sign In -->
+    <button class="support-menu-item login-item" *ngIf="!isLogginIn" (click)="openLoginFromSupport()">
+
+      <div class="support-item-icon login-icon">
+        <i class="bi bi-lock-fill"></i>
+      </div>
+
+      <div class="support-item-content">
+        <strong>{{ tr.loginSignIn }}</strong>
+        <span>{{ tr.loginSignInDesc }}</span>
+      </div>
+
+      <span class="support-arrow">›</span>
+
+    </button>
+
+
+    <!-- Logged in status + logout -->
+    <div class="logged-in-row" *ngIf="isLogginIn">
+
+      <div class="logged-in-status">
+        {{ tr.signedIn }}
+      </div>
+
+      <button class="logout-btn" (click)="logout()">
+        {{ tr.logout }}
+      </button>
+
     </div>
 
   </div>
 
-</div>
+  <!-- MY COMPLAINTS -->
+  <div class="complaints-drawer" *ngIf="isMyComplaintsOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+
+    <div class="complaints-header">
+      <button class="login-back-btn" type="button" (click)="goBackFromComplaints()" [attr.aria-label]="tr.goBack">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+
+      <div>
+        <h2>{{ tr.myComplaints }}</h2>
+        <p>{{ tr.trackComplaints }}</p>
+      </div>
+
+      <button class="complaints-close-btn" (click)="isMyComplaintsOpen = false">✕</button>
+    </div>
+
+
+    <!-- New / no complaints -->
+    <div class="complaints-empty" *ngIf="isLogginIn">
+
+      <div class="complaints-empty-icon">
+        🎫
+      </div>
+
+      <h3>{{ tr.noComplaintsTitle }}</h3>
+
+      <p>
+        {{ tr.noComplaintsText }}
+      </p>
+
+      <button class="register-complaint-btn" (click)="openComplaintFromCenter()">
+
+        {{ tr.registerComplaintBtn }}
+
+      </button>
+
+    </div>
+
+
+    <!-- Guest user -->
+    <div class="complaints-login" *ngIf="!isLogginIn">
+
+      <div class="complaints-empty-icon">
+        🔐
+      </div>
+
+      <h3>{{ tr.signInToViewComplaints }}</h3>
+
+      <p>
+        {{ tr.signInToViewComplaintsText }}
+      </p>
+
+      <button class="login-btn" (click)="openLoginFromComplaints()">
+
+        {{ tr.loginSignIn }}
+
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <div class="complaints-drawer" *ngIf="isCheckStatusOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+
+    <div class="complaints-header">
+      <button class="login-back-btn" type="button" (click)="goBackFromCheckStatus()" aria-label="Go back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+      <div>
+        <h2>{{ tr.checkStatus }}</h2>
+        <p>{{ tr.checkStatusDesc }}</p>
+      </div>
+      <button class="complaints-close-btn" (click)="isCheckStatusOpen = false">✕</button>
+    </div>
+
+    <div class="status-lookup-body">
+
+      <div class="status-lookup-form" *ngIf="!statusResult">
+        <label>{{ tr.quoteNumber }}</label>
+        <input type="text" [(ngModel)]="statusQuoteNumber" placeholder="{{ tr.quoteNumberPlaceholder }}"
+          (keydown.enter)="lookupProposalStatus()">
+
+        <div class="status-error" *ngIf="statusLookupError">{{ statusLookupError }}</div>
+        <button class="register-complaint-btn" [disabled]="isLookingUpStatus" (click)="lookupProposalStatus()">
+          {{ isLookingUpStatus ? tr.checking : tr.checkStatus }}
+        </button>
+      </div>
+
+      <!-- Result: Pending -->
+      <div class="status-result pending" *ngIf="statusResult && statusResult.status === 'PENDING'">
+        <div class="status-icon-large">⏳</div>
+        <h3>{{ tr.underReview }}</h3>
+        <p>{{ tr.proposalWord }} {{ statusResult.proposalNumber }} {{ tr.pendingText }}</p>
+        <button class="register-complaint-btn" (click)="resetStatusLookup()">Check Another</button>
+      </div>
+
+      <!-- Result: Approved -->
+      <div class="status-result approved" *ngIf="statusResult && statusResult.status === 'APPROVED'">
+        <div class="status-icon-large">✅</div>
+        <h3>{{ tr.approved }}</h3>
+        <p *ngIf="statusResult.note">{{ statusResult.note }}</p>
+        <p *ngIf="!statusResult.note">{{ tr.approvedDefault }}</p>
+        <button class="register-complaint-btn" (click)="resetStatusLookup()">{{ tr.checkAnother }}</button>
+      </div>
+
+      <!-- Result: Counter-offer -->
+      <div class="status-result counter" *ngIf="statusResult && statusResult.status === 'COUNTER_OFFER'">
+        <div class="status-icon-large">💬</div>
+        <h3>{{ tr.counterReceived }}</h3>
+        <p>{{ tr.revisedPremium }} <b>OMR {{ statusResult.counterOfferPremium?.toFixed(3) }}</b></p>
+        <p *ngIf="statusResult.note">{{ statusResult.note }}</p>
+        <p *ngIf="statusResult.customerResponse"> {{ statusResult.customerResponse === 'ACCEPTED' ? tr.alreadyAccepted :
+          tr.alreadyRejected }}</p>
+        <p *ngIf="!statusResult.customerResponse">{{ tr.counterPending }}</p>
+        <button class="register-complaint-btn" (click)="resetStatusLookup()">{{ tr.checkAnother }}</button>
+      </div>
+
+      <!-- Result: Declined -->
+      <div class="status-result declined" *ngIf="statusResult && statusResult.status === 'DECLINED'">
+        <div class="status-icon-large">✗</div>
+        <h3>{{ tr.declined }}</h3>
+        <p *ngIf="statusResult.note">{{ statusResult.note }}</p>
+        <p *ngIf="!statusResult.note">{{ tr.declinedDefault }}</p>
+        <button class="register-complaint-btn" (click)="resetStatusLookup()">{{ tr.checkAnother }}</button>
+      </div>
+
+    </div>
+
+  </div>
 
 
   <!-- History Drawer -->
- <div class="history-drawer" *ngIf="isHistoryOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
-   <div class="history-drawer-header">
-  <button class="login-back-btn" type="button" (click)="goBackFromHistory()" aria-label="Go back">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="15 18 9 12 15 6"/>
-    </svg>
-  </button>
-  <h2>{{ translations[selectedLanguage].historyTitle }}</h2>
-  <button class="history-close-btn" (click)="closeHistory()" aria-label="Close history">✕</button>
-</div>
+  <div class="history-drawer" *ngIf="isHistoryOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <div class="history-drawer-header">
+      <button class="login-back-btn" type="button" (click)="goBackFromHistory()" aria-label="Go back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+          stroke-linejoin="round">
+          <polyline points="15 18 9 12 15 6" />
+        </svg>
+      </button>
+      <h2>{{ translations[selectedLanguage].historyTitle }}</h2>
+      <button class="history-close-btn" (click)="closeHistory()" aria-label="Close history">✕</button>
+    </div>
 
     <ng-container *ngIf="isLogginIn">
       <div class="history-search">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="11" cy="11" r="7"/>
-          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          <circle cx="11" cy="11" r="7" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
         <input type="text" [(ngModel)]="historySearchQuery" placeholder="Search chats..." />
       </div>
 
       <div class="history-tabs">
-        <button class="history-tab" [class.active]="historyTab === 'all'" (click)="historyTab = 'all'">{{ tr.tabAll }}</button>
-        <button class="history-tab" [class.active]="historyTab === 'today'" (click)="historyTab = 'today'">{{ tr.tabToday }}</button>
+        <button class="history-tab" [class.active]="historyTab === 'all'" (click)="historyTab = 'all'">{{ tr.tabAll
+          }}</button>
+        <button class="history-tab" [class.active]="historyTab === 'today'" (click)="historyTab = 'today'">{{
+          tr.tabToday }}</button>
       </div>
     </ng-container>
 
-<div class="history-signin-prompt" *ngIf="!isLogginIn">
-  <p>{{ translations[selectedLanguage].historySignInPrompt }}</p>
-  <button class="login-btn" (click)="openLogin('history')">
-    {{ translations[selectedLanguage].loginBtn }}
-  </button>
-</div>
+    <div class="history-signin-prompt" *ngIf="!isLogginIn">
+      <p>{{ translations[selectedLanguage].historySignInPrompt }}</p>
+      <button class="login-btn" (click)="openLogin('history')">
+        {{ translations[selectedLanguage].loginBtn }}
+      </button>
+    </div>
 
     <div class="history-loading" *ngIf="isLogginIn && isLoadingHistory">
       {{ translations[selectedLanguage].historyLoading }}
     </div>
 
-    <div class="history-empty" *ngIf="isLogginIn && !isLoadingHistory && !historyError && filteredHistorySessions.length === 0">
+    <div class="history-empty"
+      *ngIf="isLogginIn && !isLoadingHistory && !historyError && filteredHistorySessions.length === 0">
       {{ translations[selectedLanguage].historyEmpty }}
     </div>
 
@@ -452,8 +417,10 @@
       {{ translations[selectedLanguage].historyError }}
     </div>
 
-    <div class="history-list" *ngIf="isLogginIn && !isLoadingHistory && !historyError && filteredHistorySessions.length > 0">
-      <button class="history-item" *ngFor="let session of filteredHistorySessions" (click)="loadSession(session.SESSION_ID)">
+    <div class="history-list"
+      *ngIf="isLogginIn && !isLoadingHistory && !historyError && filteredHistorySessions.length > 0">
+      <button class="history-item" *ngFor="let session of filteredHistorySessions"
+        (click)="loadSession(session.SESSION_ID)">
         <!-- <span class="history-item-icon"><i class="bi bi-chat-square-text-fill"></i></span> -->
         <span class="history-item-body">
           <span class="history-item-preview">{{ session.PREVIEW }}</span>
@@ -527,24 +494,24 @@
     </div>
 
     <!-- User/Bot Conversation -->
-       <!-- User/Bot Conversation -->
+    <!-- User/Bot Conversation -->
     <ng-container *ngFor="let msg of messages.slice(1)">
 
       <!-- Buy Policy form: skip the bubble/text entirely, show only the form -->
       <div class="embedded-buy-policy" *ngIf="msg.uiType === 'BUY_POLICY_FORM'">
-  <app-buy-policy-chat [embedded]="true" [selectedLanguage]="selectedLanguage"></app-buy-policy-chat>
-</div>
+        <app-buy-policy-chat [embedded]="true" [selectedLanguage]="selectedLanguage"></app-buy-policy-chat>
+      </div>
 
       <!-- Every other message keeps the normal bubble -->
-      <div class="row" [class.user]="msg.sender === 'user'" [class.bot]="msg.sender === 'bot'" *ngIf="msg.uiType !== 'BUY_POLICY_FORM'">
+      <div class="row" [class.user]="msg.sender === 'user'" [class.bot]="msg.sender === 'bot'"
+        *ngIf="msg.uiType !== 'BUY_POLICY_FORM'">
         <div class="bubble">
           <div class="message-line">
             <span class="message-text">
               {{ msg.text }}
             </span>
 
-            <span class="message-time inline-time"
-                *ngIf="!msg.actions?.length && !msg.showLoginButton">
+            <span class="message-time inline-time" *ngIf="!msg.actions?.length && !msg.showLoginButton">
               {{ msg.time | date:'h:mm a':userTimeZone }}
             </span>
           </div>
@@ -668,113 +635,110 @@
       </div>
     </div>
 
-  <!-- LOGIN / SIGN IN -->
-  <!-- LOGIN -->
-  <div
-    class="login-drawer"
-    *ngIf="showLoginPopup"
-    [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
+    <!-- LOGIN / SIGN IN -->
+    <!-- LOGIN -->
+    <div class="login-drawer" *ngIf="showLoginPopup" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
 
-<div class="login-header">
-  <button class="login-back-btn" type="button" (click)="goBackFromLogin()" aria-label="Go back">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-      <polyline points="15 18 9 12 15 6"/>
-    </svg>
-  </button>
-  <div>
-    <h2>Sign In</h2>
-    <p>Access your insurance account</p>
-  </div>
-  <button class="login-close-btn" type="button" (click)="showLoginPopup = false">✕</button>
-</div>
-
-    <div class="login-body">
-      <div class="login-icon-large">🔐</div>
-      <h3>Welcome back!</h3>
-      <p class="login-description">Sign in to view your chat history and manage your complaints.</p>
-
-      <div class="login-field">
-        <label>Email</label>
-        <input type="email" [(ngModel)]="email" placeholder="Enter your email"
-          autocomplete="email" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+      <div class="login-header">
+        <button class="login-back-btn" type="button" (click)="goBackFromLogin()" aria-label="Go back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <div>
+          <h2>Sign In</h2>
+          <p>Access your insurance account</p>
+        </div>
+        <button class="login-close-btn" type="button" (click)="showLoginPopup = false">✕</button>
       </div>
 
-      <div class="login-field">
-        <label>Password</label>
-        <input type="password" [(ngModel)]="password" placeholder="Enter your password"
-          autocomplete="current-password" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+      <div class="login-body">
+        <div class="login-icon-large">🔐</div>
+        <h3>Welcome back!</h3>
+        <p class="login-description">Sign in to view your chat history and manage your complaints.</p>
+
+        <div class="login-field">
+          <label>Email</label>
+          <input type="email" [(ngModel)]="email" placeholder="Enter your email" autocomplete="email"
+            [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+        </div>
+
+        <div class="login-field">
+          <label>Password</label>
+          <input type="password" [(ngModel)]="password" placeholder="Enter your password"
+            autocomplete="current-password" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+        </div>
+
+        <button type="button" class="signin-btn" (click)="login()" [disabled]="isLoggingIn">
+          {{ isLoggingIn ? 'Signing in...' : 'Sign In' }}
+        </button>
+
+        <p class="login-help">
+          New here? <a (click)="openSignup()" style="cursor:pointer; color:#3b82f6;">Create an account</a>
+        </p>
       </div>
 
-    <button type="button" class="signin-btn" (click)="login()" [disabled]="isLoggingIn">
-  {{ isLoggingIn ? 'Signing in...' : 'Sign In' }}
-</button>
-
-      <p class="login-help">
-        New here? <a (click)="openSignup()" style="cursor:pointer; color:#3b82f6;">Create an account</a>
-      </p>
     </div>
 
-  </div>
+    <!-- SIGNUP -->
+    <!-- SIGNUP -->
+    <div class="login-drawer" *ngIf="showSignupPopup" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
 
-  <!-- SIGNUP -->
-  <!-- SIGNUP -->
-  <div
-    class="login-drawer"
-    *ngIf="showSignupPopup"
-    [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
-
-    <div class="login-header">
-      <button class="login-back-btn" type="button" (click)="goBackFromSignup()" aria-label="Go back">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="15 18 9 12 15 6"/>
-        </svg>
-      </button>
-      <div>
-        <h2>Sign Up</h2>
-        <p>Create your insurance account</p>
+      <div class="login-header">
+        <button class="login-back-btn" type="button" (click)="goBackFromSignup()" aria-label="Go back">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+        <div>
+          <h2>Sign Up</h2>
+          <p>Create your insurance account</p>
+        </div>
+        <button class="login-close-btn" type="button" (click)="showSignupPopup = false">✕</button>
       </div>
-      <button class="login-close-btn" type="button" (click)="showSignupPopup = false">✕</button>
+
+      <div class="login-body">
+        <div class="login-icon-large">🔐</div>
+        <h3>Create an account</h3>
+        <p class="login-description">Sign up to save your conversations and track complaints.</p>
+
+        <div class="login-field">
+          <label>Full Name</label>
+          <input type="text" [(ngModel)]="signupName" placeholder="Enter your name"
+            [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+        </div>
+
+        <div class="login-field">
+          <label>Email</label>
+          <input type="email" [(ngModel)]="signupEmail" placeholder="Enter your email" autocomplete="email"
+            [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+        </div>
+
+        <div class="login-field">
+          <label>Password</label>
+          <input type="password" [(ngModel)]="signupPassword" placeholder="Enter your password"
+            autocomplete="new-password" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+        </div>
+
+        <div class="login-field">
+          <label>Confirm Password</label>
+          <input type="password" [(ngModel)]="signupConfirmPassword" placeholder="Re-enter your password"
+            [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+        </div>
+
+        <button type="button" class="signin-btn" (click)="signup()" [disabled]="isSigningUp">
+          {{ isSigningUp ? 'Creating account...' : 'Sign Up' }}
+        </button>
+
+        <p class="login-help">
+          Already have an account? <a (click)="openLogin(authReturnTo)" style="cursor:pointer; color:#3b82f6;">Sign
+            in</a>
+        </p>
+      </div>
+
     </div>
-
-    <div class="login-body">
-      <div class="login-icon-large">🔐</div>
-      <h3>Create an account</h3>
-      <p class="login-description">Sign up to save your conversations and track complaints.</p>
-
-      <div class="login-field">
-        <label>Full Name</label>
-        <input type="text" [(ngModel)]="signupName" placeholder="Enter your name"
-          [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
-      </div>
-
-      <div class="login-field">
-        <label>Email</label>
-        <input type="email" [(ngModel)]="signupEmail" placeholder="Enter your email"
-          autocomplete="email" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
-      </div>
-
-      <div class="login-field">
-        <label>Password</label>
-        <input type="password" [(ngModel)]="signupPassword" placeholder="Enter your password"
-          autocomplete="new-password" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
-      </div>
-
-      <div class="login-field">
-        <label>Confirm Password</label>
-        <input type="password" [(ngModel)]="signupConfirmPassword" placeholder="Re-enter your password"
-          [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
-      </div>
-
-      <button type="button" class="signin-btn" (click)="signup()" [disabled]="isSigningUp">
-        {{ isSigningUp ? 'Creating account...' : 'Sign Up' }}
-      </button>
-
-      <p class="login-help">
-        Already have an account? <a (click)="openLogin(authReturnTo)" style="cursor:pointer; color:#3b82f6;">Sign in</a>
-      </p>
-    </div>
-
-  </div>
     <!-- Typing indicator -->
     <div class="row bot" *ngIf="isLoading">
       <div class="typing">

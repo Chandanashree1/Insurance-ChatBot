@@ -312,6 +312,7 @@ kycFailedReason: string | null = null;
 //     enterOtherPlateCode: 'أدخل رمز اللوحة الآخر',
 //   }
 // };
+
 t(key: keyof typeof translations.en): string {
   return this.translations[this.selectedLanguage][key];
 }
@@ -766,7 +767,7 @@ respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void
       }
     });
 }
-  payNowForForm(msg: ChatMessage): void {
+ payNowForForm(msg: ChatMessage): void {
     if (!msg.quoteId || !msg.selectedOption || msg.submitted) {
       return;
     }
@@ -774,42 +775,74 @@ respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void
     msg.submitted = true;
     this.formNotice = '';
 
-    this.quoteService.processPayment(msg.quoteId).subscribe({
-      next: (paymentRes: PaymentResponse) => {
-        if (!paymentRes?.data?.success && (paymentRes as any)?.success !== true) {
-          msg.submitted = false;
-          this.formNotice = 'Payment failed. Please try again.';
-          this.cdr.detectChanges();
+    const civilId = msg.formData?.civilIdLicenseNo?.trim();
+
+    this.quoteService.verifyKyc(civilId!).subscribe({
+      next: (kycRes: any) => {
+
+        if (!kycRes.verified) {
+
+          this.quoteService.escalateKycFailure(
+            msg.quoteId!,
+            msg.selectedOption!.optionId,
+            'KYC verification failed'
+          ).subscribe({
+            next: (res: any) => {
+              msg.proposalNumber = res.data.proposal?.proposalNumber;
+              msg.underwritingPending = true;
+              msg.proposalStatus = 'PENDING';
+              msg.submitted = false;
+              this.cdr.detectChanges();
+            },
+            error: () => {
+              msg.submitted = false;
+              this.formNotice = 'Verification failed and could not be submitted for review. Please try again.';
+              this.cdr.detectChanges();
+            }
+          });
+
           return;
         }
 
-        this.quoteService.createPolicy(msg.quoteId!).subscribe({
-          next: (policyRes: PolicyResponse) => {
-            msg.policyNumber = policyRes?.data?.policy?.policyNumber;
-            msg.step = 3;
-            msg.submitted = false;
+        // KYC passed — proceed to payment as before
+        this.quoteService.processPayment(msg.quoteId!).subscribe({
+          next: (paymentRes: PaymentResponse) => {
+            if (!paymentRes?.data?.success && (paymentRes as any)?.success !== true) {
+              msg.submitted = false;
+              this.formNotice = 'Payment failed. Please try again.';
+              this.cdr.detectChanges();
+              return;
+            }
 
-            this.saveChatHistory();
-            this.cdr.detectChanges();
-
-            // setTimeout(() => {
-            //   this.goToPolicyPage(msg.policyNumber);
-            // }, 1500);
+            this.quoteService.createPolicy(msg.quoteId!).subscribe({
+              next: (policyRes: PolicyResponse) => {
+                msg.policyNumber = policyRes?.data?.policy?.policyNumber;
+                msg.step = 3;
+                msg.submitted = false;
+                this.saveChatHistory();
+                this.cdr.detectChanges();
+              },
+              error: (err: HttpErrorResponse) => {
+                msg.submitted = false;
+                this.formNotice = err?.error?.message || 'Payment succeeded but policy creation failed. Please contact support.';
+                this.cdr.detectChanges();
+              }
+            });
           },
           error: (err: HttpErrorResponse) => {
             msg.submitted = false;
-            this.formNotice = err?.error?.message || 'Payment succeeded but policy creation failed. Please contact support.';
+            this.formNotice = err?.error?.message || 'Payment could not be processed.';
             this.cdr.detectChanges();
           }
         });
       },
-      error: (err: HttpErrorResponse) => {
+      error: () => {
         msg.submitted = false;
-        this.formNotice = err?.error?.message || 'Payment could not be processed.';
+        this.formNotice = 'Could not verify your identity right now. Please try again.';
         this.cdr.detectChanges();
       }
     });
-  }
+}
 
   cancelPolicyForm(msg: ChatMessage): void {
     msg.step = undefined;
@@ -850,76 +883,78 @@ submitPolicyForm(msg: ChatMessage): void {
       return;
     }
 
-    // ==================================================
-    // KYC VERIFICATION (DB-BACKED)
-    // ==================================================
+ 
 
     msg.submitted = true;
     this.formNotice = '';
-    this.kycVerifying = true;
-    this.kycVerified = false;
-    this.kycFailedReason = null;
-    this.cdr.detectChanges();
+//     this.kycVerifying = true;
+//     this.kycVerified = false;
+//     this.kycFailedReason = null;
+//     this.cdr.detectChanges();
 
-    this.quoteService.verifyKyc(form.civilIdLicenseNo!.trim()).subscribe({
-      next: (kycRes: any) => {
+//     this.quoteService.verifyKyc(form.civilIdLicenseNo!.trim()).subscribe({
+//       next: (kycRes: any) => {
 
-        this.kycVerifying = false;
+//         this.kycVerifying = false;
 
-       if (!kycRes.verified) {
+//        if (!kycRes.verified) {
 
-  this.kycFailedReason = kycRes.reason;
-  this.cdr.detectChanges();
+//   this.kycFailedReason = kycRes.reason;
+//   this.cdr.detectChanges();
 
-  // Show the red "KYC Failed" message briefly before escalating
-  setTimeout(() => {
+//   // Show the red "KYC Failed" message briefly before escalating
+//   setTimeout(() => {
 
-    this.quoteService.escalateKycFailure({
-      mobileNumber: form.mobileNumber!.trim(),
-      fullName: form.fullName!.trim(),
-      civilIdLicenseNo: form.civilIdLicenseNo!.trim(),
-      plateNumber,
-      plateCode,
-      productId: form.productId!,
-      vehicleValue: form.productId === 'COMPREHENSIVE' ? form.vehicleValue : undefined
-    }).subscribe({
-      next: (res: any) => {
-        this.kycFailedReason = null; // clear before moving on
-        msg.quoteId = res.data.quoteId;
-        msg.quoteNumber = res.data.quoteNumber;
-        msg.proposalNumber = res.data.proposal?.proposalNumber;
-        msg.underwritingPending = true;
-        msg.proposalStatus = 'PENDING';
-        msg.step = 2;
-        msg.submitted = false;
-        this.cdr.detectChanges();
-      },
-      error: (err: HttpErrorResponse) => {
-        msg.submitted = false;
-        this.formNotice = 'Verification failed and could not be submitted for review. Please try again.';
-        this.cdr.detectChanges();
-      }
-    });
+//     this.quoteService.escalateKycFailure({
+//       mobileNumber: form.mobileNumber!.trim(),
+//       fullName: form.fullName!.trim(),
+//       civilIdLicenseNo: form.civilIdLicenseNo!.trim(),
+//       plateNumber,
+//       plateCode,
+//       productId: form.productId!,
+//       vehicleValue: form.productId === 'COMPREHENSIVE' ? form.vehicleValue : undefined
+//     }).subscribe({
+//       next: (res: any) => {
+//         this.kycFailedReason = null; // clear before moving on
+//         msg.quoteId = res.data.quoteId;
+//         msg.quoteNumber = res.data.quoteNumber;
+//         msg.proposalNumber = res.data.proposal?.proposalNumber;
+//         msg.underwritingPending = true;
+//         msg.proposalStatus = 'PENDING';
+//         msg.step = 2;
+//         msg.submitted = false;
+//         this.cdr.detectChanges();
+//       },
+//       error: (err: HttpErrorResponse) => {
+//         msg.submitted = false;
+//         this.formNotice = 'Verification failed and could not be submitted for review. Please try again.';
+//         this.cdr.detectChanges();
+//       }
+//     });
 
-  }, 900); // let the red "KYC Failed" message show for ~0.9s
+//   }, 900); // let the red "KYC Failed" message show for ~0.9s
 
-  return;
-}
-        // KYC passed — show success badge briefly, then proceed
-        this.kycVerified = true;
-        this.cdr.detectChanges();
+//   return;
+// }
+//         // KYC passed — show success badge briefly, then proceed
+//         this.kycVerified = true;
+//         this.cdr.detectChanges();
 
-        setTimeout(() => {
+//         setTimeout(() => {
 
-          this.kycVerified = false; // clear before moving on
+//           this.kycVerified = false; // clear before moving on
 
           this.quoteService.createMotorQuote({
-            mobileNumber: form.mobileNumber!.trim(),
-            fullName: form.fullName!.trim(),
-            civilIdLicenseNo: form.civilIdLicenseNo!.trim(),
+            // mobileNumber: form.mobileNumber!.trim(),
+            // fullName: form.fullName!.trim(),
+            // civilIdLicenseNo: form.civilIdLicenseNo!.trim(),
+             mobileNumber: form.mobileNumber.trim(),
+      fullName: form.fullName.trim(),
+      civilIdLicenseNo: form.civilIdLicenseNo.trim(),
             plateNumber,
             plateCode,
-            productId: form.productId!,
+            // productId: form.productId!,
+             productId: form.productId,
             vehicleValue: form.productId === 'COMPREHENSIVE' ? form.vehicleValue : undefined
           }).subscribe({
             next: (res: CreateQuoteResponse) => {
@@ -936,16 +971,16 @@ submitPolicyForm(msg: ChatMessage): void {
             error: (err: HttpErrorResponse) => {
               msg.submitted = false;
               this.formNotice = err?.error?.message || 'Something went wrong generating your quote. Please check your details.';
-              this.cdr.detectChanges();
-            }
-          });
+      //         this.cdr.detectChanges();
+      //       }
+      //     });
 
-        }, 600);
-      },
-      error: () => {
-        this.kycVerifying = false;
-        msg.submitted = false;
-        this.formNotice = 'Could not verify your identity right now. Please try again.';
+      //   }, 600);
+      // },
+      // error: () => {
+      //   this.kycVerifying = false;
+      //   msg.submitted = false;
+      //   this.formNotice = 'Could not verify your identity right now. Please try again.';
         this.cdr.detectChanges();
       }
     });

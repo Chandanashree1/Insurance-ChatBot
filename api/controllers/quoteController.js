@@ -270,7 +270,6 @@ async function escalateKycFailure(req, res) {
     }
 }
 
-
 async function getAllQuotes(req, res) {
     let connection;
     try {
