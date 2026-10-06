@@ -305,7 +305,7 @@ async function getAllQuotes(req, res) {
                 status: row.QUOTE_STATUS
             }))
         });
-
+            
     } catch (err) {
         console.error("Get All Quotes Error:", err);
         return res.status(500).json({ success: false, message: "Failed to fetch quotes" });
@@ -313,10 +313,6 @@ async function getAllQuotes(req, res) {
         if (connection) await connection.close();
     }
 }
-
-
-
-
 module.exports = {
     createMotorQuote, selectOption, getAllQuotes, escalateKycFailure, verifyKyc
 };

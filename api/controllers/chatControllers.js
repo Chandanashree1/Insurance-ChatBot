@@ -653,9 +653,9 @@ async function processPayment({
             reply:
                 language === "ar"
                     ? `للأسف، تم رفض هذا العرض (${proposal.PROPOSAL_NUMBER}) من قبل قسم الاكتتاب ولا يمكن إتمام الدفع له.` +
-                      (proposal.UNDERWRITER_NOTE ? ` ملاحظة: ${proposal.UNDERWRITER_NOTE}` : "")
+                    (proposal.UNDERWRITER_NOTE ? ` ملاحظة: ${proposal.UNDERWRITER_NOTE}` : "")
                     : `This quote was declined during underwriting review (proposal ${proposal.PROPOSAL_NUMBER}) and can't be paid for.` +
-                      (proposal.UNDERWRITER_NOTE ? ` Note from underwriting: ${proposal.UNDERWRITER_NOTE}` : ""),
+                    (proposal.UNDERWRITER_NOTE ? ` Note from underwriting: ${proposal.UNDERWRITER_NOTE}` : ""),
             actions: [],
             data: []
         };
@@ -777,7 +777,10 @@ async function processPayment({
             `تمت عملية الدفع بنجاح. تم إنشاء وثيقتك رقم ${policy.policyNumber} بنجاح.`
         ),
 
-        actions: [],
+        actions: [{
+            label: "View Policy & Download Documents",
+            action: `VIEW_POLICY_${policy.policyNumber}`
+        }],
 
         data: [
             {
@@ -1042,144 +1045,144 @@ const chat = async (req, res) => {
         }
 
         // -------------------------
-// STP - Instant Resolution
-// -------------------------
+        // STP - Instant Resolution
+        // -------------------------
 
-if (intent === "COMPLAINT") {
+        if (intent === "COMPLAINT") {
 
-    const stpResult = await resolveKnownIssue(message);
+            const stpResult = await resolveKnownIssue(message);
 
-    if (stpResult.matched) {
+            if (stpResult.matched) {
 
-        const stpContext = stpResult.chunks
-            .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
-            .join("\n\n");
+                const stpContext = stpResult.chunks
+                    .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
+                    .join("\n\n");
 
-        console.log("\n========== STP ISSUE ==========");
-        console.log(stpResult.issueCode);
+                console.log("\n========== STP ISSUE ==========");
+                console.log(stpResult.issueCode);
 
-        console.log("\n========== STP RAG CONTEXT ==========");
-        console.log(stpContext);
+                console.log("\n========== STP RAG CONTEXT ==========");
+                console.log(stpContext);
 
-        const stpReply = await askAI(
-            message,
-            "",
-            stpContext,
-            history,
-            language
-        );
+                const stpReply = await askAI(
+                    message,
+                    "",
+                    stpContext,
+                    history,
+                    language
+                );
 
-        // Save assistant response
-        addMessage(userId, "assistant", stpReply);
+                // Save assistant response
+                addMessage(userId, "assistant", stpReply);
 
-        if (loggedIn && customerId) {
-            await saveMessage(
-                customerId,
-                sessionId,
-                "bot",
-                stpReply,
-                language
-            );
-        }
-
-        return res.json({
-            success: true,
-            intent,
-            reply: stpReply,
-            requiresLogin: false,
-            uiType: "STP_RESOLUTION",
-            stp: true,
-            issueCode: stpResult.issueCode,
-            actions: [
-                {
-                    label: language === "ar"
-                        ? "تم الحل"
-                        : "Yes, resolved",
-                    action: "STP_RESOLVED"
-                },
-                {
-                    label: language === "ar"
-                        ? "ما زلت بحاجة إلى مساعدة"
-                        : "No, I still need help",
-                    action: "STP_NOT_RESOLVED"
+                if (loggedIn && customerId) {
+                    await saveMessage(
+                        customerId,
+                        sessionId,
+                        "bot",
+                        stpReply,
+                        language
+                    );
                 }
-            ],
-            data: []
-        });
-    }
 
-    console.log("No known issue matched. Continue with normal complaint flow.");
-}
+                return res.json({
+                    success: true,
+                    intent,
+                    reply: stpReply,
+                    requiresLogin: false,
+                    uiType: "STP_RESOLUTION",
+                    stp: true,
+                    issueCode: stpResult.issueCode,
+                    actions: [
+                        {
+                            label: language === "ar"
+                                ? "تم الحل"
+                                : "Yes, resolved",
+                            action: "STP_RESOLVED"
+                        },
+                        {
+                            label: language === "ar"
+                                ? "ما زلت بحاجة إلى مساعدة"
+                                : "No, I still need help",
+                            action: "STP_NOT_RESOLVED"
+                        }
+                    ],
+                    data: []
+                });
+            }
+
+            console.log("No known issue matched. Continue with normal complaint flow.");
+        }
 
         // -------------------------
-// STP - Instant Resolution
-// -------------------------
+        // STP - Instant Resolution
+        // -------------------------
 
-if (intent === "COMPLAINT") {
+        if (intent === "COMPLAINT") {
 
-    const stpResult = await resolveKnownIssue(message);
+            const stpResult = await resolveKnownIssue(message);
 
-    if (stpResult.matched) {
+            if (stpResult.matched) {
 
-        const stpContext = stpResult.chunks
-            .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
-            .join("\n\n");
+                const stpContext = stpResult.chunks
+                    .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
+                    .join("\n\n");
 
-        console.log("\n========== STP ISSUE ==========");
-        console.log(stpResult.issueCode);
+                console.log("\n========== STP ISSUE ==========");
+                console.log(stpResult.issueCode);
 
-        console.log("\n========== STP RAG CONTEXT ==========");
-        console.log(stpContext);
+                console.log("\n========== STP RAG CONTEXT ==========");
+                console.log(stpContext);
 
-        const stpReply = await askAI(
-            message,
-            "",
-            stpContext,
-            history,
-            language
-        );
+                const stpReply = await askAI(
+                    message,
+                    "",
+                    stpContext,
+                    history,
+                    language
+                );
 
-        // Save assistant response
-        addMessage(userId, "assistant", stpReply);
+                // Save assistant response
+                addMessage(userId, "assistant", stpReply);
 
-        if (loggedIn && customerId) {
-            await saveMessage(
-                customerId,
-                sessionId,
-                "bot",
-                stpReply,
-                language
-            );
-        }
-
-        return res.json({
-            success: true,
-            intent,
-            reply: stpReply,
-            requiresLogin: false,
-            uiType: "STP_RESOLUTION",
-            stp: true,
-            issueCode: stpResult.issueCode,
-            actions: [
-                {
-                    label: language === "ar"
-                        ? "تم الحل"
-                        : "Yes, resolved",
-                    action: "STP_RESOLVED"
-                },
-                {
-                    label: language === "ar"
-                        ? "ما زلت بحاجة إلى مساعدة"
-                        : "No, I still need help",
-                    action: "STP_NOT_RESOLVED"
+                if (loggedIn && customerId) {
+                    await saveMessage(
+                        customerId,
+                        sessionId,
+                        "bot",
+                        stpReply,
+                        language
+                    );
                 }
-            ],
-            data: []
-        });
-    }
 
-    console.log("No known issue matched. Continue with normal complaint flow.");
-}
+                return res.json({
+                    success: true,
+                    intent,
+                    reply: stpReply,
+                    requiresLogin: false,
+                    uiType: "STP_RESOLUTION",
+                    stp: true,
+                    issueCode: stpResult.issueCode,
+                    actions: [
+                        {
+                            label: language === "ar"
+                                ? "تم الحل"
+                                : "Yes, resolved",
+                            action: "STP_RESOLVED"
+                        },
+                        {
+                            label: language === "ar"
+                                ? "ما زلت بحاجة إلى مساعدة"
+                                : "No, I still need help",
+                            action: "STP_NOT_RESOLVED"
+                        }
+                    ],
+                    data: []
+                });
+            }
+
+            console.log("No known issue matched. Continue with normal complaint flow.");
+        }
 
 
         // --------------------------------------------------
