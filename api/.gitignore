@@ -2,7 +2,7 @@
 node_modules/
 
 api/uploads/
-
+*.jpg
 # Environment variables
 .env
 .env.*
