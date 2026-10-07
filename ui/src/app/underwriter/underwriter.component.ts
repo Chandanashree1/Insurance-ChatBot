@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { uwTranslations, UwKey, UwLang } from './underwriter.translations';
 import {ComplaintFlwUp} from '../services/complaint-flw-up'
+import { ClaimService, PendingClaim, SubmitClaimResult } from '../services/claim.service';
+import { ClaimFormComponent } from '../claim/claim';
 
 interface QuoteRow {
   quoteId: number;
@@ -31,7 +33,7 @@ interface ProposalRow {
 @Component({
   selector: 'app-underwriter',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, ClaimFormComponent],
   templateUrl: './underwriter.component.html',
   styleUrls: ['./underwriter.component.scss']
 })
@@ -90,7 +92,7 @@ export class UnderwriterComponent implements OnInit {
   deciding = false;
   decisionSentLog: { proposalNumber: string; decision: string; time: string }[] = [];
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private flwUp:ComplaintFlwUp) { }
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private flwUp:ComplaintFlwUp, private claimSvc: ClaimService) { }
 
   ngOnInit(): void {
     // Restore the last chosen language
@@ -102,6 +104,7 @@ export class UnderwriterComponent implements OnInit {
     this.isLoggedIn = sessionStorage.getItem('underwriterAuth') === 'true';
     if (this.isLoggedIn) {
       this.loadProposals();
+      this.loadPendingClaims();
     }
     this.loadComplaints()
   }
@@ -174,6 +177,7 @@ export class UnderwriterComponent implements OnInit {
       this.isLoggedIn = true;
       this.loginFailed = false;
       this.loadProposals();
+      this.loadPendingClaims();
     } else {
       this.loginFailed = true;
     }
@@ -220,6 +224,97 @@ export class UnderwriterComponent implements OnInit {
         this.sending = false;
       },
       error: () => { this.sending = false; }
+    });
+  }
+
+  // ==================================================
+  // CLAIMS
+  // ==================================================
+  pendingClaims: PendingClaim[] = [];
+  selectedClaim: PendingClaim | null = null;
+  claimNote = '';
+  claimApprovedAmount: number | null = null;
+  claimError = '';
+  decidingClaim = false;
+  claimDecisionLog: { claimNumber: string; decision: string; time: string }[] = [];
+
+  loadPendingClaims(): void {
+    this.claimSvc.getPendingClaims().subscribe({
+      next: (claims) => {
+        this.pendingClaims = claims;
+        // Keep the selection only if that claim is still pending
+        if (this.selectedClaim && !claims.some(c => c.claimId === this.selectedClaim!.claimId)) {
+          this.selectedClaim = null;
+        }
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Pending claims fetch failed:', err);
+        this.pendingClaims = [];
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  onClaimSubmitted(_result: SubmitClaimResult): void {
+    // STP claims never enter the queue; PENDING ones do
+    this.loadPendingClaims();
+  }
+
+  selectClaim(claim: PendingClaim): void {
+    this.selectedClaim = claim;
+    this.claimNote = '';
+    this.claimApprovedAmount = null;
+    this.claimError = '';
+  }
+
+  claimImageUrl(claim: PendingClaim): string | null {
+    return this.claimSvc.imageUrl(claim.imagePath);
+  }
+
+  decideClaim(decision: 'APPROVED' | 'DECLINED'): void {
+    const claim = this.selectedClaim;
+    if (!claim) return;
+
+    const note = this.claimNote.trim();
+
+    if (decision === 'DECLINED' && !note) {
+      this.claimError = 'Add a note explaining the decline. The customer will see it.';
+      return;
+    }
+
+    let approvedAmount: number | null = null;
+    if (decision === 'APPROVED') {
+      approvedAmount = this.claimApprovedAmount ?? claim.claimAmount;
+      if (!(approvedAmount > 0) || approvedAmount > claim.claimAmount) {
+        this.claimError = `Approved amount must be between 0 and OMR ${claim.claimAmount}.`;
+        return;
+      }
+    }
+
+    this.claimError = '';
+    this.decidingClaim = true;
+
+    this.claimSvc.decideClaim(claim.claimId, decision, note || null, approvedAmount).subscribe({
+      next: () => {
+        this.claimDecisionLog.unshift({
+          claimNumber: claim.claimNumber,
+          decision,
+          time: new Date().toLocaleTimeString()
+        });
+        this.pendingClaims = this.pendingClaims.filter(c => c.claimId !== claim.claimId);
+        this.selectedClaim = null;
+        this.claimNote = '';
+        this.claimApprovedAmount = null;
+        this.decidingClaim = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.claimError = err?.error?.message || 'Could not save the decision. Please try again.';
+        this.decidingClaim = false;
+        // The claim may already have been decided elsewhere; resync the queue
+        this.loadPendingClaims();
+      }
     });
   }
 

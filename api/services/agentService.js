@@ -8,6 +8,7 @@ const {
 const { retrieveRelevantChunks } = require("./ragService");
 const { startPurchaseFlow, updatePurchaseFlow } = require("./purchaseFlowService");
 const { getProposalByQuoteId } = require("./underwritingService");
+const { getClaimByNumber } = require("./Claimservice");
 
 
 function sleep(ms) {
@@ -154,6 +155,15 @@ const TOOLS = {
         }
     },
 
+    getClaimStatus: {
+        description:
+            "Look up the logged-in customer's own claim by claim number. Returns its status (STP_APPROVED, PENDING, APPROVED, DECLINED), amount, and adjuster note if any. Returns null if no such claim exists for this customer.",
+        parameters: {
+            claimNumber:
+                "string - the claim number, e.g. CLM-2026-00012"
+        }
+    },
+
     resumeIncompleteQuote: {
         description:
             "Re-open an unpaid quote so the customer can pick an option and/or pay. Only call this AFTER getQuoteDetails has confirmed the quote exists and is not yet paid, and the customer has said they want to continue/complete/pay for it. Do not call this for quotes that are already paid.",
@@ -194,7 +204,8 @@ function buildAgentSystemPrompt(language) {
 You are ABC Insurance's policy assistant agent.
 
 You help the currently logged-in customer understand the status
-and terms of their OWN policies and in-progress quotes. You do
+and terms of their OWN policies, in-progress quotes, and claims.
+You do
 not have any other capability.
 
 ==================================================
@@ -224,9 +235,10 @@ RULES
 
 5. A number starting with "POL-" is a policy number; a number
    starting with "QT-" is a quote number (an in-progress
-   purchase that has not become a policy yet). If a lookup with
-   the wrong tool fails, try the other one before telling the
-   customer nothing was found.
+   purchase that has not become a policy yet); a number starting
+   with "CLM-" is a claim number. If a lookup with the wrong tool
+   fails, try another matching tool before telling the customer
+   nothing was found.
 
 6. getQuoteDetails may return a "proposal" - this means the quote
    was escalated to underwriting (KYC failure, high value, etc).
@@ -256,14 +268,27 @@ RULES
        and that they need to respond to the counter-offer before
        payment can proceed. Do not call resumeIncompleteQuote.
 
-7. Call at most ONE tool per step.
+7. getClaimStatus returns a claim with one of these statuses -
+   explain it plainly rather than just repeating the raw value:
+     - "STP_APPROVED": the claim was automatically approved
+       (straight-through processing) for the full claimed amount.
+     - "PENDING": the claim is still under underwriter review -
+       no decision yet.
+     - "APPROVED": an underwriter approved it. State the
+       approvedAmount (it may differ from the original claimed
+       amount) and the adjuster's note if present.
+     - "DECLINED": an underwriter declined it. Share the
+       adjuster's note if present, without being asked to.
+   Never guess a claim's outcome before calling the tool.
 
-8. Use searchPolicyTerms when the customer asks about coverage,
+8. Call at most ONE tool per step.
+
+9. Use searchPolicyTerms when the customer asks about coverage,
    exclusions, terms, or conditions. Prefer using the product
    type from an already-fetched policy/quote when you have one.
 
-9. Once you have enough information, or if no tool can help,
-   give a final answer. Do not call tools you don't need.
+10. Once you have enough information, or if no tool can help,
+    give a final answer. Do not call tools you don't need.
 
 ${languageRule}
 
@@ -406,6 +431,37 @@ async function executeTool(toolName, args, context) {
             // see the rules above.
             proposal: proposal || null
         };
+
+    }
+
+
+    if (toolName === "getClaimStatus") {
+
+        const claimNumber =
+            String(args?.claimNumber || "").trim();
+
+        if (!claimNumber) {
+            return { error: "No claim number was provided." };
+        }
+
+        if (!context.customerId) {
+            return { error: "No logged-in customer to look up a claim for." };
+        }
+
+        const claim =
+            await getClaimByNumber(
+                claimNumber,
+                context.customerId
+            );
+
+        if (!claim) {
+            return {
+                error:
+                    "No claim with that number was found for this customer."
+            };
+        }
+
+        return { claim };
 
     }
 

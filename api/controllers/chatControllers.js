@@ -653,9 +653,9 @@ async function processPayment({
             reply:
                 language === "ar"
                     ? `للأسف، تم رفض هذا العرض (${proposal.PROPOSAL_NUMBER}) من قبل قسم الاكتتاب ولا يمكن إتمام الدفع له.` +
-                    (proposal.UNDERWRITER_NOTE ? ` ملاحظة: ${proposal.UNDERWRITER_NOTE}` : "")
+                      (proposal.UNDERWRITER_NOTE ? ` ملاحظة: ${proposal.UNDERWRITER_NOTE}` : "")
                     : `This quote was declined during underwriting review (proposal ${proposal.PROPOSAL_NUMBER}) and can't be paid for.` +
-                    (proposal.UNDERWRITER_NOTE ? ` Note from underwriting: ${proposal.UNDERWRITER_NOTE}` : ""),
+                      (proposal.UNDERWRITER_NOTE ? ` Note from underwriting: ${proposal.UNDERWRITER_NOTE}` : ""),
             actions: [],
             data: []
         };
@@ -777,10 +777,20 @@ async function processPayment({
             `تمت عملية الدفع بنجاح. تم إنشاء وثيقتك رقم ${policy.policyNumber} بنجاح.`
         ),
 
-        actions: [{
-            label: "View Policy & Download Documents",
-            action: `VIEW_POLICY_${policy.policyNumber}`
-        }],
+        // Mirrors the buy-policy widget's step-3 "View Policy &
+        // Download Documents" button. VIEW_POLICY_ is a routing
+        // action, not a chat message - the frontend intercepts it
+        // in onActionClick() and navigates instead of sending it
+        // to /api/chat.
+        actions: [
+            {
+                label:
+                    language === "ar"
+                        ? "عرض الوثيقة وتحميل المستندات"
+                        : "View Policy & Download Documents",
+                action: `VIEW_POLICY_${policy.policyNumber}`
+            }
+        ],
 
         data: [
             {
@@ -1045,162 +1055,167 @@ const chat = async (req, res) => {
         }
 
         // -------------------------
-        // STP - Instant Resolution
-        // -------------------------
+// STP - Instant Resolution
+// -------------------------
 
-        if (intent === "COMPLAINT") {
+if (intent === "COMPLAINT") {
 
-            const stpResult = await resolveKnownIssue(message);
+    const stpResult = await resolveKnownIssue(message);
 
-            if (stpResult.matched) {
+    if (stpResult.matched) {
 
-                const stpContext = stpResult.chunks
-                    .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
-                    .join("\n\n");
+        const stpContext = stpResult.chunks
+            .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
+            .join("\n\n");
 
-                console.log("\n========== STP ISSUE ==========");
-                console.log(stpResult.issueCode);
+        console.log("\n========== STP ISSUE ==========");
+        console.log(stpResult.issueCode);
 
-                console.log("\n========== STP RAG CONTEXT ==========");
-                console.log(stpContext);
+        console.log("\n========== STP RAG CONTEXT ==========");
+        console.log(stpContext);
 
-                const stpReply = await askAI(
-                    message,
-                    "",
-                    stpContext,
-                    history,
-                    language
-                );
+        const stpReply = await askAI(
+            message,
+            "",
+            stpContext,
+            history,
+            language
+        );
 
-                // Save assistant response
-                addMessage(userId, "assistant", stpReply);
+        // Save assistant response
+        addMessage(userId, "assistant", stpReply);
 
-                if (loggedIn && customerId) {
-                    await saveMessage(
-                        customerId,
-                        sessionId,
-                        "bot",
-                        stpReply,
-                        language
-                    );
-                }
-
-                return res.json({
-                    success: true,
-                    intent,
-                    reply: stpReply,
-                    requiresLogin: false,
-                    uiType: "STP_RESOLUTION",
-                    stp: true,
-                    issueCode: stpResult.issueCode,
-                    actions: [
-                        {
-                            label: language === "ar"
-                                ? "تم الحل"
-                                : "Yes, resolved",
-                            action: "STP_RESOLVED"
-                        },
-                        {
-                            label: language === "ar"
-                                ? "ما زلت بحاجة إلى مساعدة"
-                                : "No, I still need help",
-                            action: "STP_NOT_RESOLVED"
-                        }
-                    ],
-                    data: []
-                });
-            }
-
-            console.log("No known issue matched. Continue with normal complaint flow.");
+        if (loggedIn && customerId) {
+            await saveMessage(
+                customerId,
+                sessionId,
+                "bot",
+                stpReply,
+                language
+            );
         }
 
-        // -------------------------
-        // STP - Instant Resolution
-        // -------------------------
-
-        if (intent === "COMPLAINT") {
-
-            const stpResult = await resolveKnownIssue(message);
-
-            if (stpResult.matched) {
-
-                const stpContext = stpResult.chunks
-                    .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
-                    .join("\n\n");
-
-                console.log("\n========== STP ISSUE ==========");
-                console.log(stpResult.issueCode);
-
-                console.log("\n========== STP RAG CONTEXT ==========");
-                console.log(stpContext);
-
-                const stpReply = await askAI(
-                    message,
-                    "",
-                    stpContext,
-                    history,
-                    language
-                );
-
-                // Save assistant response
-                addMessage(userId, "assistant", stpReply);
-
-                if (loggedIn && customerId) {
-                    await saveMessage(
-                        customerId,
-                        sessionId,
-                        "bot",
-                        stpReply,
-                        language
-                    );
+        return res.json({
+            success: true,
+            intent,
+            reply: stpReply,
+            requiresLogin: false,
+            uiType: "STP_RESOLUTION",
+            stp: true,
+            issueCode: stpResult.issueCode,
+            actions: [
+                {
+                    label: language === "ar"
+                        ? "تم الحل"
+                        : "Yes, resolved",
+                    action: "STP_RESOLVED"
+                },
+                {
+                    label: language === "ar"
+                        ? "ما زلت بحاجة إلى مساعدة"
+                        : "No, I still need help",
+                    action: "STP_NOT_RESOLVED"
                 }
+            ],
+            data: []
+        });
+    }
 
-                return res.json({
-                    success: true,
-                    intent,
-                    reply: stpReply,
-                    requiresLogin: false,
-                    uiType: "STP_RESOLUTION",
-                    stp: true,
-                    issueCode: stpResult.issueCode,
-                    actions: [
-                        {
-                            label: language === "ar"
-                                ? "تم الحل"
-                                : "Yes, resolved",
-                            action: "STP_RESOLVED"
-                        },
-                        {
-                            label: language === "ar"
-                                ? "ما زلت بحاجة إلى مساعدة"
-                                : "No, I still need help",
-                            action: "STP_NOT_RESOLVED"
-                        }
-                    ],
-                    data: []
-                });
-            }
+    console.log("No known issue matched. Continue with normal complaint flow.");
+}
 
-            console.log("No known issue matched. Continue with normal complaint flow.");
+        // -------------------------
+// STP - Instant Resolution
+// -------------------------
+
+if (intent === "COMPLAINT") {
+
+    const stpResult = await resolveKnownIssue(message);
+
+    if (stpResult.matched) {
+
+        const stpContext = stpResult.chunks
+            .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
+            .join("\n\n");
+
+        console.log("\n========== STP ISSUE ==========");
+        console.log(stpResult.issueCode);
+
+        console.log("\n========== STP RAG CONTEXT ==========");
+        console.log(stpContext);
+
+        const stpReply = await askAI(
+            message,
+            "",
+            stpContext,
+            history,
+            language
+        );
+
+        // Save assistant response
+        addMessage(userId, "assistant", stpReply);
+
+        if (loggedIn && customerId) {
+            await saveMessage(
+                customerId,
+                sessionId,
+                "bot",
+                stpReply,
+                language
+            );
         }
+
+        return res.json({
+            success: true,
+            intent,
+            reply: stpReply,
+            requiresLogin: false,
+            uiType: "STP_RESOLUTION",
+            stp: true,
+            issueCode: stpResult.issueCode,
+            actions: [
+                {
+                    label: language === "ar"
+                        ? "تم الحل"
+                        : "Yes, resolved",
+                    action: "STP_RESOLVED"
+                },
+                {
+                    label: language === "ar"
+                        ? "ما زلت بحاجة إلى مساعدة"
+                        : "No, I still need help",
+                    action: "STP_NOT_RESOLVED"
+                }
+            ],
+            data: []
+        });
+    }
+
+    console.log("No known issue matched. Continue with normal complaint flow.");
+}
 
 
         // --------------------------------------------------
-        // 5b. Policy / quote agent
+        // 5b. Policy / quote / claim agent
         // --------------------------------------------------
         //
         // Runs BEFORE the purchase-flow start and out-of-scope
         // checks on purpose:
         //
-        //  - POLICY intent (a policy/quote number or question).
+        //  - POLICY intent (a policy/quote/claim number or
+        //    question - the reference-number shortcut in
+        //    intentservice.js routes CLM- numbers here too).
+        //  - CLAIM intent (a natural-language claim question with
+        //    no number yet, e.g. "what's my claim status" - the
+        //    agent will ask for the claim number itself).
         //  - A short follow-up ("yes", "continue") to a question
         //    the agent just asked. On its own that reads as
         //    BUY_POLICY, so without this it would start a brand
         //    new purchase flow or fall into generic chat.
         //
-        // Both require a logged-in customer, and every agent tool
-        // is scoped to that customerId. Step 5 above has already
-        // sent logged-out POLICY requests to the login prompt.
+        // All of these require a logged-in customer, and every
+        // agent tool is scoped to that customerId. Step 5 above
+        // has already sent logged-out requests to the login prompt.
         // --------------------------------------------------
 
         const isShortFollowUp =
@@ -1209,11 +1224,11 @@ const chat = async (req, res) => {
         const isAgentFollowUp =
             isAgentAwaiting(flowUserId) &&
             isShortFollowUp &&
-            ["POLICY", "BUY_POLICY", "PAYMENT", "UNKNOWN"]
+            ["POLICY", "CLAIM", "BUY_POLICY", "PAYMENT", "UNKNOWN"]
                 .includes(intent);
 
         if (
-            (intent === "POLICY" || isAgentFollowUp) &&
+            (intent === "POLICY" || intent === "CLAIM" || isAgentFollowUp) &&
             loggedIn &&
             customerId
         ) {

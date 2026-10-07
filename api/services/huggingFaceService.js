@@ -589,10 +589,11 @@ Examples:
 
 "When does my policy expire?"
 
-A message that is just a policy number or a quote number
-(a reference code the customer types on its own) is also POLICY.
-Policy numbers look like POL-2026-00006 and quote numbers look
-like QT-2026-00101. Both are insurance reference numbers the
+A message that is just a policy number, quote number, or claim
+number (a reference code the customer types on its own) is also
+POLICY. Policy numbers look like POL-2026-00006, quote numbers
+look like QT-2026-00101, and claim numbers look like
+CLM-2026-00012. All three are insurance reference numbers the
 customer wants information about.
 
 "POL-2026-00006"
@@ -600,6 +601,10 @@ customer wants information about.
 => POLICY
 
 "QT-2026-00101"
+
+=> POLICY
+
+"CLM-2026-00012"
 
 => POLICY
 
@@ -688,7 +693,8 @@ OUT_OF_SCOPE
 Use OUT_OF_SCOPE when the request is unrelated to insurance.
 
 Never use OUT_OF_SCOPE for a message containing a policy number
-(POL-...) or a quote number (QT-...), even if the message is
+(POL-...), a quote number (QT-...), or a claim number
+(CLM-...), even if the message is
 only that code. Those are insurance references => POLICY.
 
 ==================================================
@@ -747,7 +753,8 @@ RULES
 8. Clear purchase/quote/application request = BUY_POLICY.
 
 9. Existing customer policy or quote questions, and any message
-    containing a policy number (POL-...) or quote number (QT-...)
+    containing a policy number (POL-...), quote number (QT-...),
+    or claim number (CLM-...)
     = POLICY.
 
 10. Existing claims = CLAIM.
@@ -975,294 +982,6 @@ ${history
 
 }
 
-/*
-|--------------------------------------------------------------------------
-| AI ANALYZE COMPLAINT
-|--------------------------------------------------------------------------
-*/
-
-async function analyzeComplaint(complaintText) {
-
-    if (
-        !complaintText ||
-        typeof complaintText !== "string"
-    ) {
-
-        return {
-            route: "NON_STP",
-            reason: "Complaint description is empty."
-        };
-    }
-
-    console.log("");
-    console.log("========================================");
-    console.log("AI COMPLAINT ANALYSIS");
-    console.log("========================================");
-
-    console.log(complaintText);
-
-
-    const complaintPrompt = `
-
-You are an AI complaint analysis engine for ABC Insurance.
-
-Your task is to understand the customer's COMPLETE complaint
-and decide whether it can be handled automatically (STP)
-or requires human support (NON_STP).
-
-IMPORTANT:
-
-1. Understand the meaning of the complete complaint.
-2. Do NOT use keyword matching.
-3. Do NOT use typeMap.
-4. Do NOT use cosine similarity.
-5. Do NOT classify based only on the complaint subject.
-6. Consider the customer's actual problem and requested outcome.
-7. STP means the complaint is a standard operational issue that
-   can potentially be resolved using an existing insurance
-   knowledge base / known-issue resolution.
-8. NON_STP means the complaint requires investigation,
-   manual review, dispute handling, management intervention,
-   branch investigation, or customer-specific action.
-9. If the complaint is unclear or you are uncertain, choose NON_STP.
-
-==================================================
-STP EXAMPLES
-==================================================
-
-A customer purchased a policy but has not received the policy
-document.
-
-A customer paid the premium but the policy status is still pending.
-
-A customer cannot download their policy document.
-
-A customer says their payment failed.
-
-A customer says their claim status has not been updated.
-
-A customer cannot access a standard insurance service.
-
-These can be STP ONLY when the issue represents a known
-standard operational problem that can be handled using the
-insurance knowledge base.
-
-==================================================
-NON-STP EXAMPLES
-==================================================
-
-A customer wants management to investigate branch staff.
-
-A customer disputes a decision.
-
-A customer alleges unfair treatment and wants an investigation.
-
-A customer requests compensation for a special situation.
-
-A customer reports fraud or suspicious activity requiring investigation.
-
-A customer has a complex individual case.
-
-A customer requests manual intervention.
-
-A customer reports an issue for which there is no known
-standard resolution.
-
-==================================================
-IMPORTANT
-==================================================
-
-Do NOT decide STP merely because the complaint sounds similar
-to one of the examples.
-
-Understand the customer's actual issue.
-
-For example:
-
-"I purchased my motor insurance but did not receive my policy
-document."
-
-This is likely STP because it is a standard operational issue.
-
-But:
-
-"The branch staff behaved badly and I want management to
-investigate them."
-
-This is NON_STP because investigation is required.
-
-==================================================
-OUTPUT
-==================================================
-
-Return ONLY valid JSON.
-
-STP:
-
-{
-    "route": "STP",
-    "reason": "Short explanation"
-}
-
-NON_STP:
-
-{
-    "route": "NON_STP",
-    "reason": "Short explanation"
-}
-
-Do not return markdown.
-Do not return code fences.
-Do not return additional text.
-
-`;
-
-
-    try {
-
-        const content =
-            await callLLM([
-
-                {
-                    role: "system",
-
-                    content:
-                        complaintPrompt
-
-                },
-
-                {
-                    role: "user",
-
-                    content:
-                        complaintText
-
-                }
-
-            ]);
-
-
-        console.log("");
-        console.log("========================================");
-        console.log("RAW COMPLAINT AI RESPONSE");
-        console.log("========================================");
-
-        console.log(content);
-
-
-        // ----------------------------------------------------
-        // CLEAN JSON
-        // ----------------------------------------------------
-
-        let cleanContent =
-            String(content || "")
-                .replace(/```json/gi, "")
-                .replace(/```/g, "")
-                .trim();
-
-
-        const firstBrace =
-            cleanContent.indexOf("{");
-
-        const lastBrace =
-            cleanContent.lastIndexOf("}");
-
-
-        if (
-            firstBrace !== -1 &&
-            lastBrace !== -1
-        ) {
-
-            cleanContent =
-                cleanContent.substring(
-                    firstBrace,
-                    lastBrace + 1
-                );
-        }
-
-
-        // ----------------------------------------------------
-        // PARSE
-        // ----------------------------------------------------
-
-        const result =
-            JSON.parse(cleanContent);
-
-
-        // ----------------------------------------------------
-        // VALIDATE
-        // ----------------------------------------------------
-
-        if (
-            result.route !== "STP" &&
-            result.route !== "NON_STP"
-        ) {
-
-            console.warn(
-                "Invalid complaint route from AI."
-            );
-
-            return {
-
-                route: "NON_STP",
-
-                reason:
-                    "AI returned an invalid complaint route."
-
-            };
-        }
-
-
-        console.log("");
-        console.log("========================================");
-        console.log("AI COMPLAINT DECISION");
-        console.log("========================================");
-
-        console.log(
-            "Route:",
-            result.route
-        );
-
-        console.log(
-            "Reason:",
-            result.reason
-        );
-
-
-        return {
-
-            route:
-                result.route,
-
-            reason:
-                result.reason ||
-                "Complaint analyzed by AI."
-
-        };
-
-
-    } catch (error) {
-
-        console.error(
-            "Complaint AI Analysis Error:",
-            error.response?.data ||
-            error.message
-        );
-
-
-        // Safe fallback
-        return {
-
-            route: "NON_STP",
-
-            reason:
-                "Complaint could not be confidently analyzed."
-
-        };
-    }
-}
-
-
 
 /*
 |--------------------------------------------------------------------------
@@ -1276,7 +995,6 @@ module.exports = {
 
     detectIntentAI,
     
-    analyzeFeedback,
+    analyzeFeedback
 
-    analyzeComplaint
 };

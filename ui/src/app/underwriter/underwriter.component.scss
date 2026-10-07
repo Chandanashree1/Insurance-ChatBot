@@ -251,3 +251,39 @@
 }
 
 .empty-state { color: #575d6c; font-size: 13px; text-align: center; padding: 20px; }
+
+
+// ---------- CLAIMS ----------
+.uw-claims-body {
+  margin-top: 24px;
+  align-items: start;
+}
+
+.uw-claims-right {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.claim-description {
+  margin-top: 8px;
+  white-space: pre-wrap;
+  color: #cbd5e1;
+}
+
+.claim-photo {
+  display: inline-block;
+  margin-top: 10px;
+
+  img {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: 8px;
+    border: 1px solid #2e3340;
+    display: block;
+  }
+}
+
+.claim-error {
+  margin-top: 10px;
+}

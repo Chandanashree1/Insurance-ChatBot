@@ -1,0 +1,82 @@
+<div class="claim-form">
+
+  <!-- STEP 1: FIND POLICY -->
+  <ng-container *ngIf="step === 'lookup'">
+    <label>Policy number</label>
+    <input
+      type="text"
+      [(ngModel)]="policyNumber"
+      placeholder="POL-2026-00006"
+      (keydown.enter)="lookupPolicy()"
+    />
+
+    <div class="cf-error" *ngIf="lookupError">{{ lookupError }}</div>
+
+    <button class="cf-primary" [disabled]="lookingUp" (click)="lookupPolicy()">
+      {{ lookingUp ? 'Searching…' : 'Find policy' }}
+    </button>
+  </ng-container>
+
+  <!-- STEP 2: CONFIRM POLICY + CLAIM DETAILS -->
+  <ng-container *ngIf="step === 'details' && policy">
+
+    <div class="cf-policy">
+      <div class="cf-policy-top">
+        <b>{{ policy.policyNumber }}</b>
+        <button type="button" class="cf-link" (click)="changePolicy()">Change</button>
+      </div>
+      <div>{{ policy.customerName }}<span *ngIf="policy.mobileNumber"> · {{ policy.mobileNumber }}</span></div>
+      <div *ngIf="policy.productName">{{ policy.productName }}</div>
+      <div *ngIf="policy.vehicle">{{ policy.vehicle }}<span *ngIf="policy.plate"> · {{ policy.plate }}</span></div>
+      <div *ngIf="policy.coverFrom || policy.coverTo">
+        Cover: {{ policy.coverFrom | date:'dd MMM yyyy' }} – {{ policy.coverTo | date:'dd MMM yyyy' }}
+      </div>
+    </div>
+
+    <label>Incident date</label>
+    <input type="date" [(ngModel)]="incidentDate" [max]="today" />
+    <div class="cf-warn" *ngIf="coverWarning">{{ coverWarning }}</div>
+
+    <label>Claim amount (OMR)</label>
+    <input type="number" min="0" step="0.001" [(ngModel)]="claimAmount" placeholder="0.000" />
+    <div class="cf-hint" *ngIf="routingHint">{{ routingHint }}</div>
+
+    <label>What happened</label>
+    <textarea rows="3" maxlength="2000" [(ngModel)]="description"
+      placeholder="Describe the incident and the damage"></textarea>
+
+    <label>Photo of damage (optional, max 5 MB)</label>
+    <input #fileInput type="file" accept="image/*" (change)="onImageSelected($event)" />
+
+    <div class="cf-preview" *ngIf="imagePreview">
+      <img [src]="imagePreview" alt="Claim photo preview" />
+      <button type="button" class="cf-link" (click)="clearImage(fileInput)">Remove</button>
+    </div>
+
+    <div class="cf-error" *ngIf="formError">{{ formError }}</div>
+
+    <button class="cf-primary" [disabled]="submitting" (click)="submit()">
+      {{ submitting ? 'Submitting…' : 'Submit claim' }}
+    </button>
+  </ng-container>
+
+  <!-- STEP 3: RESULT -->
+  <ng-container *ngIf="step === 'result' && result">
+    <div class="cf-result" [class.approved]="result.status === 'STP_APPROVED'">
+      <div class="cf-result-title">
+        {{ result.status === 'STP_APPROVED' ? 'Claim approved automatically' : 'Claim sent for review' }}
+      </div>
+      <div class="cf-result-number">{{ result.claimNumber }}</div>
+      <div>Claimed: OMR {{ result.claimAmount | number:'1.3-3' }}</div>
+      <div *ngIf="result.status === 'STP_APPROVED' && result.approvedAmount != null">
+        Approved: OMR {{ +result.approvedAmount | number:'1.3-3' }}
+      </div>
+      <div class="cf-hint" *ngIf="result.status !== 'STP_APPROVED'">
+        It now appears in Pending Claims.
+      </div>
+    </div>
+
+    <button class="cf-primary" (click)="startNew()">File another claim</button>
+  </ng-container>
+
+</div>

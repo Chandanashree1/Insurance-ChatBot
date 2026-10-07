@@ -1,6 +1,7 @@
 const express = require("express");
 const cors = require("cors");
 require("dotenv").config();
+const path = require("path");
 
 const chatRoutes = require("./routes/chatRoutes");
 // const loginRoutes = require("./routes/loginRoutes");
@@ -15,12 +16,13 @@ const authRoutes = require("./routes/authRoutes");
 const complaintRoutes = require("./routes/complaintRoutes");
 // const insuranceApplicationRoutes = require("./routes/insuranceApplicationRoutes");
 const complaintFollowUpRoutes = require("./routes/complaintFollowUpRoutes");
+const claim = require("./routes/Claimroutes")
 // const connectDB = require("./db"); 
 
 const app = express();
 app.use(cors({
   origin: 'http://localhost:4200', 
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true
 }));
 app.use(express.json());
@@ -42,6 +44,8 @@ app.use("/api", require("./routes/underwriting.routes"));
 app.use("/api/complaint",complaintRoutes);
 app.use("/api/complaint-followup",complaintFollowUpRoutes);
 app.use("/api", authRoutes);
+app.use("/api", claim)
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 app.get("/", (req, res) => {
     res.send("Insurance Chatbot Backend is Running");
 });

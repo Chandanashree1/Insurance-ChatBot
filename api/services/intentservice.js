@@ -182,7 +182,7 @@ function normalizeIntent(result) {
  * meaning, so it is safe to do without the LLM - and it guarantees
  * a bare reference number is never misclassified as OUT_OF_SCOPE.
  */
-const REFERENCE_NUMBER_PATTERN = /\b(?:POL|QT)-\d{4}-\d+\b/i;
+const REFERENCE_NUMBER_PATTERN = /\b(?:POL|QT|CLM)-\d{4}-\d+\b/i;
 
 
 async function detectIntent(message, conversationHistory = [], context = {}) {
