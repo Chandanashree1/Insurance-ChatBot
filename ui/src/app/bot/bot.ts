@@ -4,6 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { DoCheck } from '@angular/core';
 import { BuyPolicyChatComponent } from '../buy_policy/buy_policy.ts.component';
+import { Router } from '@angular/router';
 
 interface FormField {
   name: string;
@@ -226,13 +227,13 @@ private buildWelcomeMessage(): ChatMessage {
   // ----- Support Center -----
   isSupportCenterOpen: boolean = false;
 
-isMyComplaintsOpen: boolean = false;
+  isMyComplaintsOpen: boolean = false;
 
-isCheckStatusOpen: boolean = false;
-statusQuoteNumber: string = '';
-statusResult: any = null;
-statusLookupError: string = '';
-isLookingUpStatus: boolean = false;
+  isCheckStatusOpen: boolean = false;
+  statusQuoteNumber: string = '';
+  statusResult: any = null;
+  statusLookupError: string = '';
+  isLookingUpStatus: boolean = false;
 
   // ----- Complaint form state -----
   activeForm: 'complaint' | 'agentConnect' | null = null;
@@ -247,68 +248,68 @@ isLookingUpStatus: boolean = false;
   isSubmittingRating = false;
   hasUserMessaged: boolean = false;
 
-selectRating(rating: number): void {
-  this.selectedRating = rating;
-}
-
-
-// ===============================
-// CHECK STATUS
-// ===============================
-
-openCheckStatus(): void {
-  this.isSupportCenterOpen = false;
-  this.isHistoryOpen = false;
-  this.isMyComplaintsOpen = false;
-  this.isCheckStatusOpen = true;
-
-  this.statusQuoteNumber = '';
-  this.statusResult = null;
-  this.statusLookupError = '';
-}
-
-goBackFromCheckStatus(): void {
-  this.isCheckStatusOpen = false;
-  this.isSupportCenterOpen = true;
-}
-
-lookupProposalStatus(): void {
-  const quoteNumber = this.statusQuoteNumber.trim();
-
-  if (!quoteNumber) {
-    this.statusLookupError = 'Please enter your quote number.';
-    return;
+  selectRating(rating: number): void {
+    this.selectedRating = rating;
   }
 
-  this.isLookingUpStatus = true;
-  this.statusLookupError = '';
-  this.statusResult = null;
 
-  this.http.get<any>(`http://localhost:5000/api/proposals/quote-number/${quoteNumber}`).subscribe({
-    next: (res) => {
-      this.isLookingUpStatus = false;
+  // ===============================
+  // CHECK STATUS
+  // ===============================
 
-      if (res.success) {
-        this.statusResult = res.data;
-      } else {
-        this.statusLookupError = res.message || 'Could not find a proposal for this quote number.';
-      }
+  openCheckStatus(): void {
+    this.isSupportCenterOpen = false;
+    this.isHistoryOpen = false;
+    this.isMyComplaintsOpen = false;
+    this.isCheckStatusOpen = true;
 
-      this.cdr.detectChanges();   // ← MUST be here
-    },
-    error: (err) => {
-      this.isLookingUpStatus = false;
-      this.statusLookupError = err?.error?.message || 'No proposal found for this quote number.';
-      this.cdr.detectChanges();   // ← MUST be here too
+    this.statusQuoteNumber = '';
+    this.statusResult = null;
+    this.statusLookupError = '';
+  }
+
+  goBackFromCheckStatus(): void {
+    this.isCheckStatusOpen = false;
+    this.isSupportCenterOpen = true;
+  }
+
+  lookupProposalStatus(): void {
+    const quoteNumber = this.statusQuoteNumber.trim();
+
+    if (!quoteNumber) {
+      this.statusLookupError = 'Please enter your quote number.';
+      return;
     }
-  });
-}
 
-resetStatusLookup(): void {
-  this.statusQuoteNumber = '';
-  this.statusResult = null;
-  this.statusLookupError = '';
-}
+    this.isLookingUpStatus = true;
+    this.statusLookupError = '';
+    this.statusResult = null;
+
+    this.http.get<any>(`http://localhost:5000/api/proposals/quote-number/${quoteNumber}`).subscribe({
+      next: (res) => {
+        this.isLookingUpStatus = false;
+
+        if (res.success) {
+          this.statusResult = res.data;
+        } else {
+          this.statusLookupError = res.message || 'Could not find a proposal for this quote number.';
+        }
+
+        this.cdr.detectChanges();   // ← MUST be here
+      },
+      error: (err) => {
+        this.isLookingUpStatus = false;
+        this.statusLookupError = err?.error?.message || 'No proposal found for this quote number.';
+        this.cdr.detectChanges();   // ← MUST be here too
+      }
+    });
+  }
+
+  resetStatusLookup(): void {
+    this.statusQuoteNumber = '';
+    this.statusResult = null;
+    this.statusLookupError = '';
+  }
 
 
   submitRating(): void {
@@ -904,7 +905,8 @@ resetStatusLookup(): void {
 
   constructor(
     private http: HttpClient,
-    private cdr: ChangeDetectorRef
+    private cdr: ChangeDetectorRef,
+    private router: Router
   ) { }
 
  private previousLength = 0;
@@ -919,10 +921,10 @@ resetStatusLookup(): void {
   }
 
   get tr() {
-  return this.translations[this.selectedLanguage];
-}
+    return this.translations[this.selectedLanguage];
+  }
 
-hasRatedSession: boolean = false;
+  hasRatedSession: boolean = false;
 
   toggleOpen(): void {
     if (!this.isOpen) {
@@ -984,149 +986,149 @@ hasRatedSession: boolean = false;
   }
 
   submitComplaint(): void {
-  const f = this.complaintForm;
+    const f = this.complaintForm;
 
-  // Validate required fields
-  if (
-    !f.subject ||
-    !f.fullName ||
-    !f.email ||
-    !f.mobile ||
-    !f.product ||
-    !f.message
-  ) {
-    alert(
-      this.selectedLanguage === 'ar'
-        ? 'يرجى تعبئة جميع الحقول المطلوبة.'
-        : 'Please fill out all required fields.'
-    );
-    return;
-  }
+    // Validate required fields
+    if (
+      !f.subject ||
+      !f.fullName ||
+      !f.email ||
+      !f.mobile ||
+      !f.product ||
+      !f.message
+    ) {
+      alert(
+        this.selectedLanguage === 'ar'
+          ? 'يرجى تعبئة جميع الحقول المطلوبة.'
+          : 'Please fill out all required fields.'
+      );
+      return;
+    }
 
-  this.isSubmittingComplaint = true;
+    this.isSubmittingComplaint = true;
 
-  const payload = {
-    subject: f.subject,
-    fullName: f.fullName,
-    email: f.email,
-    mobile: f.mobile,
-    product: f.product,
-    message: f.message,
-    language: this.selectedLanguage
-  };
+    const payload = {
+      subject: f.subject,
+      fullName: f.fullName,
+      email: f.email,
+      mobile: f.mobile,
+      product: f.product,
+      message: f.message,
+      language: this.selectedLanguage
+    };
 
-  this.http
-    .post<any>(
-      'http://localhost:5000/api/complaint',
-      payload
-    )
-    .subscribe({
+    this.http
+      .post<any>(
+        'http://localhost:5000/api/complaint',
+        payload
+      )
+      .subscribe({
 
-      next: (response) => {
+        next: (response) => {
 
-        this.isSubmittingComplaint = false;
-        this.activeForm = null;
+          this.isSubmittingComplaint = false;
+          this.activeForm = null;
 
-        // -----------------------------------------
-        // Complaint submitted successfully
-        // -----------------------------------------
+          // -----------------------------------------
+          // Complaint submitted successfully
+          // -----------------------------------------
 
-        if (response?.success) {
+          if (response?.success) {
 
-          let botMessage = '';
+            let botMessage = '';
 
-          // ---------------------------------------
-          // Complaint found in RAG
-          // ---------------------------------------
+            // ---------------------------------------
+            // Complaint found in RAG
+            // ---------------------------------------
 
-          if (response.complaintFound === true) {
+            if (response.complaintFound === true) {
 
-            botMessage =
-              response.message ||
-              (
-                this.selectedLanguage === 'ar'
-                  ? 'تم العثور على حل لهذه الشكوى.'
-                  : 'We found a solution for your complaint.'
-              );
+              botMessage =
+                response.message ||
+                (
+                  this.selectedLanguage === 'ar'
+                    ? 'تم العثور على حل لهذه الشكوى.'
+                    : 'We found a solution for your complaint.'
+                );
+
+            }
+
+            // ---------------------------------------
+            // Complaint NOT found in RAG
+            // ---------------------------------------
+
+            else {
+
+              botMessage =
+                response.message ||
+                (
+                  this.selectedLanguage === 'ar'
+                    ? 'شكراً لتسجيل شكواك. سيتصل بك أحد وكلائنا للمساعدة.'
+                    : 'Thank you for registering your complaint. Our support agent will call you back to assist you.'
+                );
+
+            }
+
+            // ---------------------------------------
+            // Show bot response
+            // ---------------------------------------
+
+            this.messages.push({
+              sender: 'bot',
+              text: botMessage,
+              time: new Date()
+            });
 
           }
 
-          // ---------------------------------------
-          // Complaint NOT found in RAG
-          // ---------------------------------------
+          // -----------------------------------------
+          // Backend returned success=false
+          // -----------------------------------------
 
           else {
 
-            botMessage =
-              response.message ||
-              (
-                this.selectedLanguage === 'ar'
-                  ? 'شكراً لتسجيل شكواك. سيتصل بك أحد وكلائنا للمساعدة.'
-                  : 'Thank you for registering your complaint. Our support agent will call you back to assist you.'
-              );
+            this.messages.push({
+              sender: 'bot',
+              text:
+                response?.message ||
+                this.translations[this.selectedLanguage].complaintError,
+              time: new Date()
+            });
 
           }
 
-          // ---------------------------------------
-          // Show bot response
-          // ---------------------------------------
+          // Reset form
+          this.resetComplaintForm();
 
-          this.messages.push({
-            sender: 'bot',
-            text: botMessage,
-            time: new Date()
-          });
+          this.cdr.detectChanges();
+        },
 
-        }
+        // -------------------------------------------
+        // API error
+        // -------------------------------------------
 
-        // -----------------------------------------
-        // Backend returned success=false
-        // -----------------------------------------
+        error: (err) => {
 
-        else {
+          console.error(
+            'Complaint Submission Failure:',
+            err
+          );
+
+          this.isSubmittingComplaint = false;
 
           this.messages.push({
             sender: 'bot',
             text:
-              response?.message ||
-              this.translations[this.selectedLanguage].complaintError,
+              this.selectedLanguage === 'ar'
+                ? 'تعذر تسجيل الشكوى حالياً. سيتصل بك أحد وكلائنا للمساعدة.'
+                : 'We are unable to process your complaint right now. Our support agent will call you back to assist you.',
             time: new Date()
           });
 
+          this.cdr.detectChanges();
         }
-
-        // Reset form
-        this.resetComplaintForm();
-
-        this.cdr.detectChanges();
-      },
-
-      // -------------------------------------------
-      // API error
-      // -------------------------------------------
-
-      error: (err) => {
-
-        console.error(
-          'Complaint Submission Failure:',
-          err
-        );
-
-        this.isSubmittingComplaint = false;
-
-        this.messages.push({
-          sender: 'bot',
-          text:
-            this.selectedLanguage === 'ar'
-              ? 'تعذر تسجيل الشكوى حالياً. سيتصل بك أحد وكلائنا للمساعدة.'
-              : 'We are unable to process your complaint right now. Our support agent will call you back to assist you.',
-          time: new Date()
-        });
-
-        this.cdr.detectChanges();
-      }
-    });
-}
+      });
+  }
 
   // ----- Quick action tiles -----
   quickAction(action: QuickAction): void {
@@ -1193,7 +1195,7 @@ hasRatedSession: boolean = false;
       historyLoading: 'Loading...',
       historyError: 'Could not load history. Please try again.',
 
-            // Support center
+      // Support center
       supportCenterTitle: 'Support Center',
       supportCenterSubtitle: 'How can we help you?',
       newChat: 'New Chat',
@@ -1311,7 +1313,7 @@ hasRatedSession: boolean = false;
       historyEmpty: 'لا توجد محادثات سابقة بعد.',
       historyLoading: 'جارٍ التحميل...',
       historyError: 'تعذر تحميل السجل. يرجى المحاولة مرة أخرى.',
-            // Support center
+      // Support center
       supportCenterTitle: 'مركز الدعم',
       supportCenterSubtitle: 'كيف يمكننا مساعدتك؟',
       newChat: 'محادثة جديدة',
@@ -1486,35 +1488,35 @@ hasRatedSession: boolean = false;
 
   // Add near your other session helpers in bot.ts
 
-private saveLoginState(): void {
-  try {
-    if (this.isLogginIn && this.customerId) {
-      sessionStorage.setItem('botCustomerId', String(this.customerId));
-      sessionStorage.setItem('botIsLoggedIn', 'true');
-    }
-  } catch { /* ignore */ }
-}
+  private saveLoginState(): void {
+    try {
+      if (this.isLogginIn && this.customerId) {
+        sessionStorage.setItem('botCustomerId', String(this.customerId));
+        sessionStorage.setItem('botIsLoggedIn', 'true');
+      }
+    } catch { /* ignore */ }
+  }
 
-// ===============================
-// LOGOUT
-// ===============================
+  // ===============================
+  // LOGOUT
+  // ===============================
 
-logout(): void {
+  logout(): void {
 
-  // Clear login state
-  this.isLogginIn = false;
-  this.customerId = null;
+    // Clear login state
+    this.isLogginIn = false;
+    this.customerId = null;
 
-  try {
-    sessionStorage.removeItem('botIsLoggedIn');
-    sessionStorage.removeItem('botCustomerId');
-  } catch { /* ignore */ }
+    try {
+      sessionStorage.removeItem('botIsLoggedIn');
+      sessionStorage.removeItem('botCustomerId');
+    } catch { /* ignore */ }
 
-  // Reset any user-specific UI state
-  this.isHistoryOpen = false;
-  this.isMyComplaintsOpen = false;
-  this.isCheckStatusOpen = false;
-  this.historySessions = [];
+    // Reset any user-specific UI state
+    this.isHistoryOpen = false;
+    this.isMyComplaintsOpen = false;
+    this.isCheckStatusOpen = false;
+    this.historySessions = [];
 
   // Start a fresh conversation, since the old one was tied to the logged-in user
   // this.messages = [
@@ -1530,8 +1532,8 @@ logout(): void {
   this.hasUserMessaged = false;
   this.hasRatedSession = false;
 
-  this.cdr.detectChanges();
-}
+    this.cdr.detectChanges();
+  }
 
   private restoreLoginState(): void {
     try {
@@ -1546,12 +1548,18 @@ logout(): void {
 
   onActionClick(action: string) {
 
-    // Some actions have a friendlier written-out phrase to show
-    // as if the user typed it (POLICY, CLAIM, etc). Anything else
-    // - including action strings a backend flow generates on its
-    // own, like SELECT_QUOTE_OPTION_2 or PAY_QUOTE - is sent to
-    // the backend exactly as-is, since these are the same raw
-    // action strings the backend itself expects back.
+    if (action.startsWith('VIEW_POLICY_')) {
+      const policyNumber = action.replace('VIEW_POLICY_', '');
+      this.router.navigate(['/policy-success', policyNumber]);
+      return;
+    }
+
+    if (["HEALTH", "MOTOR", "TRAVEL", "SURGERY", "HOSPITALIZATION", "ACCIDENT", "CONSULTATION", "YES", "NO", "BUY_HEALTH", "BUY_MOTOR", "BUY_TRAVEL", "PLAN_BASIC", "PLAN_STANDARD", "PLAN_PREMIUM"].includes(action)) {
+      this.userMessage = action;
+      this.sendMessage();
+      return;
+    }
+
     const cannedMessage =
       this.actionMessages[this.selectedLanguage][
       action as keyof typeof this.actionMessages['en']
