@@ -30,6 +30,7 @@ interface ChatMessage {
   }[];
   showLoginButton?: boolean;
   form?: InsuranceForm;
+    isWelcome?: boolean; 
 }
 
 type QuickAction = 'buyPolicy' | 'rop' | 'renew' | 'complaint' | 'chatWithUs';
@@ -80,11 +81,12 @@ interface HistorySession {
   PREVIEW: string;
 }
 
-const WELCOME_MESSAGE: ChatMessage = {
-  sender: 'bot',
-  text: 'Welcome to ABC Insurance ! 😊. You can get help for these functions as mentioned below.',
-  time: new Date()
-};
+// const WELCOME_MESSAGE: ChatMessage = {
+//   sender: 'bot',
+//   text: 'Welcome to ABC Insurance ! 😊. You can get help for these functions as mentioned below.',
+//   time: new Date()
+// };
+
 
 @Component({
   selector: 'app-bot', // Matches your component selector tag
@@ -122,7 +124,18 @@ export class Bot implements DoCheck, OnInit {
     this.signupConfirmPassword = '';
   }
 
+  
+private buildWelcomeMessage(): ChatMessage {
+  return {
+    sender: 'bot',
+    text: this.translations[this.selectedLanguage].welcome,
+    time: new Date(),
+    isWelcome: true
+  };
+}
+
   ngOnInit(): void {
+      this.messages = [this.buildWelcomeMessage()];  
     this.restoreLoginState();
     const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
     const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
@@ -199,6 +212,7 @@ export class Bot implements DoCheck, OnInit {
       }
     });
   }
+
 
   // ----- Session / history state -----
   sessionId: string = this.generateSessionId();
@@ -485,9 +499,8 @@ export class Bot implements DoCheck, OnInit {
     this.isMyComplaintsOpen = false;
     this.isSupportCenterOpen = false;
 
-    this.messages = [
-      { ...WELCOME_MESSAGE }
-    ];
+    this.messages = [this.buildWelcomeMessage()];
+  
 
     this.sessionId = this.generateSessionId();
 
@@ -569,14 +582,15 @@ export class Bot implements DoCheck, OnInit {
     // ------------------------------------
     // Clear current conversation
     // ------------------------------------
-    this.messages = [
-      {
-        sender: 'bot',
-        text: this.translations[this.selectedLanguage].welcome,
-        time: new Date()
-      }
-    ];
+    // this.messages = [
+    //   {
+    //     sender: 'bot',
+    //     text: this.translations[this.selectedLanguage].welcome,
+    //     time: new Date()
+    //   }
+    // ];
 
+    this.messages = [this.buildWelcomeMessage()];
     // ------------------------------------
     // Reset chat state
     // ------------------------------------
@@ -791,7 +805,7 @@ export class Bot implements DoCheck, OnInit {
       next: (res) => {
         if (res && res.success) {
           this.messages = [
-            { ...WELCOME_MESSAGE },
+             this.buildWelcomeMessage(),
             ...res.messages.map((m: any) => ({
               sender: (m.ROLE === 'user' ? 'user' : 'bot') as 'user' | 'bot',
               text: m.CONTENT,
@@ -873,7 +887,8 @@ export class Bot implements DoCheck, OnInit {
 
   isOpen: boolean = false;
 
-  messages: ChatMessage[] = [{ ...WELCOME_MESSAGE }];
+  messages: ChatMessage[] = [];
+  // messages: ChatMessage[] = [{ ...WELCOME_MESSAGE }];
 
   userMessage: string = '';
   // selectedCustomerId: number = 1;
@@ -894,7 +909,7 @@ export class Bot implements DoCheck, OnInit {
     private router: Router
   ) { }
 
-  private previousLength = this.messages.length;
+ private previousLength = 0;
 
   ngDoCheck(): void {
     if (this.messages.length !== this.previousLength) {
@@ -930,7 +945,7 @@ export class Bot implements DoCheck, OnInit {
     this.userMessage = '';
     this.activeForm = null;
     this.isHistoryOpen = false;
-    this.messages = [{ ...WELCOME_MESSAGE }];
+   this.messages = [this.buildWelcomeMessage()];
     this.sessionId = this.generateSessionId();
     this.hasRatedSession = false;
     this.hasUserMessaged = false;
@@ -1133,7 +1148,9 @@ export class Bot implements DoCheck, OnInit {
     this.userMessage = this.translations[this.selectedLanguage][key];
     this.sendMessage();
   }
+ 
 
+ 
   translations = {
     en: {
       title: "Insurance Chatbot",
@@ -1372,7 +1389,9 @@ export class Bot implements DoCheck, OnInit {
       close: 'إغلاق'
     }
   };
-
+ t(key: keyof typeof this.translations.en): string {
+  return this.translations[this.selectedLanguage][key];
+}
   private readonly actionMessages = {
     en: {
       POLICY: 'Show my policy',
@@ -1393,14 +1412,17 @@ export class Bot implements DoCheck, OnInit {
 
   setLanguage(lang: 'en' | 'ar') {
     this.selectedLanguage = lang;
+     this.messages = this.messages.map(m =>
+    m.isWelcome ? { ...m, text: this.translations[lang].welcome } : m
+  );
 
-    this.messages = [
-      {
-        sender: 'bot',
-        text: this.translations[lang].welcome,
-        time: new Date()
-      }
-    ];
+    // this.messages = [
+    //   {
+    //     sender: 'bot',
+    //     text: this.translations[lang].welcome,
+    //     time: new Date()
+    //   }
+    // ];
   }
 
   sendMessage() {
@@ -1496,17 +1518,19 @@ export class Bot implements DoCheck, OnInit {
     this.isCheckStatusOpen = false;
     this.historySessions = [];
 
-    // Start a fresh conversation, since the old one was tied to the logged-in user
-    this.messages = [
-      {
-        sender: 'bot',
-        text: this.translations[this.selectedLanguage].welcome,
-        time: new Date()
-      }
-    ];
-    this.sessionId = this.generateSessionId();
-    this.hasUserMessaged = false;
-    this.hasRatedSession = false;
+  // Start a fresh conversation, since the old one was tied to the logged-in user
+  // this.messages = [
+  //   {
+  //     sender: 'bot',
+  //     text: this.translations[this.selectedLanguage].welcome,
+  //     time: new Date()
+  //   }
+  // ];
+
+  this.messages = [this.buildWelcomeMessage()];
+  this.sessionId = this.generateSessionId();
+  this.hasUserMessaged = false;
+  this.hasRatedSession = false;
 
     this.cdr.detectChanges();
   }

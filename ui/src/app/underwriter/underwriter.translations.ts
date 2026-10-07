@@ -34,7 +34,26 @@ export const uwTranslations = {
     statusPending: 'Pending',
     statusApproved: 'Approved',
     statusCounterOffer: 'Counter-offer',
-    statusDeclined: 'Declined'
+    statusDeclined: 'Declined',
+
+    //complaints
+    nonStpComplaints: 'Non-STP Complaints',
+    complaintWord: 'Complaint',
+    noComplaints: 'No non-STP complaints.',
+    complaintDecision: 'Complaint Decision',
+    selectComplaintPrompt: 'Select a complaint from the list to view details.',
+    customer: 'Customer',
+    email: 'Email',
+    mobile: 'Mobile',
+    product: 'Product',
+    policyNumber: 'Policy Number',
+    subject: 'Subject',
+    complaintLabel: 'Complaint',
+    route: 'Route',
+    status: 'Status',
+    aiReason: 'AI Reason',
+    call: 'Call',
+    notAvailable: 'N/A'
   },
 
   ar: {
@@ -72,7 +91,26 @@ export const uwTranslations = {
     statusPending: 'قيد المراجعة',
     statusApproved: 'تمت الموافقة',
     statusCounterOffer: 'عرض مضاد',
-    statusDeclined: 'مرفوض'
+    statusDeclined: 'مرفوض',
+
+    //complaints
+    nonStpComplaints: 'شكاوى خارج النطاق الآلي',
+    complaintWord: 'شكوى',
+    noComplaints: 'لا توجد شكاوى خارج النطاق الآلي.',
+    complaintDecision: 'قرار الشكوى',
+    selectComplaintPrompt: 'اختر شكوى من القائمة لعرض التفاصيل.',
+    customer: 'العميل',
+    email: 'البريد الإلكتروني',
+    mobile: 'الجوال',
+    product: 'المنتج',
+    policyNumber: 'رقم الوثيقة',
+    subject: 'الموضوع',
+    complaintLabel: 'الشكوى',
+    route: 'المسار',
+    status: 'الحالة',
+    aiReason: 'سبب الذكاء الاصطناعي',
+    call: 'اتصال',
+    notAvailable: 'غير متوفر'
   }
 };
 

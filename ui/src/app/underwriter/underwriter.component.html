@@ -126,155 +126,70 @@
         </div>
       </div>
 
-  <!-- complaint review -->
+<!-- complaint review -->
 <div class="uw-quote-list">
 
-  <h3>Non-STP Complaints</h3>
+  <h3>{{ t('nonStpComplaints') }}</h3>
 
   <div
     class="quote-card"
     *ngFor="let complaint of complaints"
-    [class.selected]="
-      selectedComplaint?.COMPLAINT_ID === complaint.COMPLAINT_ID
-    "
-    (click)="selectComplaint(complaint)"
-  >
+    [class.selected]="selectedComplaint?.COMPLAINT_ID === complaint.COMPLAINT_ID"
+    (click)="selectComplaint(complaint)">
 
     <div class="quote-card-top">
-
-      <span>
-        Complaint #{{ complaint.COMPLAINT_ID }}
-      </span>
-
-      <span class="status">
-        {{ complaint.STATUS }}
-      </span>
-
+      <span>{{ t('complaintWord') }} #{{ complaint.COMPLAINT_ID }}</span>
+      <span class="status">{{ complaint.STATUS }}</span>
     </div>
 
-    <div class="quote-card-name">
-      {{ complaint.FULL_NAME }}
-    </div>
-
-    <div class="quote-card-plan">
-      {{ complaint.SUBJECT }}
-    </div>
-
-    <div class="quote-card-value">
-      {{ complaint.PRODUCT }}
-    </div>
+    <div class="quote-card-name">{{ complaint.FULL_NAME }}</div>
+    <div class="quote-card-plan">{{ complaint.SUBJECT }}</div>
+    <div class="quote-card-value">{{ complaint.PRODUCT }}</div>
 
   </div>
 
-
-  <div
-    class="empty-state"
-    *ngIf="!complaints.length"
-  >
-    No non-STP complaints.
+  <div class="empty-state" *ngIf="!complaints.length">
+    {{ t('noComplaints') }}
   </div>
 
 </div>
-
 
 <!-- Complaint Decision -->
 <div class="uw-followup-panel">
 
-  <h3>Complaint Decision</h3>
+  <h3>{{ t('complaintDecision') }}</h3>
 
-  <ng-container
-    *ngIf="selectedComplaint; else noComplaint"
-  >
+  <ng-container *ngIf="selectedComplaint; else noComplaint">
 
-    <!-- Complaint Details -->
     <div class="selected-summary">
 
-      <div>
-        <b>
-          Complaint #{{ selectedComplaint.COMPLAINT_ID }}
-        </b>
+      <div><b>{{ t('complaintWord') }} #{{ selectedComplaint.COMPLAINT_ID }}</b></div>
+      <div><b>{{ t('customer') }}:</b> {{ selectedComplaint.FULL_NAME }}</div>
+      <div><b>{{ t('email') }}:</b> {{ selectedComplaint.EMAIL }}</div>
+      <div><b>{{ t('mobile') }}:</b> {{ selectedComplaint.MOBILE }}</div>
+      <div><b>{{ t('product') }}:</b> {{ selectedComplaint.PRODUCT }}</div>
+      <div><b>{{ t('policyNumber') }}:</b> {{ selectedComplaint.POLICY_NUMBER || t('notAvailable') }}</div>
+      <div><b>{{ t('subject') }}:</b> {{ selectedComplaint.SUBJECT }}</div>
+      <div><b>{{ t('complaintLabel') }}:</b> {{ selectedComplaint.COMPLAINT_MESSAGE }}</div>
+      <div><b>{{ t('route') }}:</b> {{ selectedComplaint.ROUTE }}</div>
+      <div><b>{{ t('status') }}:</b> {{ selectedComplaint.STATUS }}</div>
+      <div><b>{{ t('aiReason') }}:</b> {{ selectedComplaint.AI_REASON }}</div>
+
+      <div class="decision-buttons">
+        <button type="button" class="counter-btn" (click)="callCustomer(selectedComplaint)">
+          {{ t('call') }}
+        </button>
       </div>
 
-      <div>
-        <b>Customer:</b>
-        {{ selectedComplaint.FULL_NAME }}
-      </div>
-
-      <div>
-        <b>Email:</b>
-        {{ selectedComplaint.EMAIL }}
-      </div>
-
-      <div>
-        <b>Mobile:</b>
-        {{ selectedComplaint.MOBILE }}
-      </div>
-
-      <div>
-        <b>Product:</b>
-        {{ selectedComplaint.PRODUCT }}
-      </div>
-
-      <div>
-        <b>Policy Number:</b>
-        {{ selectedComplaint.POLICY_NUMBER || 'N/A' }}
-      </div>
-
-      <div>
-        <b>Subject:</b>
-        {{ selectedComplaint.SUBJECT }}
-      </div>
-
-      <div>
-        <b>Complaint:</b>
-        {{ selectedComplaint.COMPLAINT_MESSAGE }}
-      </div>
-
-      <div>
-        <b>Route:</b>
-        {{ selectedComplaint.ROUTE }}
-      </div>
-
-      <div>
-        <b>Status:</b>
-        {{ selectedComplaint.STATUS }}
-      </div>
-
-      <div>
-        <b>AI Reason:</b>
-        {{ selectedComplaint.AI_REASON }}
-      </div>
-
-      <!-- Actions -->
-    <div class="decision-buttons">
-
-    <!-- Dummy call -->
-      <button
-        type="button"
-        class="counter-btn"
-        (click)="callCustomer(selectedComplaint)"
-      >
-        call
-      </button>
-
-    </div>
-    
     </div>
 
   </ng-container>
 
-
-  <!-- No selection -->
   <ng-template #noComplaint>
-
-    <div class="empty-state">
-      Select a complaint from the list to view details.
-    </div>
-
+    <div class="empty-state">{{ t('selectComplaintPrompt') }}</div>
   </ng-template>
 
 </div>
-
 
 
 </div>
