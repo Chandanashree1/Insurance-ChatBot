@@ -53,7 +53,9 @@ export const uwTranslations = {
     status: 'Status',
     aiReason: 'AI Reason',
     call: 'Call',
-    notAvailable: 'N/A'
+    notAvailable: 'N/A',
+     calling: 'Calling',
+    endCall: 'End Call'
   },
 
   ar: {
@@ -66,7 +68,7 @@ export const uwTranslations = {
     invalidCredentials: 'اسم المستخدم أو كلمة المرور غير صحيحة',
 
     // Header
-    underwriterDashboard: 'لوحة تحكم المكتتب',
+    underwriterDashboard: 'لوحة تحكم مكتتب التأمين',
     logout: 'تسجيل الخروج',
 
     // Proposal list
@@ -110,7 +112,9 @@ export const uwTranslations = {
     status: 'الحالة',
     aiReason: 'سبب الذكاء الاصطناعي',
     call: 'اتصال',
-    notAvailable: 'غير متوفر'
+    notAvailable: 'غير متوفر',
+    calling: 'جارٍ الاتصال',
+    endCall: 'إنهاء المكالمة'
   }
 };
 

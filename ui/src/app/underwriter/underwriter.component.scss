@@ -10,7 +10,8 @@
 .uw-login-lang {
   position: fixed;
   top: 20px;
-  right: 24px;      /* stays top-right, in Arabic too */
+  right: 24px;
+  /* stays top-right, in Arabic too */
   z-index: 10;
 }
 
@@ -19,7 +20,8 @@
   gap: 8px;
 
   .lang-btn {
-    width: auto;            /* overrides the card's full-width button */
+    width: auto;
+    /* overrides the card's full-width button */
     margin: 0;
     padding: 6px 14px;
     background: transparent;
@@ -62,8 +64,17 @@
   border-radius: 16px;
   width: 320px;
 
-  h2 { color: #fff; margin-bottom: 20px; }
-  label { display: block; color: #8a92a6; font-size: 13px; margin: 12px 0 6px; }
+  h2 {
+    color: #fff;
+    margin-bottom: 20px;
+  }
+
+  label {
+    display: block;
+    color: #8a92a6;
+    font-size: 13px;
+    margin: 12px 0 6px;
+  }
 
   input {
     width: 100%;
@@ -74,7 +85,11 @@
     color: #fff;
   }
 
-  .uw-error { color: #ea4335; font-size: 13px; margin-top: 10px; }
+  .uw-error {
+    color: #ea4335;
+    font-size: 13px;
+    margin-top: 10px;
+  }
 
   button {
     width: 100%;
@@ -96,7 +111,11 @@
   font-size: 13px;
   color: #8a92a6;
 
-  div:first-child { color: #fff; font-size: 15px; margin-bottom: 4px; }
+  div:first-child {
+    color: #fff;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
 }
 
 .decision-buttons {
@@ -113,12 +132,26 @@
     font-weight: 600;
     font-size: 13px;
 
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 
-  .approve-btn { background: #22c55e; color: #fff; }
-  .counter-btn { background: #3b82f6; color: #fff; }
-  .decline-btn { background: #ea4335; color: #fff; }
+  .approve-btn {
+    background: #22c55e;
+    color: #fff;
+  }
+
+  .counter-btn {
+    background: #3b82f6;
+    color: #fff;
+  }
+
+  .decline-btn {
+    background: #ea4335;
+    color: #fff;
+  }
 }
 
 .no-plan-note {
@@ -135,9 +168,20 @@
   border-radius: 6px;
   margin-top: 4px;
 
-  &.kyc_failed { background: rgba(234, 67, 53, 0.15); color: #ea4335; }
-  &.payment_failed { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
-  &.high_value { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+  &.kyc_failed {
+    background: rgba(234, 67, 53, 0.15);
+    color: #ea4335;
+  }
+
+  &.payment_failed {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fbbf24;
+  }
+
+  &.high_value {
+    background: rgba(59, 130, 246, 0.15);
+    color: #3b82f6;
+  }
 }
 
 .quote-card-value {
@@ -176,7 +220,8 @@
   gap: 24px;
 }
 
-.uw-quote-list, .uw-followup-panel {
+.uw-quote-list,
+.uw-followup-panel {
   background: #242936;
   border-radius: 16px;
   padding: 20px;
@@ -190,7 +235,9 @@
   margin-bottom: 10px;
   cursor: pointer;
 
-  &.selected { border-color: #3b82f6; }
+  &.selected {
+    border-color: #3b82f6;
+  }
 
   .quote-card-top {
     display: flex;
@@ -198,17 +245,34 @@
     font-size: 13px;
     color: #8a92a6;
 
-    .status { color: #3b82f6; font-weight: 600; }
+    .status {
+      color: #3b82f6;
+      font-weight: 600;
+    }
   }
 
-  .quote-card-name { font-weight: 600; margin-top: 4px; }
-  .quote-card-plan { font-size: 13px; color: #8a92a6; margin-top: 2px; }
+  .quote-card-name {
+    font-weight: 600;
+    margin-top: 4px;
+  }
+
+  .quote-card-plan {
+    font-size: 13px;
+    color: #8a92a6;
+    margin-top: 2px;
+  }
 }
 
 .uw-followup-panel {
-  label { display: block; color: #8a92a6; font-size: 13px; margin: 12px 0 6px; }
+  label {
+    display: block;
+    color: #8a92a6;
+    font-size: 13px;
+    margin: 12px 0 6px;
+  }
 
-  input, textarea {
+  input,
+  textarea {
     width: 100%;
     padding: 10px 12px;
     border-radius: 8px;
@@ -227,16 +291,20 @@
     border: none;
     border-radius: 8px;
     cursor: pointer;
-
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
 }
 
 .uw-log {
   margin-top: 24px;
-
-  h4 { color: #8a92a6; font-size: 13px; margin-bottom: 10px; }
-
+  h4 {
+    color: #8a92a6;
+    font-size: 13px;
+    margin-bottom: 10px;
+  }
   .log-row {
     display: flex;
     gap: 10px;
@@ -244,13 +312,178 @@
     padding: 6px 0;
     border-bottom: 1px solid #2e3340;
     color: #8a92a6;
-
-    .log-quote { color: #3b82f6; }
-    .log-msg { color: #fff; flex: 1; }
+    .log-quote {
+      color: #3b82f6;
+    }
+    .log-msg {
+      color: #fff;
+      flex: 1;
+    }
   }
 }
 
-.empty-state { color: #575d6c; font-size: 13px; text-align: center; padding: 20px; }
+.empty-state {
+  color: #575d6c;
+  font-size: 13px;
+  text-align: center;
+  padding: 20px;
+}
+
+// ---------- CALLING UI ----------
+
+.uw-call-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  // Same dark background family as the application
+  background: rgba(17, 19, 26, 0.82);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.uw-call-modal {
+  width: 320px;
+  padding: 30px;
+  text-align: center;
+  // Match existing cards
+  background: #242936;
+  border: 1px solid #2e3340;
+  border-radius: 16px;
+  box-shadow:
+    0 20px 50px rgba(0, 0, 0, 0.45);
+  color: #fff;
+  animation: callModalIn 0.2s ease-out;
+}
+
+// ---------- CALL ICON ----------
+
+.uw-call-icon {
+  width: 68px;
+  height: 68px;
+  margin: 0 auto 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  // Same blue as your buttons
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  color: #3b82f6;
+  font-size: 30px;
+  animation: callPulse 1.5s ease-in-out infinite;
+}
+
+// ---------- TITLE ----------
+
+.uw-call-modal h2 {
+  margin: 0 0 12px;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 600;
+}
+
+// ---------- CUSTOMER ----------
+
+.uw-call-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+}
+.uw-call-number {
+  margin-top: 5px;
+  font-size: 13px;
+  color: #8a92a6;
+}
+
+// ---------- CALLING STATUS ----------
+
+.uw-call-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 18px;
+  color: #3b82f6;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.calling-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #3b82f6;
+  animation: callingBlink 1s ease-in-out infinite;
+}
+
+// ---------- END CALL BUTTON ----------
+
+.uw-end-call-btn {
+  width: 100%;
+  margin-top: 26px;
+  padding: 11px 16px;
+  border: none;
+  border-radius: 8px;
+  background: #d12819;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    transform 0.2s ease;
+}
+.uw-end-call-btn:hover {
+  background: #87140c;
+  transform: translateY(-1px);
+}
+.uw-end-call-btn:active {
+  transform: translateY(0);
+}
+
+// ---------- ANIMATIONS ----------
+
+@keyframes callModalIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes callPulse {
+  0% {
+    transform: scale(1);
+    box-shadow:
+    0 0 0 0 rgba(59, 130, 246, 0.25);
+  }
+  50% {
+    transform: scale(1.06);
+    box-shadow:
+      0 0 0 12px rgba(59, 130, 246, 0.06);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow:
+      0 0 0 0 rgba(59, 130, 246, 0);
+  }
+}
+
+@keyframes callingBlink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
 
 
 // ---------- CLAIMS ----------

@@ -12,6 +12,41 @@
     </div>
   </ng-template>
 
+  <div class="uw-call-overlay" *ngIf="isCalling">
+
+  <div class="uw-call-modal">
+
+    <div class="uw-call-icon">
+      ☎
+    </div>
+
+    <h2>{{ t('calling') }}</h2>
+
+    <div class="uw-call-name">
+      {{ callingCustomer?.FULL_NAME }}
+    </div>
+
+    <div class="uw-call-number">
+      {{ callingCustomer?.MOBILE }}
+    </div>
+
+    <div class="uw-call-status">
+      <span class="calling-dot"></span>
+      {{ t('calling') }}...
+    </div>
+
+    <button
+      type="button"
+      class="uw-end-call-btn"
+      (click)="endCall()">
+      ✕ {{ t('endCall') }}
+    </button>
+
+  </div>
+
+</div>
+
+
   <!-- LOGIN VIEW -->
   <div class="uw-login-page" *ngIf="!isLoggedIn">
     <div class="uw-login-card">
@@ -126,70 +161,68 @@
         </div>
       </div>
 
-<!-- complaint review -->
-<div class="uw-quote-list">
+      <!-- complaint review -->
+      <div class="uw-quote-list">
 
-  <h3>{{ t('nonStpComplaints') }}</h3>
+        <h3>{{ t('nonStpComplaints') }}</h3>
 
-  <div
-    class="quote-card"
-    *ngFor="let complaint of complaints"
-    [class.selected]="selectedComplaint?.COMPLAINT_ID === complaint.COMPLAINT_ID"
-    (click)="selectComplaint(complaint)">
+        <div class="quote-card" *ngFor="let complaint of complaints"
+          [class.selected]="selectedComplaint?.COMPLAINT_ID === complaint.COMPLAINT_ID"
+          (click)="selectComplaint(complaint)">
 
-    <div class="quote-card-top">
-      <span>{{ t('complaintWord') }} #{{ complaint.COMPLAINT_ID }}</span>
-      <span class="status">{{ complaint.STATUS }}</span>
-    </div>
+          <div class="quote-card-top">
+            <span>{{ t('complaintWord') }} #{{ complaint.COMPLAINT_ID }}</span>
+            <span class="status">{{ complaint.STATUS }}</span>
+          </div>
 
-    <div class="quote-card-name">{{ complaint.FULL_NAME }}</div>
-    <div class="quote-card-plan">{{ complaint.SUBJECT }}</div>
-    <div class="quote-card-value">{{ complaint.PRODUCT }}</div>
+          <div class="quote-card-name">{{ complaint.FULL_NAME }}</div>
+          <div class="quote-card-plan">{{ complaint.SUBJECT }}</div>
+          <div class="quote-card-value">{{ complaint.PRODUCT }}</div>
 
-  </div>
+        </div>
 
-  <div class="empty-state" *ngIf="!complaints.length">
-    {{ t('noComplaints') }}
-  </div>
+        <div class="empty-state" *ngIf="!complaints.length">
+          {{ t('noComplaints') }}
+        </div>
 
-</div>
-
-<!-- Complaint Decision -->
-<div class="uw-followup-panel">
-
-  <h3>{{ t('complaintDecision') }}</h3>
-
-  <ng-container *ngIf="selectedComplaint; else noComplaint">
-
-    <div class="selected-summary">
-
-      <div><b>{{ t('complaintWord') }} #{{ selectedComplaint.COMPLAINT_ID }}</b></div>
-      <div><b>{{ t('customer') }}:</b> {{ selectedComplaint.FULL_NAME }}</div>
-      <div><b>{{ t('email') }}:</b> {{ selectedComplaint.EMAIL }}</div>
-      <div><b>{{ t('mobile') }}:</b> {{ selectedComplaint.MOBILE }}</div>
-      <div><b>{{ t('product') }}:</b> {{ selectedComplaint.PRODUCT }}</div>
-      <div><b>{{ t('policyNumber') }}:</b> {{ selectedComplaint.POLICY_NUMBER || t('notAvailable') }}</div>
-      <div><b>{{ t('subject') }}:</b> {{ selectedComplaint.SUBJECT }}</div>
-      <div><b>{{ t('complaintLabel') }}:</b> {{ selectedComplaint.COMPLAINT_MESSAGE }}</div>
-      <div><b>{{ t('route') }}:</b> {{ selectedComplaint.ROUTE }}</div>
-      <div><b>{{ t('status') }}:</b> {{ selectedComplaint.STATUS }}</div>
-      <div><b>{{ t('aiReason') }}:</b> {{ selectedComplaint.AI_REASON }}</div>
-
-      <div class="decision-buttons">
-        <button type="button" class="counter-btn" (click)="callCustomer(selectedComplaint)">
-          {{ t('call') }}
-        </button>
       </div>
 
-    </div>
+      <!-- Complaint Decision -->
+      <div class="uw-followup-panel">
 
-  </ng-container>
+        <h3>{{ t('complaintDecision') }}</h3>
 
-  <ng-template #noComplaint>
-    <div class="empty-state">{{ t('selectComplaintPrompt') }}</div>
-  </ng-template>
+        <ng-container *ngIf="selectedComplaint; else noComplaint">
 
-</div>
+          <div class="selected-summary">
+
+            <div><b>{{ t('complaintWord') }} #{{ selectedComplaint.COMPLAINT_ID }}</b></div>
+            <div><b>{{ t('customer') }}:</b> {{ selectedComplaint.FULL_NAME }}</div>
+            <div><b>{{ t('email') }}:</b> {{ selectedComplaint.EMAIL }}</div>
+            <div><b>{{ t('mobile') }}:</b> {{ selectedComplaint.MOBILE }}</div>
+            <div><b>{{ t('product') }}:</b> {{ selectedComplaint.PRODUCT }}</div>
+            <div><b>{{ t('policyNumber') }}:</b> {{ selectedComplaint.POLICY_NUMBER || t('notAvailable') }}</div>
+            <div><b>{{ t('subject') }}:</b> {{ selectedComplaint.SUBJECT }}</div>
+            <div><b>{{ t('complaintLabel') }}:</b> {{ selectedComplaint.COMPLAINT_MESSAGE }}</div>
+            <div><b>{{ t('route') }}:</b> {{ selectedComplaint.ROUTE }}</div>
+            <div><b>{{ t('status') }}:</b> {{ selectedComplaint.STATUS }}</div>
+            <div><b>{{ t('aiReason') }}:</b> {{ selectedComplaint.AI_REASON }}</div>
+
+            <div class="decision-buttons">
+              <button type="button" class="counter-btn" (click)="callCustomer(selectedComplaint)">
+                {{ t('call') }}
+              </button>
+            </div>
+
+          </div>
+
+        </ng-container>
+
+        <ng-template #noComplaint>
+          <div class="empty-state">{{ t('selectComplaintPrompt') }}</div>
+        </ng-template>
+
+      </div>
 
 
 </div>

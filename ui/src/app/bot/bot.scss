@@ -166,30 +166,39 @@
   flex-direction: column;
   gap: 14px;
 
- scrollbar-width: thin;
-scrollbar-color: #707689 transparent;
+  scrollbar-width: thin;
+  scrollbar-color: #707689 transparent;
 
-&::-webkit-scrollbar {
-  width: 10px;
-}
+  &::-webkit-scrollbar {
+    width: 10px;
+  }
 
-&::-webkit-scrollbar-track {
-  background: transparent;
-}
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
 
-&::-webkit-scrollbar-thumb {
-  background: #707689;
-  border-radius: 999px;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
+  &::-webkit-scrollbar-thumb {
+    background: #707689;
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
 
-&::-webkit-scrollbar-thumb:hover {
-  background: #858b9d;
-  border: 2px solid transparent;
-  background-clip: padding-box;
-}
+  &::-webkit-scrollbar-thumb:hover {
+    background: #858b9d;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
 
+  &::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+
+  &::-webkit-scrollbar-corner {
+    background: transparent;
+  }
 }
 
 /* Agent Connect Modal */
@@ -683,13 +692,60 @@ textarea:disabled::placeholder {
 
     transition: border-color 0.15s;
 
-    &::placeholder { color: var(--ink-dim); }
+    /* ==============================
+       THEME SCROLLBAR
+    ============================== */
+
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    /* Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: #596276 transparent;
+
+    /* Chrome / Edge / Safari */
+    &::-webkit-scrollbar {
+      width: 7px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #596276;
+      border-radius: 999px;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    &::-webkit-scrollbar-thumb:hover {
+      background: #71809a;
+      border: 2px solid transparent;
+      background-clip: padding-box;
+    }
+
+    /* Remove arrow buttons */
+    &::-webkit-scrollbar-button {
+      display: none;
+      width: 0;
+      height: 0;
+    }
+
+    &::-webkit-scrollbar-corner {
+      background: transparent;
+    }
+
+    &::placeholder {
+      color: var(--ink-dim);
+    }
 
     &:focus {
       border-color: var(--gold);
     }
   }
 }
+
 
 .folder.rtl {
   direction: rtl;

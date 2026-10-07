@@ -92,6 +92,10 @@ export class UnderwriterComponent implements OnInit {
   deciding = false;
   decisionSentLog: { proposalNumber: string; decision: string; time: string }[] = [];
 
+  isCalling = false;
+callingCustomer: any = null;
+
+
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private flwUp:ComplaintFlwUp, private claimSvc: ClaimService) { }
 
   ngOnInit(): void {
@@ -167,6 +171,9 @@ export class UnderwriterComponent implements OnInit {
       }
     });
   }
+
+
+
 
   // ==================================================
   // LOGIN
@@ -345,21 +352,20 @@ export class UnderwriterComponent implements OnInit {
     );
   }
 
-  callCustomer(complaint: any): void {
-    if (!complaint) {
-      return;
-    }
+callCustomer(complaint: any) {
+  this.callingCustomer = complaint;
+  this.isCalling = true;
 
-    console.log(
-      'Calling customer:',
-      complaint.FULL_NAME
-    );
+  // setTimeout(() => {
+  //   this.isCalling = false;
+  //   this.callingCustomer = null;
+  // }, 5000);
+}
 
-    console.log(
-      'Mobile:',
-      complaint.MOBILE
-    );
-  }
+endCall() {
+  this.isCalling = false;
+  this.callingCustomer = null;
+}
 
   sendComplaintMessage(): void {
 
