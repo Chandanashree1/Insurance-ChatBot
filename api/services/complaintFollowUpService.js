@@ -1,7 +1,6 @@
 const oracledb = require("oracledb");
 const { getConnection } = require("../config/oracle");
 
-
 // ============================================================
 // CONVERT CLOB TO STRING
 // ============================================================
@@ -12,48 +11,34 @@ async function convertClob(value) {
         return null;
     }
 
-    // Normal string
     if (typeof value === "string") {
         return value;
     }
 
-    // Oracle CLOB
     if (
         typeof value === "object" &&
         typeof value.on === "function"
     ) {
 
-        return await new Promise(
-            (resolve, reject) => {
+        return await new Promise((resolve, reject) => {
 
-                let data = "";
+            let data = "";
 
-                value.setEncoding("utf8");
+            value.setEncoding("utf8");
 
-                value.on(
-                    "data",
-                    chunk => {
-                        data += chunk;
-                    }
-                );
+            value.on("data", chunk => {
+                data += chunk;
+            });
 
-                value.on(
-                    "end",
-                    () => {
-                        resolve(data);
-                    }
-                );
+            value.on("end", () => {
+                resolve(data);
+            });
 
-                value.on(
-                    "error",
-                    error => {
-                        reject(error);
-                    }
-                );
+            value.on("error", error => {
+                reject(error);
+            });
 
-            }
-        );
-
+        });
     }
 
     return String(value);
@@ -93,6 +78,9 @@ async function formatComplaint(row) {
         PRODUCT:
             row.PRODUCT,
 
+        POLICY_ID:
+            row.POLICY_ID,
+
         POLICY_NUMBER:
             row.POLICY_NUMBER,
 
@@ -118,9 +106,7 @@ async function formatComplaint(row) {
 
         UPDATED_AT:
             row.UPDATED_AT
-
     };
-
 }
 
 
@@ -134,63 +120,57 @@ async function getNonStpComplaints() {
 
     try {
 
-        connection =
-            await getConnection();
+        connection = await getConnection();
 
+        const result = await connection.execute(
+            `
+            SELECT
+                C.COMPLAINT_ID,
+                C.CUSTOMER_ID,
+                C.SUBJECT,
+                C.FULL_NAME,
+                C.EMAIL,
+                C.MOBILE,
+                C.PRODUCT,
 
-        const result =
-            await connection.execute(
+                C.POLICY_ID,
+                P.POLICY_NUMBER,
 
-                `
-                SELECT
-                    COMPLAINT_ID,
-                    CUSTOMER_ID,
-                    SUBJECT,
-                    FULL_NAME,
-                    EMAIL,
-                    MOBILE,
-                    PRODUCT,
-                    POLICY_NUMBER,
-                    COMPLAINT_MESSAGE,
-                    ROUTE,
-                    STATUS,
-                    AI_REASON,
-                    AGENT_NOTE,
-                    CREATED_AT,
-                    UPDATED_AT
-                FROM COMPLAINTS
-                WHERE ROUTE = 'NON_STP'
-                ORDER BY CREATED_AT DESC
-                `,
+                C.COMPLAINT_MESSAGE,
+                C.ROUTE,
+                C.STATUS,
+                C.AI_REASON,
+                C.AGENT_NOTE,
+                C.CREATED_AT,
+                C.UPDATED_AT
 
-                {},
+            FROM COMPLAINTS C
 
-                {
-                    outFormat:
-                        oracledb.OUT_FORMAT_OBJECT
-                }
+            LEFT JOIN POLICY P
+                ON C.POLICY_ID = P.POLICY_ID
 
-            );
+            WHERE C.ROUTE = 'NON_STP'
 
+            ORDER BY C.CREATED_AT DESC
+            `,
+            {},
+            {
+                outFormat:
+                    oracledb.OUT_FORMAT_OBJECT
+            }
+        );
 
         const complaints = [];
 
-        for (
-            const row of result.rows
-        ) {
+        for (const row of result.rows) {
 
             const complaint =
                 await formatComplaint(row);
 
-            complaints.push(
-                complaint
-            );
-
+            complaints.push(complaint);
         }
 
-
         return complaints;
-
 
     } catch (error) {
 
@@ -206,9 +186,7 @@ async function getNonStpComplaints() {
         if (connection) {
 
             try {
-
                 await connection.close();
-
             } catch (error) {
 
                 console.error(
@@ -217,11 +195,8 @@ async function getNonStpComplaints() {
                 );
 
             }
-
         }
-
     }
-
 }
 
 
@@ -229,54 +204,52 @@ async function getNonStpComplaints() {
 // GET COMPLAINT BY ID
 // ============================================================
 
-async function getComplaintById(
-    complaintId
-) {
+async function getComplaintById(complaintId) {
 
     let connection;
 
     try {
 
-        connection =
-            await getConnection();
+        connection = await getConnection();
 
+        const result = await connection.execute(
+            `
+            SELECT
+                C.COMPLAINT_ID,
+                C.CUSTOMER_ID,
+                C.SUBJECT,
+                C.FULL_NAME,
+                C.EMAIL,
+                C.MOBILE,
+                C.PRODUCT,
 
-        const result =
-            await connection.execute(
+                C.POLICY_ID,
+                P.POLICY_NUMBER,
 
-                `
-                SELECT
-                    COMPLAINT_ID,
-                    CUSTOMER_ID,
-                    SUBJECT,
-                    FULL_NAME,
-                    EMAIL,
-                    MOBILE,
-                    PRODUCT,
-                    POLICY_NUMBER,
-                    COMPLAINT_MESSAGE,
-                    ROUTE,
-                    STATUS,
-                    AI_REASON,
-                    AGENT_NOTE,
-                    CREATED_AT,
-                    UPDATED_AT
-                FROM COMPLAINTS
-                WHERE COMPLAINT_ID = :complaintId
-                AND ROUTE = 'NON_STP'
-                `,
+                C.COMPLAINT_MESSAGE,
+                C.ROUTE,
+                C.STATUS,
+                C.AI_REASON,
+                C.AGENT_NOTE,
+                C.CREATED_AT,
+                C.UPDATED_AT
 
-                {
-                    complaintId
-                },
+            FROM COMPLAINTS C
 
-                {
-                    outFormat:
-                        oracledb.OUT_FORMAT_OBJECT
-                }
+            LEFT JOIN POLICY P
+                ON C.POLICY_ID = P.POLICY_ID
 
-            );
-
+            WHERE C.COMPLAINT_ID = :complaintId
+            AND C.ROUTE = 'NON_STP'
+            `,
+            {
+                complaintId
+            },
+            {
+                outFormat:
+                    oracledb.OUT_FORMAT_OBJECT
+            }
+        );
 
         if (
             !result.rows ||
@@ -284,14 +257,11 @@ async function getComplaintById(
         ) {
 
             return null;
-
         }
-
 
         return await formatComplaint(
             result.rows[0]
         );
-
 
     } catch (error) {
 
@@ -307,9 +277,7 @@ async function getComplaintById(
         if (connection) {
 
             try {
-
                 await connection.close();
-
             } catch (error) {
 
                 console.error(
@@ -318,11 +286,8 @@ async function getComplaintById(
                 );
 
             }
-
         }
-
     }
-
 }
 
 
@@ -343,27 +308,25 @@ async function updateComplaint(
         connection = await getConnection();
 
         const result = await connection.execute(
-
             `
             UPDATE COMPLAINTS
+
             SET
                 STATUS = :status,
                 AGENT_NOTE = :agentNote,
                 UPDATED_AT = CURRENT_TIMESTAMP
+
             WHERE COMPLAINT_ID = :complaintId
             `,
-
             {
                 complaintId,
                 status,
                 agentNote: agentNote || null
             },
-
             {
                 autoCommit: true
             }
         );
-
 
         if (result.rowsAffected === 0) {
 
@@ -371,25 +334,21 @@ async function updateComplaint(
                 success: false,
                 message: "Complaint not found."
             };
-
         }
-
 
         return {
             success: true,
             message: "Complaint updated successfully."
         };
 
-    }
-
-    finally {
+    } finally {
 
         if (connection) {
             await connection.close();
         }
-
     }
 }
+
 
 // ============================================================
 // EXPORT

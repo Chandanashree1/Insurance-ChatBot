@@ -619,6 +619,11 @@
       </div>
 
       <div class="form-field">
+        <label>{{ translations[selectedLanguage].policyNumber }} <span class="required">*</span></label>
+        <input type="tel" [(ngModel)]="complaintForm.policyNumber" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
+      </div>
+
+      <div class="form-field">
         <label>{{ translations[selectedLanguage].complaintMessage }} <span class="required">*</span></label>
         <textarea rows="3" [(ngModel)]="complaintForm.message"
           [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'"></textarea>

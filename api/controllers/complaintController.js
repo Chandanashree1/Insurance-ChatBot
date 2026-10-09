@@ -3,7 +3,7 @@ const { getConnection } = require("../config/oracle");
 
 const complaintRagService = require("../services/complaintRagService");
 
-const {analyzeComplaint} = require("../services/huggingFaceService");
+const { analyzeComplaint } = require("../services/huggingFaceService");
 
 
 // ============================================================
@@ -142,90 +142,90 @@ async function registerComplaint(req, res) {
             await getConnection();
 
 
-        const insertResult =
-    await connection.execute(
-
-        `
-        INSERT INTO COMPLAINTS (
-            CUSTOMER_ID,
-            SUBJECT,
-            FULL_NAME,
-            EMAIL,
-            MOBILE,
-            PRODUCT,
-            POLICY_NUMBER,
-            COMPLAINT_MESSAGE,
-            ROUTE,
-            STATUS,
-            AI_REASON,
-            CREATED_AT,
-            UPDATED_AT
-        )
-        VALUES (
-            :customerId,
-            :subject,
-            :fullName,
-            :email,
-            :mobile,
-            :product,
-            :policyNumber,
-            :complaintMessage,
-            :route,
-            :status,
-            :aiReason,
-            CURRENT_TIMESTAMP,
-            CURRENT_TIMESTAMP
-        )
-        RETURNING COMPLAINT_ID INTO :complaintId
-        `,
-
-        {
-            customerId:
-                customerId || null,
-
-            subject,
-
-            fullName:
-                fullName || null,
-
-            email:
-                email || null,
-
-            mobile:
-                mobile || null,
-
-            product:
-                product || null,
-
-            policyNumber:
-                policyNumber || null,
-
-            complaintMessage:
-                message,
-
-            route,
-
-            status:
-                route === "NON_STP"
-                    ? "OPEN"
-                    : "RESOLVED",
-
-            aiReason:
-                reason,
-
-            complaintId: {
-                dir: oracledb.BIND_OUT,
-                type: oracledb.NUMBER
+        const policyResult = await connection.execute(
+            `
+                SELECT POLICY_ID
+                FROM POLICY
+                WHERE POLICY_NUMBER = :policyNumber
+                `,
+            {
+                policyNumber: policyNumber || null
+            },
+            {
+                outFormat: oracledb.OUT_FORMAT_OBJECT
             }
-        },
+        );
 
-        {
-            autoCommit: true
+        const policyId =
+            policyResult.rows.length > 0
+                ? policyResult.rows[0].POLICY_ID
+                : null;
+
+        console.log("Policy Number:", policyNumber);
+        console.log("Policy ID:", policyId);
+
+        const insertResult = await connection.execute(
+    `
+    INSERT INTO COMPLAINTS (
+        CUSTOMER_ID,
+        SUBJECT,
+        FULL_NAME,
+        EMAIL,
+        MOBILE,
+        PRODUCT,
+        POLICY_ID,
+        COMPLAINT_MESSAGE,
+        ROUTE,
+        STATUS,
+        AI_REASON,
+        CREATED_AT,
+        UPDATED_AT
+    )
+    VALUES (
+        :customerId,
+        :subject,
+        :fullName,
+        :email,
+        :mobile,
+        :product,
+        :policyId,
+        :complaintMessage,
+        :route,
+        :status,
+        :aiReason,
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+    )
+    RETURNING COMPLAINT_ID INTO :complaintId
+    `,
+    {
+        customerId: customerId || null,
+        subject,
+        fullName: fullName || null,
+        email: email || null,
+        mobile: mobile || null,
+        product: product || null,
+
+        // IMPORTANT
+        policyId: policyId,
+
+        complaintMessage: message,
+        route,
+        status: route === "NON_STP" ? "OPEN" : "RESOLVED",
+        aiReason: reason,
+
+        complaintId: {
+            dir: oracledb.BIND_OUT,
+            type: oracledb.NUMBER
         }
-    );
+    },
+    {
+        autoCommit: true
+    }
+);
 
-const complaintId =
-    insertResult.outBinds.complaintId[0];
+        const complaintId =
+            insertResult.outBinds.complaintId[0];
 
 
 

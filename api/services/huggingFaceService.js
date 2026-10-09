@@ -982,6 +982,546 @@ ${history
 
 }
 
+/*
+|--------------------------------------------------------------------------
+| AI ANALYZE COMPLAINT
+|--------------------------------------------------------------------------
+*/
+
+async function analyzeComplaint(complaintText) {
+
+    // ============================================================
+    // VALIDATION
+    // ============================================================
+
+    if (
+        !complaintText ||
+        typeof complaintText !== "string" ||
+        !complaintText.trim()
+    ) {
+
+        return {
+            route: "NON_STP",
+            reason: "Complaint description is empty."
+        };
+    }
+
+
+    console.log("");
+    console.log("========================================");
+    console.log("AI COMPLAINT ANALYSIS");
+    console.log("========================================");
+
+    console.log(complaintText);
+
+
+    // ============================================================
+    // COMPLAINT ANALYSIS PROMPT
+    // ============================================================
+
+    const complaintPrompt = `
+
+You are the AI complaint understanding and routing engine
+for ABC Insurance.
+
+Your job is to understand the COMPLETE meaning of the customer's
+complaint and decide whether it is:
+
+STP
+or
+NON_STP
+
+You are NOT doing RAG retrieval in this step.
+
+You are ONLY deciding the complaint route.
+
+==================================================
+CORE DECISION
+==================================================
+
+STP means:
+
+The complaint describes a normal, known insurance operational
+problem that can be handled using a predefined standard resolution.
+
+Examples include:
+
+- policy document not received
+- payment deducted but policy not active
+- payment successful but policy still pending
+- policy document cannot be downloaded
+- standard payment failure
+- standard claim status not updated
+- standard policy service unavailable
+
+NON_STP means:
+
+The complaint requires a human to investigate, make a
+customer-specific decision, resolve a dispute, or take an action
+that cannot be handled by a standard operational resolution.
+
+Examples include:
+
+- management investigation
+- branch staff investigation
+- dispute about a decision
+- compensation request
+- suspected fraud
+- suspicious activity
+- complex individual case
+- special exception
+- legal complaint
+- customer-specific investigation
+- request for manual intervention
+
+==================================================
+VERY IMPORTANT
+==================================================
+
+Do NOT use:
+
+- keyword matching
+- typeMap
+- cosine similarity
+- embedding similarity
+- fixed keyword lists
+
+Understand the COMPLETE meaning of the complaint.
+
+Do not classify based only on the subject.
+
+Consider:
+
+1. What actually happened?
+2. What problem is the customer experiencing?
+3. What does the customer want?
+4. Is this a standard insurance operational problem?
+5. Can this normally be handled using a predefined insurance
+   operational resolution?
+6. Does the customer require investigation, dispute handling,
+   management intervention, or a special decision?
+
+==================================================
+IMPORTANT STP EXAMPLES
+==================================================
+
+Example 1:
+
+Customer:
+
+"I purchased my motor insurance but I have not received
+my policy document."
+
+Decision:
+
+STP
+
+Reason:
+
+"This is a standard policy document delivery issue that can
+be handled using the known policy document resolution."
+
+--------------------------------------------------
+
+Example 2:
+
+Customer:
+
+"My payment was deducted but my motor insurance policy is
+still showing as pending."
+
+Decision:
+
+STP
+
+Reason:
+
+"This is a standard payment-to-policy activation issue that
+can be handled using the known payment and policy activation
+resolution."
+
+--------------------------------------------------
+
+Example 3:
+
+Customer:
+
+"I paid for my insurance but the policy is still inactive."
+
+Decision:
+
+STP
+
+Reason:
+
+"This is a standard policy activation issue following payment."
+
+--------------------------------------------------
+
+Example 4:
+
+Customer:
+
+"I cannot download my policy document."
+
+Decision:
+
+STP
+
+Reason:
+
+"This is a standard policy document access issue."
+
+--------------------------------------------------
+
+Example 5:
+
+Customer:
+
+"My claim status has not been updated."
+
+Decision:
+
+STP
+
+Reason:
+
+"This can be handled using the standard claim status process
+when a known resolution is available."
+
+==================================================
+IMPORTANT NON-STP EXAMPLES
+==================================================
+
+Example 1:
+
+Customer:
+
+"I am extremely unhappy with the branch staff and want
+management to investigate them."
+
+Decision:
+
+NON_STP
+
+Reason:
+
+"The customer is requesting management investigation."
+
+--------------------------------------------------
+
+Example 2:
+
+Customer:
+
+"I disagree with the claim decision and want someone to
+investigate my case."
+
+Decision:
+
+NON_STP
+
+Reason:
+
+"The customer is disputing a decision and requires
+case-specific investigation."
+
+--------------------------------------------------
+
+Example 3:
+
+Customer:
+
+"The branch staff treated me unfairly and I want compensation."
+
+Decision:
+
+NON_STP
+
+Reason:
+
+"The complaint requires investigation and a customer-specific
+decision regarding compensation."
+
+--------------------------------------------------
+
+Example 4:
+
+Customer:
+
+"I believe someone has used my policy without my permission.
+Please investigate."
+
+Decision:
+
+NON_STP
+
+Reason:
+
+"The complaint involves suspected suspicious activity requiring
+investigation."
+
+==================================================
+IMPORTANT DISTINCTION
+==================================================
+
+Do NOT assume that every problem involving:
+
+- payment
+- policy status
+- claim status
+- documents
+
+is NON_STP.
+
+These can be STP when they represent a standard operational
+problem.
+
+For example:
+
+"Payment was deducted but policy is pending."
+
+=> STP
+
+But:
+
+"I was charged twice and I want the company to investigate
+whether someone manipulated my payment."
+
+=> NON_STP
+
+The difference is whether the complaint is a standard operational
+issue or requires customer-specific investigation/dispute handling.
+
+==================================================
+UNCERTAINTY
+==================================================
+
+If the complaint genuinely cannot be understood or there is not
+enough information to determine whether a standard operational
+resolution applies, choose NON_STP.
+
+Do NOT choose NON_STP simply because the complaint contains
+a payment, policy, claim, or status issue.
+
+==================================================
+OUTPUT
+==================================================
+
+Return ONLY valid JSON.
+
+For STP:
+
+{
+    "route": "STP",
+    "reason": "Short explanation"
+}
+
+For NON_STP:
+
+{
+    "route": "NON_STP",
+    "reason": "Short explanation"
+}
+
+Rules:
+
+- Return exactly one route.
+- Route must be either STP or NON_STP.
+- Reason must be short and clear.
+- Do not return markdown.
+- Do not return code fences.
+- Do not return additional text.
+
+`;
+
+
+    // ============================================================
+    // CALL LLM
+    // ============================================================
+
+    try {
+
+        const content =
+            await callLLM([
+
+                {
+                    role: "system",
+
+                    content:
+                        complaintPrompt
+
+                },
+
+                {
+                    role: "user",
+
+                    content:
+                        complaintText.trim()
+
+                }
+
+            ]);
+
+
+        console.log("");
+        console.log("========================================");
+        console.log("RAW COMPLAINT AI RESPONSE");
+        console.log("========================================");
+
+        console.log(content);
+
+
+        // ========================================================
+        // CLEAN RESPONSE
+        // ========================================================
+
+        let cleanContent =
+            String(content || "")
+                .replace(/```json/gi, "")
+                .replace(/```/g, "")
+                .trim();
+
+
+        // ========================================================
+        // EXTRACT JSON
+        // ========================================================
+
+        const firstBrace =
+            cleanContent.indexOf("{");
+
+        const lastBrace =
+            cleanContent.lastIndexOf("}");
+
+
+        if (
+            firstBrace !== -1 &&
+            lastBrace !== -1
+        ) {
+
+            cleanContent =
+                cleanContent.substring(
+                    firstBrace,
+                    lastBrace + 1
+                );
+
+        }
+
+
+        // ========================================================
+        // PARSE JSON
+        // ========================================================
+
+        const result =
+            JSON.parse(cleanContent);
+
+
+        // ========================================================
+        // VALIDATE ROUTE
+        // ========================================================
+
+        let route =
+            String(
+                result.route || ""
+            )
+                .trim()
+                .toUpperCase();
+
+
+        if (
+            route !== "STP" &&
+            route !== "NON_STP"
+        ) {
+
+            console.warn(
+                "Invalid complaint route returned by AI."
+            );
+
+            return {
+
+                route: "NON_STP",
+
+                reason:
+                    "AI returned an invalid complaint route."
+
+            };
+        }
+
+
+        const reason =
+            result.reason ||
+            "Complaint analyzed by AI.";
+
+
+        // ========================================================
+        // LOG FINAL DECISION
+        // ========================================================
+
+        console.log("");
+        console.log("========================================");
+        console.log("AI COMPLAINT DECISION");
+        console.log("========================================");
+
+        console.log(
+            "Route:",
+            route
+        );
+
+        console.log(
+            "Reason:",
+            reason
+        );
+
+
+        // ========================================================
+        // RETURN
+        // ========================================================
+
+        return {
+
+            route,
+
+            reason
+
+        };
+
+
+    } catch (error) {
+
+        console.error("");
+        console.error(
+            "========================================"
+        );
+
+        console.error(
+            "COMPLAINT AI ANALYSIS ERROR"
+        );
+
+        console.error(
+            "========================================"
+        );
+
+        console.error(
+            error.response?.data ||
+            error.message
+        );
+
+
+        // ========================================================
+        // SAFE FALLBACK
+        // ========================================================
+
+        return {
+
+            route: "NON_STP",
+
+            reason:
+                "Complaint could not be confidently analyzed."
+
+        };
+
+    }
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -995,6 +1535,7 @@ module.exports = {
 
     detectIntentAI,
     
-    analyzeFeedback
+    analyzeFeedback,
 
+    analyzeComplaint
 };

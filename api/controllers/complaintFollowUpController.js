@@ -1,4 +1,5 @@
 const complaintFollowUpService = require("../services/complaintFollowUpService");
+const { getConnection } = require("../config/oracle");
 
 // ============================================================
 // GET NON-STP COMPLAINTS
@@ -120,97 +121,64 @@ async function getComplaintById(req, res) {
 // UPDATE COMPLAINT FOLLOW-UP
 // ============================================================
 
-async function updateComplaintFollowUp(req, res) {
+async function updateComplaint(req, res) {
+
+    let connection;
 
     try {
 
-        const { complaintId } =
-            req.params;
+        const { complaintId } = req.params;
 
         const {
             status,
             agentNote
         } = req.body;
 
+        connection = await getConnection();
 
-        if (!complaintId) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message:
-                    "Complaint ID is required."
-
-            });
-
-        }
-
-
-        if (!status) {
-
-            return res.status(400).json({
-
-                success: false,
-
-                message:
-                    "Status is required."
-
-            });
-
-        }
-
-
-        const updated =
-            await complaintFollowUpService
-                .updateComplaintFollowUp(
-                    complaintId,
-                    status,
-                    agentNote
-                );
-
-
-        if (!updated) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message:
-                    "Complaint not found."
-
-            });
-
-        }
-
+        await connection.execute(
+            `
+            UPDATE COMPLAINTS
+            SET
+                STATUS = :status,
+                AGENT_NOTE = :agentNote,
+                UPDATED_AT = CURRENT_TIMESTAMP
+            WHERE COMPLAINT_ID = :complaintId
+            `,
+            {
+                status,
+                agentNote,
+                complaintId
+            },
+            {
+                autoCommit: true
+            }
+        );
 
         return res.status(200).json({
-
             success: true,
-
-            message:
-                "Complaint follow-up updated successfully."
-
+            message: "Complaint updated successfully."
         });
 
     } catch (error) {
 
         console.error(
-            "Update Complaint Follow-Up Controller Error:",
+            "Update Complaint Error:",
             error
         );
 
         return res.status(500).json({
-
             success: false,
-
-            message:
-                "Unable to update complaint."
-
+            message: "Unable to update complaint."
         });
 
-    }
+    } finally {
 
+        if (connection) {
+            await connection.close();
+        }
+
+    }
 }
 
 
@@ -221,5 +189,5 @@ async function updateComplaintFollowUp(req, res) {
 module.exports = {
     getNonStpComplaints,
     getComplaintById,
-    updateComplaintFollowUp
+    updateComplaint
 };

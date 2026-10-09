@@ -14,37 +14,34 @@
 
   <div class="uw-call-overlay" *ngIf="isCalling">
 
-  <div class="uw-call-modal">
+    <div class="uw-call-modal">
 
-    <div class="uw-call-icon">
-      ☎
+      <div class="uw-call-icon">
+        ☎
+      </div>
+
+      <h2>{{ t('calling') }}</h2>
+
+      <div class="uw-call-name">
+        {{ callingCustomer?.FULL_NAME }}
+      </div>
+
+      <div class="uw-call-number">
+        {{ callingCustomer?.MOBILE }}
+      </div>
+
+      <div class="uw-call-status">
+        <span class="calling-dot"></span>
+        {{ t('calling') }}...
+      </div>
+
+      <button type="button" class="uw-end-call-btn" (click)="endCall()">
+        ✕ {{ t('endCall') }}
+      </button>
+
     </div>
-
-    <h2>{{ t('calling') }}</h2>
-
-    <div class="uw-call-name">
-      {{ callingCustomer?.FULL_NAME }}
-    </div>
-
-    <div class="uw-call-number">
-      {{ callingCustomer?.MOBILE }}
-    </div>
-
-    <div class="uw-call-status">
-      <span class="calling-dot"></span>
-      {{ t('calling') }}...
-    </div>
-
-    <button
-      type="button"
-      class="uw-end-call-btn"
-      (click)="endCall()">
-      ✕ {{ t('endCall') }}
-    </button>
 
   </div>
-
-</div>
 
 
   <!-- LOGIN VIEW -->
@@ -98,7 +95,7 @@
           <div class="quote-card-name">{{ p.customerName }}</div>
 
           <div class="quote-card-plan" *ngIf="p.planName">
-            {{ p.planName }} — OMR {{ p.premium?.toFixed(3) }}
+            {{ p.planName }} — OMR {{ p.premium.toFixed(3) }}
           </div>
           <div class="quote-card-no-plan" *ngIf="!p.planName">
             {{ t('noPlanSelected') }}
@@ -119,7 +116,7 @@
             <div><b>{{ selectedProposal.proposalNumber }}</b></div>
             <div>{{ selectedProposal.customerName }}</div>
             <div *ngIf="selectedProposal.planName">
-              {{ selectedProposal.planName }} — OMR {{ selectedProposal.premium?.toFixed(3) }}
+              {{ selectedProposal.planName }} — OMR {{ selectedProposal.premium.toFixed(3) }}
             </div>
             <div *ngIf="!selectedProposal.planName" class="no-plan-note">
               {{ t('noPlanSelected') }}
@@ -198,21 +195,40 @@
 
             <div><b>{{ t('complaintWord') }} #{{ selectedComplaint.COMPLAINT_ID }}</b></div>
             <div><b>{{ t('customer') }}:</b> {{ selectedComplaint.FULL_NAME }}</div>
-            <div><b>{{ t('email') }}:</b> {{ selectedComplaint.EMAIL }}</div>
-            <div><b>{{ t('mobile') }}:</b> {{ selectedComplaint.MOBILE }}</div>
+            <!-- <div><b>{{ t('email') }}:</b> {{ selectedComplaint.EMAIL }}</div> -->
+            <!-- <div><b>{{ t('mobile') }}:</b> {{ selectedComplaint.MOBILE }}</div> -->
             <div><b>{{ t('product') }}:</b> {{ selectedComplaint.PRODUCT }}</div>
             <div><b>{{ t('policyNumber') }}:</b> {{ selectedComplaint.POLICY_NUMBER || t('notAvailable') }}</div>
             <div><b>{{ t('subject') }}:</b> {{ selectedComplaint.SUBJECT }}</div>
             <div><b>{{ t('complaintLabel') }}:</b> {{ selectedComplaint.COMPLAINT_MESSAGE }}</div>
-            <div><b>{{ t('route') }}:</b> {{ selectedComplaint.ROUTE }}</div>
-            <div><b>{{ t('status') }}:</b> {{ selectedComplaint.STATUS }}</div>
+            <!-- <div><b>{{ t('route') }}:</b> {{ selectedComplaint.ROUTE }}</div> -->
+            <!-- <div><b>{{ t('status') }}:</b> {{ selectedComplaint.STATUS }}</div> -->
             <div><b>{{ t('aiReason') }}:</b> {{ selectedComplaint.AI_REASON }}</div>
 
+            <!-- Agent Message -->
+            <textarea [(ngModel)]="complaintMessage" rows="4" placeholder="Type message to customer..."></textarea>
+
+            <!-- Actions -->
             <div class="decision-buttons">
+              <!-- Dummy call -->
+              <button type="button" class="counter-btn" (click)="callCustomer(selectedComplaint)" style="background-color: green;">
+                call
+              </button>
+
+              <button type="button" class="counter-btn" (click)="sendComplaintMessage()">
+                send
+              </button>
+
+              <button type="button" class="counter-btn" (click)="closeComplaintMessage()" style="background-color: red;">
+                close
+              </button>
+            </div>
+
+            <!-- <div class="decision-buttons">
               <button type="button" class="counter-btn" (click)="callCustomer(selectedComplaint)">
                 {{ t('call') }}
               </button>
-            </div>
+            </div> -->
 
           </div>
 
@@ -225,88 +241,92 @@
       </div>
 
 
-</div>
-
-  <!-- ================= CLAIMS ================= -->
-  <div class="uw-body uw-claims-body">
-
-    <!-- File a claim (underwriter-side intake) -->
-    <div class="uw-followup-panel uw-claim-intake">
-      <h3>File a Claim</h3>
-      <app-claim-form (claimSubmitted)="onClaimSubmitted($event)"></app-claim-form>
     </div>
 
-    <div class="uw-claims-right">
+    <!-- ================= CLAIMS ================= -->
+    <div class="uw-body uw-claims-body">
 
-      <!-- Pending claims queue -->
-      <div class="uw-quote-list">
-        <h3>Pending Claims</h3>
-
-        <div class="quote-card" *ngFor="let c of pendingClaims"
-          [class.selected]="selectedClaim?.claimId === c.claimId" (click)="selectClaim(c)">
-
-          <div class="quote-card-top">
-            <span>{{ c.claimNumber }}</span>
-            <span class="status">OMR {{ c.claimAmount | number:'1.3-3' }}</span>
-          </div>
-          <div class="quote-card-name">{{ c.customerName }}</div>
-          <div class="quote-card-plan">{{ c.policyNumber }}<span *ngIf="c.productName"> — {{ c.productName }}</span></div>
-        </div>
-
-        <div class="empty-state" *ngIf="!pendingClaims.length">No claims awaiting review.</div>
+      <!-- File a claim (underwriter-side intake) -->
+      <div class="uw-followup-panel uw-claim-intake">
+        <h3>File a Claim</h3>
+        <app-claim-form (claimSubmitted)="onClaimSubmitted($event)"></app-claim-form>
       </div>
 
-      <!-- Claim decision -->
-      <div class="uw-followup-panel">
-        <h3>Claim Decision</h3>
+      <div class="uw-claims-right">
 
-        <ng-container *ngIf="selectedClaim; else noClaim">
+        <!-- Pending claims queue -->
+        <div class="uw-quote-list">
+          <h3>Pending Claims</h3>
 
-          <div class="selected-summary">
-            <div><b>{{ selectedClaim.claimNumber }}</b></div>
-            <div>{{ selectedClaim.customerName }}</div>
-            <div>{{ selectedClaim.policyNumber }}<span *ngIf="selectedClaim.productName"> — {{ selectedClaim.productName }}</span></div>
-            <div *ngIf="selectedClaim.incidentDate">Incident: {{ selectedClaim.incidentDate | date:'dd MMM yyyy' }}</div>
-            <div>Claimed: OMR {{ selectedClaim.claimAmount | number:'1.3-3' }}</div>
-            <div class="claim-description" *ngIf="selectedClaim.description">{{ selectedClaim.description }}</div>
+          <div class="quote-card" *ngFor="let c of pendingClaims"
+            [class.selected]="selectedClaim?.claimId === c.claimId" (click)="selectClaim(c)">
 
-            <a *ngIf="claimImageUrl(selectedClaim) as imgUrl" class="claim-photo" [href]="imgUrl" target="_blank" rel="noopener">
-              <img [src]="imgUrl" alt="Claim photo" />
-            </a>
-            <div *ngIf="!selectedClaim.imagePath" class="no-plan-note">No photo attached.</div>
+            <div class="quote-card-top">
+              <span>{{ c.claimNumber }}</span>
+              <span class="status">OMR {{ c.claimAmount | number:'1.3-3' }}</span>
+            </div>
+            <div class="quote-card-name">{{ c.customerName }}</div>
+            <div class="quote-card-plan">{{ c.policyNumber }}<span *ngIf="c.productName"> — {{ c.productName }}</span>
+            </div>
           </div>
 
-          <label>Approved amount (OMR) — leave blank to approve in full</label>
-          <input type="number" min="0" step="0.001" [(ngModel)]="claimApprovedAmount"
-            [placeholder]="selectedClaim.claimAmount.toFixed(3)">
+          <div class="empty-state" *ngIf="!pendingClaims.length">No claims awaiting review.</div>
+        </div>
 
-          <label>Note (required to decline)</label>
-          <textarea [(ngModel)]="claimNote" rows="3" placeholder="Visible to the customer"></textarea>
+        <!-- Claim decision -->
+        <div class="uw-followup-panel">
+          <h3>Claim Decision</h3>
 
-          <div class="uw-error claim-error" *ngIf="claimError">{{ claimError }}</div>
+          <ng-container *ngIf="selectedClaim; else noClaim">
 
-          <div class="decision-buttons">
-            <button class="approve-btn" [disabled]="decidingClaim" (click)="decideClaim('APPROVED')">Approve</button>
-            <button class="decline-btn" [disabled]="decidingClaim" (click)="decideClaim('DECLINED')">Decline</button>
-          </div>
-        </ng-container>
+            <div class="selected-summary">
+              <div><b>{{ selectedClaim.claimNumber }}</b></div>
+              <div>{{ selectedClaim.customerName }}</div>
+              <div>{{ selectedClaim.policyNumber }}<span *ngIf="selectedClaim.productName"> — {{
+                  selectedClaim.productName }}</span></div>
+              <div *ngIf="selectedClaim.incidentDate">Incident: {{ selectedClaim.incidentDate | date:'dd MMM yyyy' }}
+              </div>
+              <div>Claimed: OMR {{ selectedClaim.claimAmount | number:'1.3-3' }}</div>
+              <div class="claim-description" *ngIf="selectedClaim.description">{{ selectedClaim.description }}</div>
 
-        <ng-template #noClaim>
-          <div class="empty-state">Select a claim from the list to review it.</div>
-        </ng-template>
+              <a *ngIf="claimImageUrl(selectedClaim) as imgUrl" class="claim-photo" [href]="imgUrl" target="_blank"
+                rel="noopener">
+                <img [src]="imgUrl" alt="Claim photo" />
+              </a>
+              <div *ngIf="!selectedClaim.imagePath" class="no-plan-note">No photo attached.</div>
+            </div>
 
-        <div class="uw-log" *ngIf="claimDecisionLog.length">
-          <h4>Claim decisions this session</h4>
-          <div class="log-row" *ngFor="let e of claimDecisionLog">
-            <span class="log-time">{{ e.time }}</span>
-            <span class="log-quote">{{ e.claimNumber }}</span>
-            <span class="log-msg">{{ e.decision }}</span>
+            <label>Approved amount (OMR) — leave blank to approve in full</label>
+            <input type="number" min="0" step="0.001" [(ngModel)]="claimApprovedAmount"
+              [placeholder]="selectedClaim.claimAmount.toFixed(3)">
+
+            <label>Note (required to decline)</label>
+            <textarea [(ngModel)]="claimNote" rows="3" placeholder="Visible to the customer"></textarea>
+
+            <div class="uw-error claim-error" *ngIf="claimError">{{ claimError }}</div>
+
+            <div class="decision-buttons">
+              <button class="approve-btn" [disabled]="decidingClaim" (click)="decideClaim('APPROVED')">Approve</button>
+              <button class="decline-btn" [disabled]="decidingClaim" (click)="decideClaim('DECLINED')">Decline</button>
+            </div>
+          </ng-container>
+
+          <ng-template #noClaim>
+            <div class="empty-state">Select a claim from the list to review it.</div>
+          </ng-template>
+
+          <div class="uw-log" *ngIf="claimDecisionLog.length">
+            <h4>Claim decisions this session</h4>
+            <div class="log-row" *ngFor="let e of claimDecisionLog">
+              <span class="log-time">{{ e.time }}</span>
+              <span class="log-quote">{{ e.claimNumber }}</span>
+              <span class="log-msg">{{ e.decision }}</span>
+            </div>
           </div>
         </div>
-      </div>
 
+      </div>
     </div>
+
   </div>
-
-</div>
 </div>

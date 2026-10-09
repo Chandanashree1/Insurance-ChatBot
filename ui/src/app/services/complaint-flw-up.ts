@@ -18,4 +18,20 @@ export class ComplaintFlwUp {
       this.apiUrl
     );
   }
+
+  updateComplaintFollowUp(
+  complaintId: number,
+  status: string,
+  agentNote: string
+): Observable<any> {
+
+  return this.http.put(
+    `${this.apiUrl}/${complaintId}`,
+    {
+      status,
+      agentNote
+    }
+  );
+
+}
 }
