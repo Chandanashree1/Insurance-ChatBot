@@ -1375,7 +1375,7 @@ if (intent === "COMPLAINT") {
                 .join("\n\n");
 
         const aiReply =
-            await askAI(
+                await askAI(
                 message,
                 "",
                 ragContext,
