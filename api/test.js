@@ -1,26 +1,19 @@
 require("dotenv").config();
 
-const { HfInference } = require("@huggingface/inference");
-
-const hf = new HfInference(process.env.HF_TOKEN);
+const { generateEmbedding } = require("./services/embeddingService");
 
 
 async function test() {
     try {
-        console.log("Testing Hugging Face embedding...");
+        const embedding = await generateEmbedding(
+            "Health insurance waiting period"
+        );
 
-        const embedding = await hf.featureExtraction({
-            model: "sentence-transformers/all-MiniLM-L6-v2",
-            inputs: "Hello world"
-        });
-
-        console.log("✅ Success");
-        console.log("Embedding length:", embedding.length);
-        console.log("First 5 values:", embedding.slice(0, 5));
-
-    } catch (err) {
-        console.error("❌ Embedding failed");
-        console.error(err);
+        console.log("Embedding generated successfully!");
+        console.log("Vector dimensions:", embedding.length);
+        console.log("First five values:", embedding.slice(0, 5));
+    } catch (error) {
+        console.error("Test failed:", error.message);
     }
 }
 

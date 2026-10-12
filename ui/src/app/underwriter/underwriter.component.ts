@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { uwTranslations, UwKey, UwLang } from './underwriter.translations';
-import {ComplaintFlwUp} from '../services/complaint-flw-up'
+import { ComplaintFlwUp } from '../services/complaint-flw-up'
 import { ClaimService, PendingClaim, SubmitClaimResult } from '../services/claim.service';
 import { ClaimFormComponent } from '../claim/claim';
 
@@ -328,7 +328,7 @@ callingCustomer: any = null;
   complaints: any[] = [];
   selectedComplaint: any = null;
   complaintMessage: string = '';
-
+  
   loadComplaints() {
     this.flwUp.getNonStpComplaints()
       .subscribe({
@@ -367,27 +367,57 @@ endCall() {
   this.callingCustomer = null;
 }
 
-  sendComplaintMessage(): void {
+sendComplaintMessage(): void {
 
-    if (!this.selectedComplaint) {
-      return;
-    }
-
-    if (!this.complaintMessage.trim()) {
-      return;
-    }
-
-    console.log(
-      'Complaint ID:',
-      this.selectedComplaint.COMPLAINT_ID
-    );
-
-    console.log(
-      'Message:',
-      this.complaintMessage
-    );
-
-    // API / DB connection will be added next
-
+  if (!this.selectedComplaint) {
+    return;
   }
+
+  if (!this.complaintMessage.trim()) {
+    return;
+  }
+
+  const complaintId =
+    this.selectedComplaint.COMPLAINT_ID;
+
+  this.flwUp
+    .updateComplaintFollowUp(
+      complaintId,
+      this.selectedComplaint.STATUS,
+      this.complaintMessage
+    )
+    .subscribe({
+
+      next: (response) => {
+
+        console.log(
+          'Complaint message saved:',
+          response
+        );
+
+        // Update UI
+        this.selectedComplaint.AGENT_NOTE =
+          this.complaintMessage;
+
+        // Clear textarea
+        this.complaintMessage = '';
+
+      },
+
+      error: (error) => {
+
+        console.error(
+          'Complaint message save error:',
+          error
+        );
+
+      }
+
+    });
+  this.selectedComplaint = null;
+
+}
+closeComplaintMessage(){
+  this.selectedComplaint = null;
+}
 }

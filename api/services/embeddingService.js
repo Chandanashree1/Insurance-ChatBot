@@ -1,30 +1,41 @@
-const { HfInference } = require("@huggingface/inference");
 
-const hf = new HfInference(process.env.HF_TOKEN);
+const axios = require("axios");
 
-// Free embedding model
-const EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2";
+const EMBEDDING_API_URL = process.env.EMBEDDING_API_URL;
+const EMBEDDING_MODEL = process.env.EMBEDDING_MODEL || "all-minilm";
 
 async function generateEmbedding(text) {
-
     try {
+        const response = await axios.post(
+            EMBEDDING_API_URL,
+            {
+                model: EMBEDDING_MODEL,
+                input: text
+            },
+            {
+                headers: {
+                    Authorization: `Bearer ${process.env.LLM_API_KEY}`,
+                    "Content-Type": "application/json"
+                },
+                timeout: 60000
+            }
+        );
 
-        const embedding = await hf.featureExtraction({
-            model: EMBEDDING_MODEL,
-            inputs: text
-        });
+        const embedding = response.data?.embeddings?.[0];
+
+        if (!Array.isArray(embedding) || embedding.length === 0) {
+            throw new Error("Invalid embedding response from Ollama");
+        }
 
         return embedding;
 
     } catch (error) {
-
-        console.error("Embedding Error:", error.message);
+        console.error(
+            "Embedding Error:",
+            error.response?.data || error.message
+        );
         throw error;
-
     }
-
 }
 
-module.exports = {
-    generateEmbedding
-};
+module.exports = { generateEmbedding };

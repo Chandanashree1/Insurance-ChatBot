@@ -30,7 +30,7 @@ interface ChatMessage {
   }[];
   showLoginButton?: boolean;
   form?: InsuranceForm;
-    isWelcome?: boolean; 
+  isWelcome?: boolean;
 }
 
 type QuickAction = 'buyPolicy' | 'rop' | 'renew' | 'complaint' | 'chatWithUs';
@@ -41,6 +41,7 @@ interface ComplaintForm {
   email: string;
   mobile: string;
   product: string;
+  policyNumber: string;
   message: string;
 }
 interface InsuranceApplication {
@@ -124,18 +125,18 @@ export class Bot implements DoCheck, OnInit {
     this.signupConfirmPassword = '';
   }
 
-  
-private buildWelcomeMessage(): ChatMessage {
-  return {
-    sender: 'bot',
-    text: this.translations[this.selectedLanguage].welcome,
-    time: new Date(),
-    isWelcome: true
-  };
-}
+
+  private buildWelcomeMessage(): ChatMessage {
+    return {
+      sender: 'bot',
+      text: this.translations[this.selectedLanguage].welcome,
+      time: new Date(),
+      isWelcome: true
+    };
+  }
 
   ngOnInit(): void {
-      this.messages = [this.buildWelcomeMessage()];  
+    this.messages = [this.buildWelcomeMessage()];
     this.restoreLoginState();
     const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
     const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
@@ -423,9 +424,9 @@ private buildWelcomeMessage(): ChatMessage {
         // Wait so user can see thank-you
         // Then start a fresh chat
         // ------------------------------------
-        setTimeout(() => {
-          this.startFreshChat();
-        }, 2500);
+        // setTimeout(() => {
+        //   this.startFreshChat();
+        // }, 2500);
       },
 
       error: (err) => {
@@ -500,7 +501,7 @@ private buildWelcomeMessage(): ChatMessage {
     this.isSupportCenterOpen = false;
 
     this.messages = [this.buildWelcomeMessage()];
-  
+
 
     this.sessionId = this.generateSessionId();
 
@@ -628,6 +629,7 @@ private buildWelcomeMessage(): ChatMessage {
     email: '',
     mobile: '',
     product: '',
+    policyNumber: '',
     message: ''
   };
   insuranceApplication: InsuranceApplication = {
@@ -805,7 +807,7 @@ private buildWelcomeMessage(): ChatMessage {
       next: (res) => {
         if (res && res.success) {
           this.messages = [
-             this.buildWelcomeMessage(),
+            this.buildWelcomeMessage(),
             ...res.messages.map((m: any) => ({
               sender: (m.ROLE === 'user' ? 'user' : 'bot') as 'user' | 'bot',
               text: m.CONTENT,
@@ -909,7 +911,7 @@ private buildWelcomeMessage(): ChatMessage {
     private router: Router
   ) { }
 
- private previousLength = 0;
+  private previousLength = 0;
 
   ngDoCheck(): void {
     if (this.messages.length !== this.previousLength) {
@@ -945,7 +947,7 @@ private buildWelcomeMessage(): ChatMessage {
     this.userMessage = '';
     this.activeForm = null;
     this.isHistoryOpen = false;
-   this.messages = [this.buildWelcomeMessage()];
+    this.messages = [this.buildWelcomeMessage()];
     this.sessionId = this.generateSessionId();
     this.hasRatedSession = false;
     this.hasUserMessaged = false;
@@ -981,6 +983,7 @@ private buildWelcomeMessage(): ChatMessage {
       email: '',
       mobile: '',
       product: '',
+      policyNumber: '',
       message: ''
     };
   }
@@ -995,6 +998,7 @@ private buildWelcomeMessage(): ChatMessage {
       !f.email ||
       !f.mobile ||
       !f.product ||
+      !f.policyNumber ||
       !f.message
     ) {
       alert(
@@ -1013,9 +1017,15 @@ private buildWelcomeMessage(): ChatMessage {
       email: f.email,
       mobile: f.mobile,
       product: f.product,
+
+      // Send policy number from frontend
+      policyNumber: f.policyNumber,
+
       message: f.message,
       language: this.selectedLanguage
     };
+
+    console.log('Complaint payload:', payload);
 
     this.http
       .post<any>(
@@ -1029,17 +1039,9 @@ private buildWelcomeMessage(): ChatMessage {
           this.isSubmittingComplaint = false;
           this.activeForm = null;
 
-          // -----------------------------------------
-          // Complaint submitted successfully
-          // -----------------------------------------
-
           if (response?.success) {
 
             let botMessage = '';
-
-            // ---------------------------------------
-            // Complaint found in RAG
-            // ---------------------------------------
 
             if (response.complaintFound === true) {
 
@@ -1051,13 +1053,7 @@ private buildWelcomeMessage(): ChatMessage {
                     : 'We found a solution for your complaint.'
                 );
 
-            }
-
-            // ---------------------------------------
-            // Complaint NOT found in RAG
-            // ---------------------------------------
-
-            else {
+            } else {
 
               botMessage =
                 response.message ||
@@ -1066,12 +1062,7 @@ private buildWelcomeMessage(): ChatMessage {
                     ? 'شكراً لتسجيل شكواك. سيتصل بك أحد وكلائنا للمساعدة.'
                     : 'Thank you for registering your complaint. Our support agent will call you back to assist you.'
                 );
-
             }
-
-            // ---------------------------------------
-            // Show bot response
-            // ---------------------------------------
 
             this.messages.push({
               sender: 'bot',
@@ -1079,13 +1070,7 @@ private buildWelcomeMessage(): ChatMessage {
               time: new Date()
             });
 
-          }
-
-          // -----------------------------------------
-          // Backend returned success=false
-          // -----------------------------------------
-
-          else {
+          } else {
 
             this.messages.push({
               sender: 'bot',
@@ -1097,15 +1082,10 @@ private buildWelcomeMessage(): ChatMessage {
 
           }
 
-          // Reset form
           this.resetComplaintForm();
 
           this.cdr.detectChanges();
         },
-
-        // -------------------------------------------
-        // API error
-        // -------------------------------------------
 
         error: (err) => {
 
@@ -1148,9 +1128,9 @@ private buildWelcomeMessage(): ChatMessage {
     this.userMessage = this.translations[this.selectedLanguage][key];
     this.sendMessage();
   }
- 
 
- 
+
+
   translations = {
     en: {
       title: "Insurance Chatbot",
@@ -1172,6 +1152,7 @@ private buildWelcomeMessage(): ChatMessage {
       emailId: "Email Id",
       mobileNumber: "Mobile Number",
       product: "Product",
+      policyNumber: "Policy Number",
       productPlaceholder: "Select one of the following",
       complaintMessage: "Complaint Message",
       cancel: "Cancel",
@@ -1291,6 +1272,7 @@ private buildWelcomeMessage(): ChatMessage {
       emailId: "البريد الإلكتروني",
       mobileNumber: "رقم الجوال",
       product: "المنتج",
+      policyNumber: "رقم البوليصة",
       productPlaceholder: "اختر أحد الخيارات التالية",
       complaintMessage: "تفاصيل الشكوى",
       cancel: "إلغاء",
@@ -1389,9 +1371,9 @@ private buildWelcomeMessage(): ChatMessage {
       close: 'إغلاق'
     }
   };
- t(key: keyof typeof this.translations.en): string {
-  return this.translations[this.selectedLanguage][key];
-}
+  t(key: keyof typeof this.translations.en): string {
+    return this.translations[this.selectedLanguage][key];
+  }
   private readonly actionMessages = {
     en: {
       POLICY: 'Show my policy',
@@ -1412,9 +1394,9 @@ private buildWelcomeMessage(): ChatMessage {
 
   setLanguage(lang: 'en' | 'ar') {
     this.selectedLanguage = lang;
-     this.messages = this.messages.map(m =>
-    m.isWelcome ? { ...m, text: this.translations[lang].welcome } : m
-  );
+    this.messages = this.messages.map(m =>
+      m.isWelcome ? { ...m, text: this.translations[lang].welcome } : m
+    );
 
     // this.messages = [
     //   {
@@ -1518,19 +1500,19 @@ private buildWelcomeMessage(): ChatMessage {
     this.isCheckStatusOpen = false;
     this.historySessions = [];
 
-  // Start a fresh conversation, since the old one was tied to the logged-in user
-  // this.messages = [
-  //   {
-  //     sender: 'bot',
-  //     text: this.translations[this.selectedLanguage].welcome,
-  //     time: new Date()
-  //   }
-  // ];
+    // Start a fresh conversation, since the old one was tied to the logged-in user
+    // this.messages = [
+    //   {
+    //     sender: 'bot',
+    //     text: this.translations[this.selectedLanguage].welcome,
+    //     time: new Date()
+    //   }
+    // ];
 
-  this.messages = [this.buildWelcomeMessage()];
-  this.sessionId = this.generateSessionId();
-  this.hasUserMessaged = false;
-  this.hasRatedSession = false;
+    this.messages = [this.buildWelcomeMessage()];
+    this.sessionId = this.generateSessionId();
+    this.hasUserMessaged = false;
+    this.hasRatedSession = false;
 
     this.cdr.detectChanges();
   }

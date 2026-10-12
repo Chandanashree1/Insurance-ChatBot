@@ -485,6 +485,75 @@
   }
 }
 
+/* =========================
+   COMPLAINT REVIEW
+   ========================= */
+
+.uw-followup-panel {
+
+  .selected-summary {
+
+    div {
+      margin-bottom: 8px;
+      line-height: 1.5;
+    }
+
+    textarea {
+      display: block;
+      width: 100%;
+      min-height: 100px;
+      margin-top: 14px;
+      padding: 10px 12px;
+      box-sizing: border-box;
+
+      background: #11131a;
+      color: #fff;
+
+      border: 1px solid #2e3340;
+      border-radius: 8px;
+
+      font-size: 13px;
+      font-family: inherit;
+
+      resize: vertical;
+
+      &:focus {
+        outline: none;
+        border-color: #3b82f6;
+      }
+
+      &::placeholder {
+        color: #575d6c;
+      }
+    }
+
+    .decision-buttons {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+
+      button {
+        flex: 1;
+        margin-top: 0;
+        padding: 10px;
+        border: none;
+        border-radius: 8px;
+
+        background: #3b82f6;
+        color: #fff;
+
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 13px;
+      }
+
+      .counter-btn {
+        background: #3b82f6;
+      }
+    }
+  }
+}
+
 
 // ---------- CLAIMS ----------
 .uw-claims-body {
