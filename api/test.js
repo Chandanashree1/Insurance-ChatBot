@@ -4,6 +4,7 @@ const { HfInference } = require("@huggingface/inference");
 
 const hf = new HfInference(process.env.HF_TOKEN);
 
+
 async function test() {
     try {
         console.log("Testing Hugging Face embedding...");

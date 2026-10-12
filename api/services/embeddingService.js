@@ -1,7 +1,6 @@
 const { HfInference } = require("@huggingface/inference");
 
 const hf = new HfInference(process.env.HF_TOKEN);
-// console.log(process.env.HF_TOKEN);
 
 // Free embedding model
 const EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2";

@@ -3,6 +3,8 @@ node_modules/
 
 api/uploads/
 *.jpg
+*.png
+*.jpeg=
 # Environment variables
 .env
 .env.*
@@ -10,6 +12,8 @@ api/uploads/
 # Logs
 logs/
 *.log
+
+
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
