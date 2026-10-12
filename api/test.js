@@ -2,6 +2,7 @@ require("dotenv").config();
 
 const { generateEmbedding } = require("./services/embeddingService");
 
+
 async function test() {
     try {
         const embedding = await generateEmbedding(

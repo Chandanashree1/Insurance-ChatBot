@@ -22,6 +22,8 @@ const {
     isAgentAwaiting
 } = require("../services/agentService");
 
+const { resolveKnownIssue } = require("../services/stpService");
+
 const {
     getHistory,
     addMessage,
@@ -1058,71 +1060,71 @@ const chat = async (req, res) => {
 // STP - Instant Resolution
 // -------------------------
 
-if (intent === "COMPLAINT") {
+// if (intent === "COMPLAINT") {
 
-    const stpResult = await resolveKnownIssue(message);
+//     const stpResult = await resolveKnownIssue(message);
 
-    if (stpResult.matched) {
+//     if (stpResult.matched) {
 
-        const stpContext = stpResult.chunks
-            .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
-            .join("\n\n");
+//         const stpContext = stpResult.chunks
+//             .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
+//             .join("\n\n");
 
-        console.log("\n========== STP ISSUE ==========");
-        console.log(stpResult.issueCode);
+//         console.log("\n========== STP ISSUE ==========");
+//         console.log(stpResult.issueCode);
 
-        console.log("\n========== STP RAG CONTEXT ==========");
-        console.log(stpContext);
+//         console.log("\n========== STP RAG CONTEXT ==========");
+//         console.log(stpContext);
 
-        const stpReply = await askAI(
-            message,
-            "",
-            stpContext,
-            history,
-            language
-        );
+//         const stpReply = await askAI(
+//             message,
+//             "",
+//             stpContext,
+//             history,
+//             language
+//         );
 
-        // Save assistant response
-        addMessage(userId, "assistant", stpReply);
+//         // Save assistant response
+//         addMessage(userId, "assistant", stpReply);
 
-        if (loggedIn && customerId) {
-            await saveMessage(
-                customerId,
-                sessionId,
-                "bot",
-                stpReply,
-                language
-            );
-        }
+//         if (loggedIn && customerId) {
+//             await saveMessage(
+//                 customerId,
+//                 sessionId,
+//                 "bot",
+//                 stpReply,
+//                 language
+//             );
+//         }
 
-        return res.json({
-            success: true,
-            intent,
-            reply: stpReply,
-            requiresLogin: false,
-            uiType: "STP_RESOLUTION",
-            stp: true,
-            issueCode: stpResult.issueCode,
-            actions: [
-                {
-                    label: language === "ar"
-                        ? "تم الحل"
-                        : "Yes, resolved",
-                    action: "STP_RESOLVED"
-                },
-                {
-                    label: language === "ar"
-                        ? "ما زلت بحاجة إلى مساعدة"
-                        : "No, I still need help",
-                    action: "STP_NOT_RESOLVED"
-                }
-            ],
-            data: []
-        });
-    }
+//         return res.json({
+//             success: true,
+//             intent,
+//             reply: stpReply,
+//             requiresLogin: false,
+//             uiType: "STP_RESOLUTION",
+//             stp: true,
+//             issueCode: stpResult.issueCode,
+//             actions: [
+//                 {
+//                     label: language === "ar"
+//                         ? "تم الحل"
+//                         : "Yes, resolved",
+//                     action: "STP_RESOLVED"
+//                 },
+//                 {
+//                     label: language === "ar"
+//                         ? "ما زلت بحاجة إلى مساعدة"
+//                         : "No, I still need help",
+//                     action: "STP_NOT_RESOLVED"
+//                 }
+//             ],
+//             data: []
+//         });
+//     }
 
-    console.log("No known issue matched. Continue with normal complaint flow.");
-}
+//     console.log("No known issue matched. Continue with normal complaint flow.");
+// }
 
         // -------------------------
 // STP - Instant Resolution
