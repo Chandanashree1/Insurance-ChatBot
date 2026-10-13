@@ -1,5 +1,11 @@
 const complaintFollowUpService = require("../services/complaintFollowUpService");
-const { getConnection } = require("../config/oracle");
+
+const ALLOWED_STATUSES = [
+    "PENDING",
+    "OPEN",
+    "IN_PROGRESS",
+    "COMPLETED"
+];
 
 // ============================================================
 // GET NON-STP COMPLAINTS
@@ -119,11 +125,10 @@ async function getComplaintById(req, res) {
 
 // ============================================================
 // UPDATE COMPLAINT FOLLOW-UP
+// Saves agent message + changes status (e.g. COMPLETED)
 // ============================================================
 
 async function updateComplaint(req, res) {
-
-    let connection;
 
     try {
 
@@ -134,51 +139,98 @@ async function updateComplaint(req, res) {
             agentNote
         } = req.body;
 
-        connection = await getConnection();
 
-        await connection.execute(
-            `
-            UPDATE COMPLAINTS
-            SET
-                STATUS = :status,
-                AGENT_NOTE = :agentNote,
-                UPDATED_AT = CURRENT_TIMESTAMP
-            WHERE COMPLAINT_ID = :complaintId
-            `,
-            {
-                status,
-                agentNote,
-                complaintId
-            },
-            {
-                autoCommit: true
-            }
-        );
+        if (!complaintId) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Complaint ID is required."
+
+            });
+
+        }
+
+
+        if (!status) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    "Status is required."
+
+            });
+
+        }
+
+
+        const normalizedStatus =
+            String(status).trim().toUpperCase();
+
+
+        if (!ALLOWED_STATUSES.includes(normalizedStatus)) {
+
+            return res.status(400).json({
+
+                success: false,
+
+                message:
+                    `Invalid status. Allowed: ${ALLOWED_STATUSES.join(", ")}`
+
+            });
+
+        }
+
+
+        const result =
+            await complaintFollowUpService.updateComplaint(
+                complaintId,
+                normalizedStatus,
+                agentNote
+            );
+
+
+        if (!result.success) {
+
+            return res.status(404).json(result);
+
+        }
+
 
         return res.status(200).json({
+
             success: true,
-            message: "Complaint updated successfully."
+
+            message:
+                result.message,
+
+            status:
+                normalizedStatus
+
         });
 
     } catch (error) {
 
         console.error(
-            "Update Complaint Error:",
+            "Update Complaint Controller Error:",
             error
         );
 
         return res.status(500).json({
+
             success: false,
-            message: "Unable to update complaint."
+
+            message:
+                "Unable to update complaint."
+
         });
 
-    } finally {
-
-        if (connection) {
-            await connection.close();
-        }
-
     }
+
 }
 
 

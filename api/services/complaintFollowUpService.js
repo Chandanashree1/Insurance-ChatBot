@@ -111,7 +111,9 @@ async function formatComplaint(row) {
 
 
 // ============================================================
-// GET NON-STP COMPLAINTS
+// GET NON-STP COMPLAINTS (pending / open only)
+// Completed complaints are excluded so they disappear from the
+// underwriter list once the message has been sent.
 // ============================================================
 
 async function getNonStpComplaints() {
@@ -150,6 +152,7 @@ async function getNonStpComplaints() {
                 ON C.POLICY_ID = P.POLICY_ID
 
             WHERE C.ROUTE = 'NON_STP'
+            AND NVL(C.STATUS, 'PENDING') <> 'COMPLETED'
 
             ORDER BY C.CREATED_AT DESC
             `,
@@ -293,6 +296,8 @@ async function getComplaintById(complaintId) {
 
 // ============================================================
 // UPDATE COMPLAINT FOLLOW-UP
+// Saves the agent message and changes the status
+// (e.g. PENDING/OPEN -> COMPLETED).
 // ============================================================
 
 async function updateComplaint(
@@ -319,9 +324,9 @@ async function updateComplaint(
             WHERE COMPLAINT_ID = :complaintId
             `,
             {
-                complaintId,
                 status,
-                agentNote: agentNote || null
+                agentNote: agentNote || null,
+                complaintId
             },
             {
                 autoCommit: true
@@ -341,10 +346,29 @@ async function updateComplaint(
             message: "Complaint updated successfully."
         };
 
+    } catch (error) {
+
+        console.error(
+            "Update Complaint Error:",
+            error.message
+        );
+
+        throw error;
+
     } finally {
 
         if (connection) {
-            await connection.close();
+
+            try {
+                await connection.close();
+            } catch (error) {
+
+                console.error(
+                    "Connection Close Error:",
+                    error.message
+                );
+
+            }
         }
     }
 }
