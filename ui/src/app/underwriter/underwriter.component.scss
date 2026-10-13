@@ -1,45 +1,213 @@
-// ---------- LOGIN VIEW ----------
-.uw-login-page {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #161922;
+// =====================================================
+// Design tokens
+// =====================================================
+:host,
+.uw-root {
+  --bg: #0e1118;
+  --surface: #171b26;
+  --surface-2: #1d2230;
+  --surface-3: #232938;
+  --border: #2a3144;
+  --border-soft: #222839;
+  --text: #eef1f7;
+  --text-2: #b6bdce;
+  --muted: #7d869b;
+
+  --primary: #3b82f6;
+  --primary-hover: #2f6fdb;
+  --success: #22c55e;
+  --success-hover: #16a34a;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --warning: #f59e0b;
+
+  --radius-lg: 16px;
+  --radius-md: 10px;
+  --radius-sm: 8px;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.18);
+
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
 }
 
+.uw-root {
+  min-height: 100vh;
+  background: var(--bg);
+
+  h2, h3, h4 { margin: 0; }
+
+  &[dir='rtl'] {
+    text-align: right;
+    .uw-header-actions { flex-direction: row-reverse; }
+  }
+}
+
+// =====================================================
+// Shared form controls
+// =====================================================
+%field {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+
+  &::placeholder { color: var(--muted); opacity: 0.7; }
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+  }
+}
+
+// =====================================================
+// Language switch
+// =====================================================
 .uw-login-lang {
   position: fixed;
   top: 20px;
   right: 24px;
-  /* stays top-right, in Arabic too */
   z-index: 10;
 }
 
 .uw-lang-switch {
   display: flex;
-  gap: 8px;
+  gap: 4px;
+  padding: 3px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
 
   .lang-btn {
     width: auto;
-    /* overrides the card's full-width button */
     margin: 0;
     padding: 6px 14px;
     background: transparent;
-    border: 1px solid #3b4252;
-    color: #cbd5e1;
-    border-radius: 8px;
+    border: none;
+    color: var(--text-2);
+    border-radius: 7px;
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
+    transition: background 0.15s, color 0.15s;
 
-    &:hover {
-      border-color: #3b82f6;
-    }
+    &:hover { color: #fff; }
 
     &.active {
-      background: #3b82f6;
-      border-color: #3b82f6;
+      background: var(--primary);
       color: #fff;
+    }
+  }
+}
+
+// =====================================================
+// Login
+// =====================================================
+.uw-login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background:
+    radial-gradient(600px 300px at 50% 0%, rgba(59, 130, 246, 0.12), transparent),
+    var(--bg);
+}
+
+.uw-login-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 36px 32px;
+  border-radius: var(--radius-lg);
+  width: 360px;
+  max-width: calc(100vw - 32px);
+
+  h2 {
+    color: #fff;
+    font-size: 22px;
+    margin-bottom: 8px;
+  }
+
+  label {
+    display: block;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    margin: 16px 0 6px;
+  }
+
+  input { @extend %field; }
+
+  .uw-error {
+    color: var(--danger);
+    font-size: 13px;
+    margin-top: 12px;
+  }
+
+  button {
+    width: 100%;
+    margin-top: 24px;
+    padding: 12px;
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+
+    &:hover { background: var(--primary-hover); }
+  }
+}
+
+// =====================================================
+// Dashboard shell
+// =====================================================
+.uw-dashboard {
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.uw-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 14px 32px;
+  background: rgba(14, 17, 24, 0.85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid var(--border-soft);
+
+  h2 {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+
+  .logout-btn {
+    background: transparent;
+    color: var(--text-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 8px 16px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+
+    &:hover {
+      color: #fff;
+      border-color: var(--danger);
     }
   }
 }
@@ -50,287 +218,594 @@
   gap: 12px;
 }
 
-.uw-root[dir='rtl'] {
-  text-align: right;
+.uw-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 28px 32px 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
 
-  .uw-header-actions {
-    flex-direction: row-reverse;
+// =====================================================
+// Summary stats
+// =====================================================
+.uw-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+
+.stat-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 18px 20px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  // button reset (cards are real <button>s so they are keyboard accessible)
+  font: inherit;
+  color: inherit;
+  text-align: start;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s, box-shadow 0.15s;
+
+  &:hover {
+    background: var(--surface-2);
+    transform: translateY(-2px);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+  }
+
+  &.active {
+    border-color: var(--accent, var(--primary));
+    background: var(--surface-2);
+    box-shadow: 0 0 0 1px var(--accent, var(--primary)) inset;
+  }
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset-inline-start: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: var(--accent, var(--primary));
+  }
+
+  .stat-value {
+    font-size: 30px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .stat-label {
+    font-size: 13px;
+    color: var(--muted);
+  }
+
+  &.stat-blue  { --accent: var(--primary); }
+  &.stat-amber { --accent: var(--warning); }
+  &.stat-green { --accent: var(--success); }
+}
+
+// =====================================================
+// View hint / show-all
+// =====================================================
+.uw-view-hint {
+  min-height: 24px;
+  margin-top: -8px;
+  font-size: 12px;
+  color: var(--muted);
+
+  .show-all-btn {
+    padding: 4px 12px;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-2);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s;
+
+    &:hover { color: #fff; border-color: var(--primary); }
   }
 }
 
-.uw-login-card {
-  background: #242936;
-  padding: 32px;
-  border-radius: 16px;
-  width: 320px;
+// =====================================================
+// List search
+// =====================================================
+.list-search {
+  @extend %field;
+  margin-bottom: 14px;
+}
+
+// =====================================================
+// Claims sub-tabs + intake
+// =====================================================
+.uw-subtabs {
+  display: inline-flex;
+  align-self: flex-start;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+
+  .subtab {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 16px;
+    background: transparent;
+    border: none;
+    border-radius: 9px;
+    color: var(--text-2);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+
+    &:hover { color: #fff; }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.35);
+    }
+
+    &.active {
+      background: var(--primary);
+      color: #fff;
+
+      .count-badge {
+        color: #fff;
+        background: rgba(255, 255, 255, 0.22);
+      }
+    }
+  }
+}
+
+.uw-intake {
+  max-width: 720px;
+}
+
+// =====================================================
+// Recent activity table
+// =====================================================
+.uw-recent {
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  box-shadow: var(--shadow);
+}
+
+.uw-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+
+  th {
+    padding: 8px 12px;
+    text-align: start;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 11px 12px;
+    color: var(--text-2);
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: rgba(255, 255, 255, 0.02); }
+
+  .muted { color: var(--muted); }
+  .ref { color: var(--primary); font-weight: 600; }
+}
+
+// =====================================================
+// Section titles
+// =====================================================
+.uw-section-title {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-top: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
 
   h2 {
+    position: relative;
+    padding-inline-start: 14px;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
     color: #fff;
-    margin-bottom: 20px;
-  }
 
-  label {
-    display: block;
-    color: #8a92a6;
-    font-size: 13px;
-    margin: 12px 0 6px;
-  }
-
-  input {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid #2e3340;
-    background: #11131a;
-    color: #fff;
-  }
-
-  .uw-error {
-    color: #ea4335;
-    font-size: 13px;
-    margin-top: 10px;
-  }
-
-  button {
-    width: 100%;
-    margin-top: 20px;
-    padding: 12px;
-    background: #3b82f6;
-    color: #fff;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-  }
-}
-
-.selected-summary {
-  background: #1b1f2a;
-  border-radius: 10px;
-  padding: 14px;
-  margin-bottom: 16px;
-  font-size: 13px;
-  color: #8a92a6;
-
-  div:first-child {
-    color: #fff;
-    font-size: 15px;
-    margin-bottom: 4px;
-  }
-}
-
-.decision-buttons {
-  display: flex;
-  gap: 8px;
-  margin-top: 16px;
-
-  button {
-    flex: 1;
-    padding: 10px;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-weight: 600;
-    font-size: 13px;
-
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
+    &::before {
+      content: '';
+      position: absolute;
+      inset-inline-start: 0;
+      top: 4px;
+      bottom: 4px;
+      width: 4px;
+      border-radius: 4px;
+      background: var(--primary);
     }
   }
 
-  .approve-btn {
-    background: #22c55e;
-    color: #fff;
-  }
-
-  .counter-btn {
-    background: #3b82f6;
-    color: #fff;
-  }
-
-  .decline-btn {
-    background: #ea4335;
-    color: #fff;
+  span {
+    font-size: 13px;
+    color: var(--muted);
   }
 }
 
-.no-plan-note {
-  font-size: 12px;
-  color: #8a92a6;
-  font-style: italic;
-}
-
-.reason-badge {
-  display: inline-block;
-  font-size: 10px;
-  font-weight: 700;
-  padding: 2px 8px;
-  border-radius: 6px;
-  margin-top: 4px;
-
-  &.kyc_failed {
-    background: rgba(234, 67, 53, 0.15);
-    color: #ea4335;
-  }
-
-  &.payment_failed {
-    background: rgba(251, 191, 36, 0.15);
-    color: #fbbf24;
-  }
-
-  &.high_value {
-    background: rgba(59, 130, 246, 0.15);
-    color: #3b82f6;
+@media (max-width: 700px) {
+  .uw-section-title {
+    flex-direction: column;
+    gap: 4px;
   }
 }
 
-.quote-card-value {
-  font-size: 12px;
-  color: #575d6c;
-  margin-top: 2px;
-}
-
-// ---------- DASHBOARD VIEW ----------
-.uw-dashboard {
-  min-height: 100vh;
-  background: #161922;
-  padding: 24px;
-  color: #fff;
-}
-
-.uw-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 24px;
-
-  .logout-btn {
-    background: #11131a;
-    color: #8a92a6;
-    border: 1px solid #2e3340;
-    border-radius: 8px;
-    padding: 8px 16px;
-    cursor: pointer;
-  }
-}
-
+// =====================================================
+// Layout grids
+// =====================================================
 .uw-body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 24px;
+  align-items: start;
 }
 
+.uw-claims-body { align-items: start; }
+
+.uw-claims-right {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+// =====================================================
+// Panels
+// =====================================================
 .uw-quote-list,
 .uw-followup-panel {
-  background: #242936;
-  border-radius: 16px;
-  padding: 20px;
+  background: var(--surface);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 22px;
+  box-shadow: var(--shadow);
+  min-height: 360px; // taller panels so a focused tab doesn't look empty
 }
 
+// keep the decision panel in view while the list scrolls
+.uw-body > .uw-followup-panel {
+  position: sticky;
+  top: 84px;
+}
+
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border-soft);
+
+  h3 {
+    font-size: 16px;
+    font-weight: 700;
+    color: #fff;
+  }
+}
+
+.count-badge {
+  min-width: 24px;
+  padding: 2px 9px;
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary);
+  background: rgba(59, 130, 246, 0.14);
+  border-radius: 999px;
+}
+
+.list-scroll {
+  max-height: 460px;
+  overflow-y: auto;
+  padding-inline-end: 4px;
+
+  &::-webkit-scrollbar { width: 6px; }
+  &::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 6px;
+  }
+}
+
+// =====================================================
+// Cards
+// =====================================================
 .quote-card {
-  background: #1b1f2a;
-  border: 1px solid #2e3340;
-  border-radius: 10px;
-  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px 16px;
   margin-bottom: 10px;
   cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, transform 0.15s;
+
+  &:hover {
+    background: var(--surface-3);
+    transform: translateY(-1px);
+  }
 
   &.selected {
-    border-color: #3b82f6;
+    border-color: var(--primary);
+    background: rgba(59, 130, 246, 0.08);
+    box-shadow: 0 0 0 1px var(--primary) inset;
   }
 
   .quote-card-top {
     display: flex;
     justify-content: space-between;
-    font-size: 13px;
-    color: #8a92a6;
+    align-items: center;
+    font-size: 12px;
+    color: var(--muted);
 
-    .status {
-      color: #3b82f6;
-      font-weight: 600;
+    .quote-card-id { font-weight: 500; }
+  }
+
+  .status {
+    padding: 2px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    color: var(--primary);
+    background: rgba(59, 130, 246, 0.14);
+    border-radius: 999px;
+
+    &[data-status='OPEN'],
+    &[data-status='PENDING'] {
+      color: var(--warning);
+      background: rgba(245, 158, 11, 0.14);
+    }
+
+    &[data-status='APPROVED'],
+    &[data-status='RESOLVED'] {
+      color: var(--success);
+      background: rgba(34, 197, 94, 0.14);
+    }
+
+    &[data-status='DECLINED'],
+    &[data-status='REJECTED'] {
+      color: var(--danger);
+      background: rgba(239, 68, 68, 0.14);
     }
   }
 
   .quote-card-name {
+    font-size: 15px;
     font-weight: 600;
-    margin-top: 4px;
+    margin-top: 8px;
+    color: #fff;
   }
 
   .quote-card-plan {
     font-size: 13px;
-    color: #8a92a6;
-    margin-top: 2px;
+    color: var(--text-2);
+    margin-top: 3px;
   }
+
+  .quote-card-no-plan {
+    font-size: 12px;
+    font-style: italic;
+    color: var(--muted);
+    margin-top: 3px;
+  }
+}
+
+.quote-card-value {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+// =====================================================
+// Detail panel
+// =====================================================
+.selected-summary {
+  background: var(--surface-2);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  color: var(--text-2);
+
+  > div { line-height: 1.55; }
+  > div + div { margin-top: 6px; }
+
+  b { color: var(--muted); font-weight: 600; }
+
+  .summary-title {
+    color: #fff;
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+
+  .ai-reason {
+    margin-top: 10px;
+    padding: 10px 12px;
+    background: rgba(59, 130, 246, 0.08);
+    border-inline-start: 3px solid var(--primary);
+    border-radius: 6px;
+  }
+}
+
+.no-plan-note {
+  font-size: 12px;
+  color: var(--muted);
+  font-style: italic;
 }
 
 .uw-followup-panel {
   label {
     display: block;
-    color: #8a92a6;
+    color: var(--muted);
     font-size: 13px;
-    margin: 12px 0 6px;
+    font-weight: 500;
+    margin: 14px 0 6px;
   }
 
   input,
   textarea {
-    width: 100%;
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid #2e3340;
-    background: #11131a;
-    color: #fff;
+    @extend %field;
     resize: vertical;
   }
 
+  textarea { min-height: 84px; line-height: 1.5; }
+}
+
+// =====================================================
+// Buttons
+// =====================================================
+.decision-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+
   button {
-    margin-top: 16px;
-    width: 100%;
-    padding: 12px;
-    background: #3b82f6;
-    color: #fff;
+    flex: 1;
+    width: auto;
+    margin: 0;
+    padding: 11px 12px;
     border: none;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
+    color: #fff;
     cursor: pointer;
+    font-weight: 600;
+    font-size: 13px;
+    text-transform: capitalize;
+    transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+
+    &:hover:not(:disabled) { transform: translateY(-1px); }
+    &:active:not(:disabled) { transform: translateY(0); }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+    }
+
     &:disabled {
-      opacity: 0.5;
+      opacity: 0.45;
       cursor: not-allowed;
     }
   }
+
+  .approve-btn { background: var(--success); &:hover:not(:disabled) { background: var(--success-hover); } }
+  .counter-btn { background: var(--primary); &:hover:not(:disabled) { background: var(--primary-hover); } }
+  .decline-btn { background: var(--danger);  &:hover:not(:disabled) { background: var(--danger-hover); } }
+  .call-btn    { background: #0d9488;        &:hover:not(:disabled) { background: #0f766e; } }
 }
 
+// =====================================================
+// Session log
+// =====================================================
 .uw-log {
-  margin-top: 24px;
+  margin-top: 26px;
+
   h4 {
-    color: #8a92a6;
-    font-size: 13px;
-    margin-bottom: 10px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 8px;
   }
+
   .log-row {
     display: flex;
-    gap: 10px;
+    gap: 12px;
     font-size: 12px;
-    padding: 6px 0;
-    border-bottom: 1px solid #2e3340;
-    color: #8a92a6;
-    .log-quote {
-      color: #3b82f6;
-    }
-    .log-msg {
-      color: #fff;
-      flex: 1;
-    }
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--muted);
+
+    &:last-child { border-bottom: none; }
+
+    .log-quote { color: var(--primary); font-weight: 600; }
+    .log-msg { color: #fff; flex: 1; }
   }
 }
 
+// =====================================================
+// Empty state
+// =====================================================
 .empty-state {
-  color: #575d6c;
+  color: var(--muted);
   font-size: 13px;
   text-align: center;
-  padding: 20px;
+  padding: 28px 16px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.01);
 }
 
-// ---------- CALLING UI ----------
+// =====================================================
+// Claims
+// =====================================================
+.claim-description {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-soft);
+  white-space: pre-wrap;
+  color: var(--text-2);
+}
 
+.claim-photo {
+  display: inline-block;
+  margin-top: 12px;
+
+  img {
+    max-width: 100%;
+    max-height: 220px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    display: block;
+    transition: opacity 0.15s;
+
+    &:hover { opacity: 0.9; }
+  }
+}
+
+.uw-error {
+  color: var(--danger);
+  font-size: 13px;
+}
+
+.claim-error { margin-top: 10px; }
+
+// =====================================================
+// Calling overlay
+// =====================================================
 .uw-call-overlay {
   position: fixed;
   inset: 0;
@@ -338,67 +813,46 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  // Same dark background family as the application
-  background: rgba(17, 19, 26, 0.82);
+  background: rgba(10, 12, 18, 0.8);
   backdrop-filter: blur(6px);
   -webkit-backdrop-filter: blur(6px);
 }
 
 .uw-call-modal {
-  width: 320px;
-  padding: 30px;
+  width: 340px;
+  padding: 32px;
   text-align: center;
-  // Match existing cards
-  background: #242936;
-  border: 1px solid #2e3340;
-  border-radius: 16px;
-  box-shadow:
-    0 20px 50px rgba(0, 0, 0, 0.45);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
   color: #fff;
   animation: callModalIn 0.2s ease-out;
+
+  h2 {
+    margin: 0 0 12px;
+    font-size: 20px;
+    font-weight: 600;
+  }
 }
 
-// ---------- CALL ICON ----------
-
 .uw-call-icon {
-  width: 68px;
-  height: 68px;
+  width: 72px;
+  height: 72px;
   margin: 0 auto 20px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  // Same blue as your buttons
   background: rgba(59, 130, 246, 0.12);
   border: 1px solid rgba(59, 130, 246, 0.35);
-  color: #3b82f6;
+  color: var(--primary);
   font-size: 30px;
   animation: callPulse 1.5s ease-in-out infinite;
 }
 
-// ---------- TITLE ----------
-
-.uw-call-modal h2 {
-  margin: 0 0 12px;
-  color: #fff;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-// ---------- CUSTOMER ----------
-
-.uw-call-name {
-  font-size: 16px;
-  font-weight: 600;
-  color: #fff;
-}
-.uw-call-number {
-  margin-top: 5px;
-  font-size: 13px;
-  color: #8a92a6;
-}
-
-// ---------- CALLING STATUS ----------
+.uw-call-name { font-size: 17px; font-weight: 600; }
+.uw-call-number { margin-top: 5px; font-size: 13px; color: var(--muted); }
 
 .uw-call-status {
   display: flex;
@@ -406,7 +860,7 @@
   justify-content: center;
   gap: 8px;
   margin-top: 18px;
-  color: #3b82f6;
+  color: var(--primary);
   font-size: 13px;
   font-weight: 500;
 }
@@ -415,177 +869,54 @@
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  background: #3b82f6;
+  background: var(--primary);
   animation: callingBlink 1s ease-in-out infinite;
 }
-
-// ---------- END CALL BUTTON ----------
 
 .uw-end-call-btn {
   width: 100%;
   margin-top: 26px;
-  padding: 11px 16px;
+  padding: 12px 16px;
   border: none;
-  border-radius: 8px;
-  background: #d12819;
+  border-radius: var(--radius-sm);
+  background: var(--danger);
   color: #fff;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background 0.2s ease,
-    transform 0.2s ease;
-}
-.uw-end-call-btn:hover {
-  background: #87140c;
-  transform: translateY(-1px);
-}
-.uw-end-call-btn:active {
-  transform: translateY(0);
-}
+  transition: background 0.2s, transform 0.2s;
 
-// ---------- ANIMATIONS ----------
+  &:hover { background: var(--danger-hover); transform: translateY(-1px); }
+  &:active { transform: translateY(0); }
+}
 
 @keyframes callModalIn {
-  from {
-    opacity: 0;
-    transform: scale(0.95) translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: scale(1) translateY(0);
-  }
+  from { opacity: 0; transform: scale(0.95) translateY(10px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
 }
 
 @keyframes callPulse {
-  0% {
-    transform: scale(1);
-    box-shadow:
-    0 0 0 0 rgba(59, 130, 246, 0.25);
-  }
-  50% {
-    transform: scale(1.06);
-    box-shadow:
-      0 0 0 12px rgba(59, 130, 246, 0.06);
-  }
-  100% {
-    transform: scale(1);
-    box-shadow:
-      0 0 0 0 rgba(59, 130, 246, 0);
-  }
+  0%   { transform: scale(1);    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.25); }
+  50%  { transform: scale(1.06); box-shadow: 0 0 0 12px rgba(59, 130, 246, 0.06); }
+  100% { transform: scale(1);    box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
 }
 
 @keyframes callingBlink {
-  0%,
-  100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.35;
-  }
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.35; }
 }
 
-/* =========================
-   COMPLAINT REVIEW
-   ========================= */
-
-.uw-followup-panel {
-
-  .selected-summary {
-
-    div {
-      margin-bottom: 8px;
-      line-height: 1.5;
-    }
-
-    textarea {
-      display: block;
-      width: 100%;
-      min-height: 100px;
-      margin-top: 14px;
-      padding: 10px 12px;
-      box-sizing: border-box;
-
-      background: #11131a;
-      color: #fff;
-
-      border: 1px solid #2e3340;
-      border-radius: 8px;
-
-      font-size: 13px;
-      font-family: inherit;
-
-      resize: vertical;
-
-      &:focus {
-        outline: none;
-        border-color: #3b82f6;
-      }
-
-      &::placeholder {
-        color: #575d6c;
-      }
-    }
-
-    .decision-buttons {
-      display: flex;
-      gap: 8px;
-      margin-top: 16px;
-
-      button {
-        flex: 1;
-        margin-top: 0;
-        padding: 10px;
-        border: none;
-        border-radius: 8px;
-
-        background: #3b82f6;
-        color: #fff;
-
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 13px;
-      }
-
-      .counter-btn {
-        background: #3b82f6;
-      }
-    }
-  }
+// =====================================================
+// Responsive
+// =====================================================
+@media (max-width: 1000px) {
+  .uw-body > .uw-followup-panel { position: static; }
+  .uw-body { grid-template-columns: 1fr; }
+  .uw-stats { grid-template-columns: 1fr; }
+  .uw-container { padding: 20px 16px 40px; }
+  .uw-header { padding: 12px 16px; }
 }
 
-
-// ---------- CLAIMS ----------
-.uw-claims-body {
-  margin-top: 24px;
-  align-items: start;
-}
-
-.uw-claims-right {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.claim-description {
-  margin-top: 8px;
-  white-space: pre-wrap;
-  color: #cbd5e1;
-}
-
-.claim-photo {
-  display: inline-block;
-  margin-top: 10px;
-
-  img {
-    max-width: 100%;
-    max-height: 220px;
-    border-radius: 8px;
-    border: 1px solid #2e3340;
-    display: block;
-  }
-}
-
-.claim-error {
-  margin-top: 10px;
+@media (max-width: 520px) {
+  .decision-buttons { flex-direction: column; }
 }

@@ -12,46 +12,30 @@
     </div>
   </ng-template>
 
+  <!-- CALL OVERLAY -->
   <div class="uw-call-overlay" *ngIf="isCalling">
-
     <div class="uw-call-modal">
-
-      <div class="uw-call-icon">
-        ☎
-      </div>
-
+      <div class="uw-call-icon">☎</div>
       <h2>{{ t('calling') }}</h2>
-
-      <div class="uw-call-name">
-        {{ callingCustomer?.FULL_NAME }}
-      </div>
-
-      <div class="uw-call-number">
-        {{ callingCustomer?.MOBILE }}
-      </div>
-
+      <div class="uw-call-name">{{ callingCustomer?.FULL_NAME }}</div>
+      <div class="uw-call-number">{{ callingCustomer?.MOBILE }}</div>
       <div class="uw-call-status">
         <span class="calling-dot"></span>
         {{ t('calling') }}...
       </div>
-
       <button type="button" class="uw-end-call-btn" (click)="endCall()">
         ✕ {{ t('endCall') }}
       </button>
-
     </div>
-
   </div>
-
 
   <!-- LOGIN VIEW -->
   <div class="uw-login-page" *ngIf="!isLoggedIn">
+    <div class="uw-login-lang">
+      <ng-container *ngTemplateOutlet="langSwitch"></ng-container>
+    </div>
+
     <div class="uw-login-card">
-
-      <div class="uw-login-lang">
-        <ng-container *ngTemplateOutlet="langSwitch"></ng-container>
-      </div>
-
       <h2>{{ t('underwriterLogin') }}</h2>
 
       <label>{{ t('username') }}</label>
@@ -69,264 +53,424 @@
   <!-- DASHBOARD VIEW -->
   <div class="uw-dashboard" *ngIf="isLoggedIn">
 
-    <div class="uw-header">
+    <header class="uw-header">
       <h2>{{ t('underwriterDashboard') }}</h2>
 
       <div class="uw-header-actions">
         <ng-container *ngTemplateOutlet="langSwitch"></ng-container>
         <button class="logout-btn" (click)="logout()">{{ t('logout') }}</button>
       </div>
-    </div>
+    </header>
 
-    <div class="uw-body">
+    <main class="uw-container">
 
-      <!-- ================= PROPOSAL LIST ================= -->
-      <div class="uw-quote-list">
-        <h3>{{ t('proposalsPendingReview') }}</h3>
+      <!-- ================= SUMMARY CARDS = TABS ================= -->
+      <section class="uw-stats">
+        <button type="button" class="stat-card stat-blue" [class.active]="activeSection === 'underwriting'"
+          [attr.aria-pressed]="activeSection === 'underwriting'" (click)="setSection('underwriting')">
+          <span class="stat-value">{{ proposals.length }}</span>
+          <span class="stat-label">{{ t('proposalsPendingReview') }}</span>
+        </button>
 
-        <div class="quote-card" *ngFor="let p of proposals"
-          [class.selected]="selectedProposal?.proposalId === p.proposalId" (click)="selectProposal(p)">
+        <button type="button" class="stat-card stat-amber" [class.active]="activeSection === 'complaints'"
+          [attr.aria-pressed]="activeSection === 'complaints'" (click)="setSection('complaints')">
+          <span class="stat-value">{{ complaints.length }}</span>
+          <span class="stat-label">{{ t('nonStpComplaints') }}</span>
+        </button>
 
-          <div class="quote-card-top">
-            <span>{{ p.proposalNumber }}</span>
-            <span class="status">{{ statusLabel(p.status) }}</span>
-          </div>
+        <button type="button" class="stat-card stat-green" [class.active]="activeSection === 'claims'"
+          [attr.aria-pressed]="activeSection === 'claims'" (click)="setSection('claims')">
+          <span class="stat-value">{{ pendingClaims.length }}</span>
+          <span class="stat-label">{{ tr('Pending Claims', 'المطالبات المعلقة') }}</span>
+        </button>
+      </section>
 
-          <div class="quote-card-name">{{ p.customerName }}</div>
-
-          <div class="quote-card-plan" *ngIf="p.planName">
-            {{ p.planName }} — OMR {{ p.premium.toFixed(3) }}
-          </div>
-          <div class="quote-card-no-plan" *ngIf="!p.planName">
-            {{ t('noPlanSelected') }}
-          </div>
-          <div class="quote-card-value">{{ t('vehicleValue') }}: OMR {{ p.vehicleValue }}</div>
-        </div>
-
-        <div class="empty-state" *ngIf="!proposals.length">{{ t('noProposals') }}</div>
+      <div class="uw-view-hint">
+        <span *ngIf="activeSection === 'all'">
+          {{ tr('Click a card to focus on one section', 'اضغط على بطاقة لعرض قسم واحد فقط') }}
+        </span>
+        <button type="button" class="show-all-btn" *ngIf="activeSection !== 'all'" (click)="showAll()">
+          ← {{ tr('Show all sections', 'عرض كل الأقسام') }}
+        </button>
       </div>
 
-      <!-- ================= DECISION PANEL ================= -->
-      <div class="uw-followup-panel">
-        <h3>{{ t('underwritingDecision') }}</h3>
+      <!-- ================================================= -->
+      <!-- UNDERWRITING                                       -->
+      <!-- ================================================= -->
+      <ng-container *ngIf="isVisible('underwriting')">
 
-        <ng-container *ngIf="selectedProposal; else noSelection">
-
-          <div class="selected-summary">
-            <div><b>{{ selectedProposal.proposalNumber }}</b></div>
-            <div>{{ selectedProposal.customerName }}</div>
-            <div *ngIf="selectedProposal.planName">
-              {{ selectedProposal.planName }} — OMR {{ selectedProposal.premium.toFixed(3) }}
-            </div>
-            <div *ngIf="!selectedProposal.planName" class="no-plan-note">
-              {{ t('noPlanSelected') }}
-            </div>
-            <div>{{ t('vehicleValue') }}: OMR {{ selectedProposal.vehicleValue }}</div>
-          </div>
-
-          <label>{{ t('noteOptional') }}</label>
-          <textarea [(ngModel)]="decisionNote" rows="3" [placeholder]="t('notePlaceholder')"></textarea>
-
-          <label>{{ t('counterOfferLabel') }}</label>
-          <input [(ngModel)]="counterOfferPremium" type="number" [placeholder]="t('counterOfferPlaceholder')">
-
-          <div class="decision-buttons">
-            <button class="approve-btn" [disabled]="deciding" (click)="decide('APPROVED')">
-              {{ t('approve') }}
-            </button>
-            <button class="counter-btn" [disabled]="deciding" (click)="decide('COUNTER_OFFER')">
-              {{ t('counterOffer') }}
-            </button>
-            <button class="decline-btn" [disabled]="deciding" (click)="decide('DECLINED')">
-              {{ t('decline') }}
-            </button>
-          </div>
-
-        </ng-container>
-
-        <ng-template #noSelection>
-          <div class="empty-state">{{ t('selectProposalPrompt') }}</div>
-        </ng-template>
-
-        <div class="uw-log">
-          <h4>{{ t('decisionsThisSession') }}</h4>
-          <div class="log-row" *ngFor="let entry of decisionSentLog">
-            <span class="log-time">{{ entry.time }}</span>
-            <span class="log-quote">{{ entry.proposalNumber }}</span>
-            <span class="log-msg">{{ statusLabel(entry.decision) }}</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- complaint review -->
-      <div class="uw-quote-list">
-
-        <h3>{{ t('nonStpComplaints') }}</h3>
-
-        <div class="quote-card" *ngFor="let complaint of complaints"
-          [class.selected]="selectedComplaint?.COMPLAINT_ID === complaint.COMPLAINT_ID"
-          (click)="selectComplaint(complaint)">
-
-          <div class="quote-card-top">
-            <span>{{ t('complaintWord') }} #{{ complaint.COMPLAINT_ID }}</span>
-            <span class="status">{{ complaint.STATUS }}</span>
-          </div>
-
-          <div class="quote-card-name">{{ complaint.FULL_NAME }}</div>
-          <div class="quote-card-plan">{{ complaint.SUBJECT }}</div>
-          <div class="quote-card-value">{{ complaint.PRODUCT }}</div>
-
+        <div class="uw-section-title">
+          <h2>{{ tr('Underwriting', 'الاكتتاب') }}</h2>
+          <span>{{ tr('Review proposals and make decisions', 'مراجعة طلبات التأمين واتخاذ القرار') }}</span>
         </div>
 
-        <div class="empty-state" *ngIf="!complaints.length">
-          {{ t('noComplaints') }}
-        </div>
+        <section class="uw-body">
 
-      </div>
-
-      <!-- Complaint Decision -->
-      <div class="uw-followup-panel">
-
-        <h3>{{ t('complaintDecision') }}</h3>
-
-        <ng-container *ngIf="selectedComplaint; else noComplaint">
-
-          <div class="selected-summary">
-
-            <div><b>{{ t('complaintWord') }} #{{ selectedComplaint.COMPLAINT_ID }}</b></div>
-            <div><b>{{ t('customer') }}:</b> {{ selectedComplaint.FULL_NAME }}</div>
-            <!-- <div><b>{{ t('email') }}:</b> {{ selectedComplaint.EMAIL }}</div> -->
-            <!-- <div><b>{{ t('mobile') }}:</b> {{ selectedComplaint.MOBILE }}</div> -->
-            <div><b>{{ t('product') }}:</b> {{ selectedComplaint.PRODUCT }}</div>
-            <div><b>{{ t('policyNumber') }}:</b> {{ selectedComplaint.POLICY_NUMBER || t('notAvailable') }}</div>
-            <div><b>{{ t('subject') }}:</b> {{ selectedComplaint.SUBJECT }}</div>
-            <div><b>{{ t('complaintLabel') }}:</b> {{ selectedComplaint.COMPLAINT_MESSAGE }}</div>
-            <!-- <div><b>{{ t('route') }}:</b> {{ selectedComplaint.ROUTE }}</div> -->
-            <!-- <div><b>{{ t('status') }}:</b> {{ selectedComplaint.STATUS }}</div> -->
-            <div><b>{{ t('aiReason') }}:</b> {{ selectedComplaint.AI_REASON }}</div>
-
-            <!-- Agent Message -->
-            <textarea [(ngModel)]="complaintMessage" rows="4" placeholder="Type message to customer..."></textarea>
-
-            <!-- Actions -->
-            <div class="decision-buttons">
-              <!-- Dummy call -->
-              <button type="button" class="counter-btn" (click)="callCustomer(selectedComplaint)" style="background-color: green;">
-                call
-              </button>
-
-              <button type="button" class="counter-btn" (click)="sendComplaintMessage()">
-                send
-              </button>
-
-              <button type="button" class="counter-btn" (click)="closeComplaintMessage()" style="background-color: red;">
-                close
-              </button>
+          <div class="uw-quote-list">
+            <div class="panel-head">
+              <h3>{{ t('proposalsPendingReview') }}</h3>
+              <span class="count-badge">{{ filteredProposals.length }}</span>
             </div>
 
-            <!-- <div class="decision-buttons">
-              <button type="button" class="counter-btn" (click)="callCustomer(selectedComplaint)">
-                {{ t('call') }}
-              </button>
-            </div> -->
+            <input class="list-search" type="search" [(ngModel)]="proposalSearch"
+              [placeholder]="tr('Search by name, number or plan…', 'ابحث بالاسم أو الرقم أو الخطة…')">
 
-          </div>
+            <div class="list-scroll">
+              <div class="quote-card" *ngFor="let p of filteredProposals"
+                [class.selected]="selectedProposal?.proposalId === p.proposalId" (click)="selectProposal(p)">
 
-        </ng-container>
+                <div class="quote-card-top">
+                  <span class="quote-card-id">{{ p.proposalNumber }}</span>
+                  <span class="status" [attr.data-status]="p.status">{{ statusLabel(p.status) }}</span>
+                </div>
 
-        <ng-template #noComplaint>
-          <div class="empty-state">{{ t('selectComplaintPrompt') }}</div>
-        </ng-template>
+                <div class="quote-card-name">{{ p.customerName }}</div>
 
-      </div>
-
-
-    </div>
-
-    <!-- ================= CLAIMS ================= -->
-    <div class="uw-body uw-claims-body">
-
-      <!-- File a claim (underwriter-side intake) -->
-      <div class="uw-followup-panel uw-claim-intake">
-        <h3>File a Claim</h3>
-        <app-claim-form (claimSubmitted)="onClaimSubmitted($event)"></app-claim-form>
-      </div>
-
-      <div class="uw-claims-right">
-
-        <!-- Pending claims queue -->
-        <div class="uw-quote-list">
-          <h3>Pending Claims</h3>
-
-          <div class="quote-card" *ngFor="let c of pendingClaims"
-            [class.selected]="selectedClaim?.claimId === c.claimId" (click)="selectClaim(c)">
-
-            <div class="quote-card-top">
-              <span>{{ c.claimNumber }}</span>
-              <span class="status">OMR {{ c.claimAmount | number:'1.3-3' }}</span>
-            </div>
-            <div class="quote-card-name">{{ c.customerName }}</div>
-            <div class="quote-card-plan">{{ c.policyNumber }}<span *ngIf="c.productName"> — {{ c.productName }}</span>
-            </div>
-          </div>
-
-          <div class="empty-state" *ngIf="!pendingClaims.length">No claims awaiting review.</div>
-        </div>
-
-        <!-- Claim decision -->
-        <div class="uw-followup-panel">
-          <h3>Claim Decision</h3>
-
-          <ng-container *ngIf="selectedClaim; else noClaim">
-
-            <div class="selected-summary">
-              <div><b>{{ selectedClaim.claimNumber }}</b></div>
-              <div>{{ selectedClaim.customerName }}</div>
-              <div>{{ selectedClaim.policyNumber }}<span *ngIf="selectedClaim.productName"> — {{
-                  selectedClaim.productName }}</span></div>
-              <div *ngIf="selectedClaim.incidentDate">Incident: {{ selectedClaim.incidentDate | date:'dd MMM yyyy' }}
+                <div class="quote-card-plan" *ngIf="p.planName">
+                  {{ p.planName }} — OMR {{ p.premium.toFixed(3) }}
+                </div>
+                <div class="quote-card-no-plan" *ngIf="!p.planName">
+                  {{ t('noPlanSelected') }}
+                </div>
+                <div class="quote-card-value">{{ t('vehicleValue') }}: OMR {{ p.vehicleValue }}</div>
               </div>
-              <div>Claimed: OMR {{ selectedClaim.claimAmount | number:'1.3-3' }}</div>
-              <div class="claim-description" *ngIf="selectedClaim.description">{{ selectedClaim.description }}</div>
 
-              <a *ngIf="claimImageUrl(selectedClaim) as imgUrl" class="claim-photo" [href]="imgUrl" target="_blank"
-                rel="noopener">
-                <img [src]="imgUrl" alt="Claim photo" />
-              </a>
-              <div *ngIf="!selectedClaim.imagePath" class="no-plan-note">No photo attached.</div>
-            </div>
-
-            <label>Approved amount (OMR) — leave blank to approve in full</label>
-            <input type="number" min="0" step="0.001" [(ngModel)]="claimApprovedAmount"
-              [placeholder]="selectedClaim.claimAmount.toFixed(3)">
-
-            <label>Note (required to decline)</label>
-            <textarea [(ngModel)]="claimNote" rows="3" placeholder="Visible to the customer"></textarea>
-
-            <div class="uw-error claim-error" *ngIf="claimError">{{ claimError }}</div>
-
-            <div class="decision-buttons">
-              <button class="approve-btn" [disabled]="decidingClaim" (click)="decideClaim('APPROVED')">Approve</button>
-              <button class="decline-btn" [disabled]="decidingClaim" (click)="decideClaim('DECLINED')">Decline</button>
-            </div>
-          </ng-container>
-
-          <ng-template #noClaim>
-            <div class="empty-state">Select a claim from the list to review it.</div>
-          </ng-template>
-
-          <div class="uw-log" *ngIf="claimDecisionLog.length">
-            <h4>Claim decisions this session</h4>
-            <div class="log-row" *ngFor="let e of claimDecisionLog">
-              <span class="log-time">{{ e.time }}</span>
-              <span class="log-quote">{{ e.claimNumber }}</span>
-              <span class="log-msg">{{ e.decision }}</span>
+              <div class="empty-state" *ngIf="!filteredProposals.length">
+                {{ proposals.length ? tr('No matching proposals', 'لا توجد نتائج مطابقة') : t('noProposals') }}
+              </div>
             </div>
           </div>
+
+          <div class="uw-followup-panel">
+            <div class="panel-head">
+              <h3>{{ t('underwritingDecision') }}</h3>
+            </div>
+
+            <ng-container *ngIf="selectedProposal; else noSelection">
+
+              <div class="selected-summary">
+                <div class="summary-title">{{ selectedProposal.proposalNumber }}</div>
+                <div>{{ selectedProposal.customerName }}</div>
+                <div *ngIf="selectedProposal.planName">
+                  {{ selectedProposal.planName }} — OMR {{ selectedProposal.premium.toFixed(3) }}
+                </div>
+                <div *ngIf="!selectedProposal.planName" class="no-plan-note">
+                  {{ t('noPlanSelected') }}
+                </div>
+                <div>{{ t('vehicleValue') }}: OMR {{ selectedProposal.vehicleValue }}</div>
+              </div>
+
+              <label>{{ t('noteOptional') }}</label>
+              <textarea [(ngModel)]="decisionNote" rows="3" [placeholder]="t('notePlaceholder')"></textarea>
+
+              <label>{{ t('counterOfferLabel') }}</label>
+              <input [(ngModel)]="counterOfferPremium" type="number" [placeholder]="t('counterOfferPlaceholder')">
+
+              <div class="decision-buttons">
+                <button class="approve-btn" [disabled]="deciding" (click)="decide('APPROVED')">
+                  {{ t('approve') }}
+                </button>
+                <button class="counter-btn" [disabled]="deciding" (click)="decide('COUNTER_OFFER')">
+                  {{ t('counterOffer') }}
+                </button>
+                <button class="decline-btn" [disabled]="deciding" (click)="decide('DECLINED')">
+                  {{ t('decline') }}
+                </button>
+              </div>
+
+            </ng-container>
+
+            <ng-template #noSelection>
+              <div class="empty-state">{{ t('selectProposalPrompt') }}</div>
+            </ng-template>
+          </div>
+        </section>
+
+        <!-- Recent activity -->
+        <section class="uw-recent">
+          <div class="panel-head">
+            <h3>{{ tr('Recent activity — proposals', 'النشاط الأخير — الطلبات') }}</h3>
+            <span class="count-badge">{{ decisionSentLog.length }}</span>
+          </div>
+
+          <table class="uw-table" *ngIf="decisionSentLog.length; else noProposalActivity">
+            <thead>
+              <tr>
+                <th>{{ tr('Time', 'الوقت') }}</th>
+                <th>{{ tr('Proposal', 'الطلب') }}</th>
+                <th>{{ tr('Decision', 'القرار') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let entry of decisionSentLog">
+                <td class="muted">{{ entry.time }}</td>
+                <td class="ref">{{ entry.proposalNumber }}</td>
+                <td><span class="status" [attr.data-status]="entry.decision">{{ statusLabel(entry.decision) }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <ng-template #noProposalActivity>
+            <div class="empty-state">{{ tr('No decisions yet this session.', 'لا توجد قرارات في هذه الجلسة بعد.') }}</div>
+          </ng-template>
+        </section>
+
+      </ng-container>
+
+      <!-- ================================================= -->
+      <!-- COMPLAINTS                                         -->
+      <!-- ================================================= -->
+      <ng-container *ngIf="isVisible('complaints')">
+
+        <div class="uw-section-title">
+          <h2>{{ tr('Complaints', 'الشكاوى') }}</h2>
+          <span>{{ tr('Follow up on complaints and contact customers', 'متابعة الشكاوى والتواصل مع العملاء') }}</span>
         </div>
 
-      </div>
-    </div>
+        <section class="uw-body">
 
+          <div class="uw-quote-list">
+            <div class="panel-head">
+              <h3>{{ t('nonStpComplaints') }}</h3>
+              <span class="count-badge">{{ filteredComplaints.length }}</span>
+            </div>
+
+            <input class="list-search" type="search" [(ngModel)]="complaintSearch"
+              [placeholder]="tr('Search by name, subject or product…', 'ابحث بالاسم أو الموضوع أو المنتج…')">
+
+            <div class="list-scroll">
+              <div class="quote-card" *ngFor="let complaint of filteredComplaints"
+                [class.selected]="selectedComplaint?.COMPLAINT_ID === complaint.COMPLAINT_ID"
+                (click)="selectComplaint(complaint)">
+
+                <div class="quote-card-top">
+                  <span class="quote-card-id">{{ t('complaintWord') }} #{{ complaint.COMPLAINT_ID }}</span>
+                  <span class="status" [attr.data-status]="complaint.STATUS">{{ complaint.STATUS }}</span>
+                </div>
+
+                <div class="quote-card-name">{{ complaint.FULL_NAME }}</div>
+                <div class="quote-card-plan">{{ complaint.SUBJECT }}</div>
+                <div class="quote-card-value">{{ complaint.PRODUCT }}</div>
+              </div>
+
+              <div class="empty-state" *ngIf="!filteredComplaints.length">
+                {{ complaints.length ? tr('No matching complaints', 'لا توجد نتائج مطابقة') : t('noComplaints') }}
+              </div>
+            </div>
+          </div>
+
+          <div class="uw-followup-panel">
+            <div class="panel-head">
+              <h3>{{ t('complaintDecision') }}</h3>
+            </div>
+
+            <ng-container *ngIf="selectedComplaint; else noComplaint">
+
+              <div class="selected-summary detail-list">
+                <div class="summary-title">{{ t('complaintWord') }} #{{ selectedComplaint.COMPLAINT_ID }}</div>
+                <div><b>{{ t('customer') }}:</b> {{ selectedComplaint.FULL_NAME }}</div>
+                <div><b>{{ t('product') }}:</b> {{ selectedComplaint.PRODUCT }}</div>
+                <div><b>{{ t('policyNumber') }}:</b> {{ selectedComplaint.POLICY_NUMBER || t('notAvailable') }}</div>
+                <div><b>{{ t('subject') }}:</b> {{ selectedComplaint.SUBJECT }}</div>
+                <div><b>{{ t('complaintLabel') }}:</b> {{ selectedComplaint.COMPLAINT_MESSAGE }}</div>
+                <div class="ai-reason"><b>{{ t('aiReason') }}:</b> {{ selectedComplaint.AI_REASON }}</div>
+              </div>
+
+              <label>{{ tr('Message to customer', 'رسالة إلى العميل') }}</label>
+              <textarea [(ngModel)]="complaintMessage" rows="4"
+                [placeholder]="tr('Type message to customer...', 'اكتب رسالة إلى العميل...')"></textarea>
+
+              <div class="decision-buttons">
+                <button type="button" class="call-btn" (click)="callCustomer(selectedComplaint)">
+                  ☎ {{ tr('call', 'اتصال') }}
+                </button>
+                <button type="button" class="counter-btn" (click)="sendComplaintMessage()">
+                  {{ tr('send', 'إرسال') }}
+                </button>
+                <button type="button" class="decline-btn" (click)="closeComplaintMessage()">
+                  {{ tr('close', 'إغلاق') }}
+                </button>
+              </div>
+
+            </ng-container>
+
+            <ng-template #noComplaint>
+              <div class="empty-state">{{ t('selectComplaintPrompt') }}</div>
+            </ng-template>
+          </div>
+        </section>
+
+        <!-- Recent activity -->
+        <section class="uw-recent">
+          <div class="panel-head">
+            <h3>{{ tr('Recent activity — complaints', 'النشاط الأخير — الشكاوى') }}</h3>
+            <span class="count-badge">{{ complaintLog.length }}</span>
+          </div>
+
+          <table class="uw-table" *ngIf="complaintLog.length; else noComplaintActivity">
+            <thead>
+              <tr>
+                <th>{{ tr('Time', 'الوقت') }}</th>
+                <th>{{ t('complaintWord') }}</th>
+                <th>{{ t('customer') }}</th>
+                <th>{{ tr('Action', 'الإجراء') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let e of complaintLog">
+                <td class="muted">{{ e.time }}</td>
+                <td class="ref">#{{ e.complaintId }}</td>
+                <td>{{ e.customer }}</td>
+                <td><span class="status" data-status="APPROVED">{{ tr('Message sent', 'تم إرسال الرسالة') }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <ng-template #noComplaintActivity>
+            <div class="empty-state">{{ tr('No complaint follow-ups yet this session.', 'لا توجد متابعات للشكاوى في هذه الجلسة بعد.') }}</div>
+          </ng-template>
+        </section>
+
+      </ng-container>
+
+      <!-- ================================================= -->
+      <!-- CLAIMS                                             -->
+      <!-- ================================================= -->
+      <ng-container *ngIf="isVisible('claims')">
+
+        <div class="uw-section-title">
+          <h2>{{ tr('Claims', 'المطالبات') }}</h2>
+          <span>{{ tr('File new claims and review pending ones', 'تسجيل المطالبات ومراجعتها') }}</span>
+        </div>
+
+        <div class="uw-subtabs" role="tablist">
+          <button type="button" role="tab" class="subtab" [class.active]="claimsView === 'review'"
+            [attr.aria-selected]="claimsView === 'review'" (click)="claimsView = 'review'">
+            {{ tr('Review claims', 'مراجعة المطالبات') }}
+            <span class="count-badge">{{ pendingClaims.length }}</span>
+          </button>
+          <button type="button" role="tab" class="subtab" [class.active]="claimsView === 'file'"
+            [attr.aria-selected]="claimsView === 'file'" (click)="claimsView = 'file'">
+            + {{ tr('File a claim', 'تسجيل مطالبة') }}
+          </button>
+        </div>
+
+        <section class="uw-intake" *ngIf="claimsView === 'file'">
+          <div class="uw-followup-panel uw-claim-intake">
+            <div class="panel-head">
+              <h3>{{ tr('File a Claim', 'تسجيل مطالبة') }}</h3>
+            </div>
+          <app-claim-form [lang]="selectedLanguage" (claimSubmitted)="onClaimSubmitted($event)"></app-claim-form>
+          </div>
+        </section>
+
+        <section class="uw-body" *ngIf="claimsView === 'review'">
+
+          <ng-container>
+
+            <div class="uw-quote-list">
+              <div class="panel-head">
+                <h3>{{ tr('Pending Claims', 'المطالبات المعلقة') }}</h3>
+                <span class="count-badge">{{ filteredClaims.length }}</span>
+              </div>
+
+              <input class="list-search" type="search" [(ngModel)]="claimSearch"
+                [placeholder]="tr('Search by claim, customer or policy…', 'ابحث بالمطالبة أو العميل أو الوثيقة…')">
+
+              <div class="list-scroll">
+                <div class="quote-card" *ngFor="let c of filteredClaims"
+                  [class.selected]="selectedClaim?.claimId === c.claimId" (click)="selectClaim(c)">
+
+                  <div class="quote-card-top">
+                    <span class="quote-card-id">{{ c.claimNumber }}</span>
+                    <span class="status">OMR {{ c.claimAmount | number:'1.3-3' }}</span>
+                  </div>
+                  <div class="quote-card-name">{{ c.customerName }}</div>
+                  <div class="quote-card-plan">{{ c.policyNumber }}<span *ngIf="c.productName"> — {{ c.productName }}</span>
+                  </div>
+                </div>
+
+                <div class="empty-state" *ngIf="!filteredClaims.length">
+                  {{ pendingClaims.length ? tr('No matching claims', 'لا توجد نتائج مطابقة') : tr('No claims awaiting review.', 'لا توجد مطالبات بانتظار المراجعة.') }}
+                </div>
+              </div>
+            </div>
+
+            <div class="uw-followup-panel">
+              <div class="panel-head">
+                <h3>{{ tr('Claim Decision', 'قرار المطالبة') }}</h3>
+              </div>
+
+              <ng-container *ngIf="selectedClaim; else noClaim">
+
+                <div class="selected-summary">
+                  <div class="summary-title">{{ selectedClaim.claimNumber }}</div>
+                  <div>{{ selectedClaim.customerName }}</div>
+                  <div>{{ selectedClaim.policyNumber }}<span *ngIf="selectedClaim.productName"> — {{
+                      selectedClaim.productName }}</span></div>
+                  <div *ngIf="selectedClaim.incidentDate">Incident: {{ selectedClaim.incidentDate | date:'dd MMM yyyy' }}
+                  </div>
+                  <div>Claimed: OMR {{ selectedClaim.claimAmount | number:'1.3-3' }}</div>
+                  <div class="claim-description" *ngIf="selectedClaim.description">{{ selectedClaim.description }}</div>
+
+                  <a *ngIf="claimImageUrl(selectedClaim) as imgUrl" class="claim-photo" [href]="imgUrl" target="_blank"
+                    rel="noopener">
+                    <img [src]="imgUrl" alt="Claim photo" />
+                  </a>
+                  <div *ngIf="!selectedClaim.imagePath" class="no-plan-note">No photo attached.</div>
+                </div>
+
+                <label>Approved amount (OMR) — leave blank to approve in full</label>
+                <input type="number" min="0" step="0.001" [(ngModel)]="claimApprovedAmount"
+                  [placeholder]="selectedClaim.claimAmount.toFixed(3)">
+
+                <label>Note (required to decline)</label>
+                <textarea [(ngModel)]="claimNote" rows="3" placeholder="Visible to the customer"></textarea>
+
+                <div class="uw-error claim-error" *ngIf="claimError">{{ claimError }}</div>
+
+                <div class="decision-buttons">
+                  <button class="approve-btn" [disabled]="decidingClaim" (click)="decideClaim('APPROVED')">Approve</button>
+                  <button class="decline-btn" [disabled]="decidingClaim" (click)="decideClaim('DECLINED')">Decline</button>
+                </div>
+              </ng-container>
+
+              <ng-template #noClaim>
+                <div class="empty-state">{{ tr('Select a claim from the list to review it.', 'اختر مطالبة من القائمة لمراجعتها.') }}</div>
+              </ng-template>
+            </div>
+
+          </ng-container>
+        </section>
+
+        <!-- Recent activity -->
+        <section class="uw-recent" *ngIf="claimsView === 'review'">
+          <div class="panel-head">
+            <h3>{{ tr('Recent activity — claims', 'النشاط الأخير — المطالبات') }}</h3>
+            <span class="count-badge">{{ claimDecisionLog.length }}</span>
+          </div>
+
+          <table class="uw-table" *ngIf="claimDecisionLog.length; else noClaimActivity">
+            <thead>
+              <tr>
+                <th>{{ tr('Time', 'الوقت') }}</th>
+                <th>{{ tr('Claim', 'المطالبة') }}</th>
+                <th>{{ tr('Decision', 'القرار') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let e of claimDecisionLog">
+                <td class="muted">{{ e.time }}</td>
+                <td class="ref">{{ e.claimNumber }}</td>
+                <td><span class="status" [attr.data-status]="e.decision">{{ statusLabel(e.decision) }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <ng-template #noClaimActivity>
+            <div class="empty-state">{{ tr('No claim decisions yet this session.', 'لا توجد قرارات للمطالبات في هذه الجلسة بعد.') }}</div>
+          </ng-template>
+        </section>
+
+      </ng-container>
+
+    </main>
   </div>
 </div>

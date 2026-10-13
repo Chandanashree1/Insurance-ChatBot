@@ -30,6 +30,8 @@ interface ProposalRow {
   submittedAt: string;
 }
 
+export type UwSection = 'all' | 'underwriting' | 'complaints' | 'claims';
+
 @Component({
   selector: 'app-underwriter',
   standalone: true,
@@ -56,6 +58,11 @@ export class UnderwriterComponent implements OnInit {
     return uwTranslations[this.selectedLanguage]?.[key] ?? uwTranslations.en[key] ?? key;
   }
 
+  /** Inline English/Arabic helper for text that has no translation key yet. */
+  tr(en: string, ar: string): string {
+    return this.selectedLanguage === 'ar' ? ar : en;
+  }
+
   /** Translates a backend status/decision code; falls back to the raw value. */
   statusLabel(code: string): string {
     const key = this.statusKeys[code];
@@ -66,6 +73,24 @@ export class UnderwriterComponent implements OnInit {
     this.selectedLanguage = lang;
     try { localStorage.setItem('underwriterLang', lang); } catch { /* ignore */ }
     this.cdr.markForCheck();
+  }
+
+  // ==================================================
+  // SECTION TABS (stat cards)
+  // ==================================================
+  activeSection: UwSection = 'all';
+
+  /** Clicking the active card again goes back to showing everything. */
+  setSection(section: Exclude<UwSection, 'all'>): void {
+    this.activeSection = this.activeSection === section ? 'all' : section;
+  }
+
+  showAll(): void {
+    this.activeSection = 'all';
+  }
+
+  isVisible(section: Exclude<UwSection, 'all'>): boolean {
+    return this.activeSection === 'all' || this.activeSection === section;
   }
 
   // ==================================================
@@ -93,10 +118,37 @@ export class UnderwriterComponent implements OnInit {
   decisionSentLog: { proposalNumber: string; decision: string; time: string }[] = [];
 
   isCalling = false;
-callingCustomer: any = null;
+  callingCustomer: any = null;
 
+  // ==================================================
+  // SEARCH
+  // ==================================================
+  proposalSearch = '';
+  complaintSearch = '';
+  claimSearch = '';
 
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private flwUp:ComplaintFlwUp, private claimSvc: ClaimService) { }
+  private matches(term: string, ...values: unknown[]): boolean {
+    const q = term.trim().toLowerCase();
+    if (!q) return true;
+    return values.some(v => String(v ?? '').toLowerCase().includes(q));
+  }
+
+  get filteredProposals(): ProposalRow[] {
+    return this.proposals.filter(p =>
+      this.matches(this.proposalSearch, p.proposalNumber, p.customerName, p.planName));
+  }
+
+  get filteredComplaints(): any[] {
+    return this.complaints.filter(c =>
+      this.matches(this.complaintSearch, c.COMPLAINT_ID, c.FULL_NAME, c.SUBJECT, c.PRODUCT));
+  }
+
+  get filteredClaims(): PendingClaim[] {
+    return this.pendingClaims.filter(c =>
+      this.matches(this.claimSearch, c.claimNumber, c.customerName, c.policyNumber, c.productName));
+  }
+
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private flwUp: ComplaintFlwUp, private claimSvc: ClaimService) { }
 
   ngOnInit(): void {
     // Restore the last chosen language
@@ -172,9 +224,6 @@ callingCustomer: any = null;
     });
   }
 
-
-
-
   // ==================================================
   // LOGIN
   // ==================================================
@@ -244,6 +293,8 @@ callingCustomer: any = null;
   claimError = '';
   decidingClaim = false;
   claimDecisionLog: { claimNumber: string; decision: string; time: string }[] = [];
+
+  claimsView: 'review' | 'file' = 'review';
 
   loadPendingClaims(): void {
     this.claimSvc.getPendingClaims().subscribe({
@@ -325,99 +376,88 @@ callingCustomer: any = null;
     });
   }
 
+  // ==================================================
+  // COMPLAINTS
+  // ==================================================
   complaints: any[] = [];
   selectedComplaint: any = null;
   complaintMessage: string = '';
-  
+  complaintLog: { complaintId: number; customer: string; time: string }[] = [];
+
   loadComplaints() {
     this.flwUp.getNonStpComplaints()
       .subscribe({
         next: (response) => {
           this.complaints = response.complaints;
           console.log('complaints received:', this.complaints);
-
         },
         error: (error) => {
           console.error('Error loading complaints:', error);
         }
       });
   }
+
   selectComplaint(complaint: any): void {
     this.selectedComplaint = complaint;
     // Clear message box when opening another complaint
     this.complaintMessage = '';
-    console.log(
-      'Selected Complaint:',
-      complaint
-    );
+    console.log('Selected Complaint:', complaint);
   }
 
-callCustomer(complaint: any) {
-  this.callingCustomer = complaint;
-  this.isCalling = true;
-
-  // setTimeout(() => {
-  //   this.isCalling = false;
-  //   this.callingCustomer = null;
-  // }, 5000);
-}
-
-endCall() {
-  this.isCalling = false;
-  this.callingCustomer = null;
-}
-
-sendComplaintMessage(): void {
-
-  if (!this.selectedComplaint) {
-    return;
+  callCustomer(complaint: any) {
+    this.callingCustomer = complaint;
+    this.isCalling = true;
   }
 
-  if (!this.complaintMessage.trim()) {
-    return;
+  endCall() {
+    this.isCalling = false;
+    this.callingCustomer = null;
   }
 
-  const complaintId =
-    this.selectedComplaint.COMPLAINT_ID;
+  sendComplaintMessage(): void {
+    if (!this.selectedComplaint) {
+      return;
+    }
 
-  this.flwUp
-    .updateComplaintFollowUp(
-      complaintId,
-      this.selectedComplaint.STATUS,
-      this.complaintMessage
-    )
-    .subscribe({
+    if (!this.complaintMessage.trim()) {
+      return;
+    }
 
-      next: (response) => {
+    const complaintId = this.selectedComplaint.COMPLAINT_ID;
+    const customer = this.selectedComplaint.FULL_NAME;
 
-        console.log(
-          'Complaint message saved:',
-          response
-        );
+    this.flwUp
+      .updateComplaintFollowUp(
+        complaintId,
+        this.selectedComplaint.STATUS,
+        this.complaintMessage
+      )
+      .subscribe({
+        next: (response) => {
+          console.log('Complaint message saved:', response);
 
-        // Update UI
-        this.selectedComplaint.AGENT_NOTE =
-          this.complaintMessage;
+          // Update UI
+          this.selectedComplaint.AGENT_NOTE = this.complaintMessage;
 
-        // Clear textarea
-        this.complaintMessage = '';
+          // Log it for the "Recent activity" table
+          this.complaintLog.unshift({
+            complaintId,
+            customer,
+            time: new Date().toLocaleTimeString()
+          });
 
-      },
+          // Clear textarea
+          this.complaintMessage = '';
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Complaint message save error:', error);
+        }
+      });
+    this.selectedComplaint = null;
+  }
 
-      error: (error) => {
-
-        console.error(
-          'Complaint message save error:',
-          error
-        );
-
-      }
-
-    });
-  this.selectedComplaint = null;
-
-}
-closeComplaintMessage(){
-  this.selectedComplaint = null;
-}
+  closeComplaintMessage() {
+    this.selectedComplaint = null;
+  }
 }

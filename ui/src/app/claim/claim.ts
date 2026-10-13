@@ -1,4 +1,4 @@
-import { Component, ChangeDetectorRef, EventEmitter, Output } from '@angular/core';
+import { Component, ChangeDetectorRef, EventEmitter, Input, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import {
@@ -7,6 +7,7 @@ import {
   SubmitClaimResult,
   STP_CLAIM_THRESHOLD
 } from '../services/claim.service';
+import { uwTranslations, UwKey, UwLang } from '../underwriter/underwriter.translations';
 
 type Step = 'lookup' | 'details' | 'result';
 
@@ -18,6 +19,9 @@ type Step = 'lookup' | 'details' | 'result';
   styleUrls: ['./claim.scss']
 })
 export class ClaimFormComponent {
+
+  /** Current UI language, passed in from the underwriter dashboard. */
+  @Input() lang: UwLang = 'en';
 
   /** Fires after a claim is created so the dashboard can refresh its queue. */
   @Output() claimSubmitted = new EventEmitter<SubmitClaimResult>();
@@ -31,7 +35,7 @@ export class ClaimFormComponent {
   // Step 1
   policyNumber = '';
   lookingUp = false;
-  lookupError = '';
+  lookupError = '';   // a translation key, or raw text from the server
 
   // Step 2
   policy: ClaimPolicy | null = null;
@@ -40,7 +44,7 @@ export class ClaimFormComponent {
   description = '';
   imageFile: File | null = null;
   imagePreview: string | null = null;
-  formError = '';
+  formError = '';     // a translation key, or raw text from the server
   submitting = false;
 
   // Step 3
@@ -49,13 +53,25 @@ export class ClaimFormComponent {
   constructor(private claims: ClaimService, private cdr: ChangeDetectorRef) {}
 
   // ---------------------------------------------------------
+  // TRANSLATION
+  // ---------------------------------------------------------
+  t(key: UwKey): string {
+    return uwTranslations[this.lang]?.[key] ?? uwTranslations.en[key] ?? key;
+  }
+
+  /** Translates a stored key; anything else (e.g. a server message) is shown as is. */
+  tm(text: string): string {
+    return text in uwTranslations.en ? this.t(text as UwKey) : text;
+  }
+
+  // ---------------------------------------------------------
   // STEP 1: FIND POLICY
   // ---------------------------------------------------------
   lookupPolicy(): void {
     const number = this.policyNumber.trim().toUpperCase();
 
     if (!/^POL-\d{4}-\d+$/.test(number)) {
-      this.lookupError = 'Enter a policy number like POL-2026-00006.';
+      this.lookupError = 'cfErrPolicyFormat';
       return;
     }
 
@@ -71,8 +87,8 @@ export class ClaimFormComponent {
       },
       error: (err) => {
         this.lookupError = err?.status === 404 || err?.message === 'Policy not found'
-          ? 'No policy found with that number.'
-          : (err?.error?.message || 'Could not look up the policy. Please try again.');
+          ? 'cfErrNotFound'
+          : (err?.error?.message || 'cfErrLookup');
         this.lookingUp = false;
         this.cdr.detectChanges();
       }
@@ -89,16 +105,15 @@ export class ClaimFormComponent {
     const from = this.policy.coverFrom ? String(this.policy.coverFrom).slice(0, 10) : null;
     const to = this.policy.coverTo ? String(this.policy.coverTo).slice(0, 10) : null;
     if ((from && this.incidentDate < from) || (to && this.incidentDate > to)) {
-      return 'This date is outside the policy cover period.';
+      return this.t('cfWarnOutside');
     }
     return '';
   }
 
   get routingHint(): string {
     if (!this.claimAmount || this.claimAmount <= 0) return '';
-    return this.claimAmount <= this.stpThreshold
-      ? `Within OMR ${this.stpThreshold}: will be approved automatically.`
-      : `Above OMR ${this.stpThreshold}: will go to underwriter review.`;
+    const key: UwKey = this.claimAmount <= this.stpThreshold ? 'cfHintAuto' : 'cfHintReview';
+    return this.t(key).replace('{n}', String(this.stpThreshold));
   }
 
   onImageSelected(event: Event): void {
@@ -109,12 +124,12 @@ export class ClaimFormComponent {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      this.formError = 'Only image files are allowed.';
+      this.formError = 'cfErrImageType';
       input.value = '';
       return;
     }
     if (file.size > this.maxImageBytes) {
-      this.formError = 'Image must be 5 MB or smaller.';
+      this.formError = 'cfErrImageSize';
       input.value = '';
       return;
     }
@@ -135,19 +150,19 @@ export class ClaimFormComponent {
     if (!this.policy) return;
 
     if (!this.incidentDate) {
-      this.formError = 'Please enter the incident date.';
+      this.formError = 'cfErrDate';
       return;
     }
     if (this.incidentDate > this.today) {
-      this.formError = 'The incident date cannot be in the future.';
+      this.formError = 'cfErrFuture';
       return;
     }
     if (!this.claimAmount || this.claimAmount <= 0) {
-      this.formError = 'Please enter a claim amount greater than 0.';
+      this.formError = 'cfErrAmount';
       return;
     }
     if (!this.description.trim()) {
-      this.formError = 'Please describe what happened.';
+      this.formError = 'cfErrDesc';
       return;
     }
 
@@ -170,7 +185,7 @@ export class ClaimFormComponent {
         this.cdr.detectChanges();
       },
       error: (err) => {
-        this.formError = err?.error?.message || 'Could not submit the claim. Please try again.';
+        this.formError = err?.error?.message || 'cfErrSubmit';
         this.submitting = false;
         this.cdr.detectChanges();
       }
