@@ -414,48 +414,36 @@ export class UnderwriterComponent implements OnInit {
     this.callingCustomer = null;
   }
 
-  sendComplaintMessage(): void {
-    if (!this.selectedComplaint) {
-      return;
-    }
+sendComplaintMessage(): void {
+  if (!this.selectedComplaint) return;
 
-    if (!this.complaintMessage.trim()) {
-      return;
-    }
+  const message = this.complaintMessage.trim();
+  if (!message) return;
 
-    const complaintId = this.selectedComplaint.COMPLAINT_ID;
-    const customer = this.selectedComplaint.FULL_NAME;
+  const complaintId = this.selectedComplaint.COMPLAINT_ID;
 
-    this.flwUp
-      .updateComplaintFollowUp(
-        complaintId,
-        this.selectedComplaint.STATUS,
-        this.complaintMessage
-      )
-      .subscribe({
-        next: (response) => {
-          console.log('Complaint message saved:', response);
+  this.flwUp
+    .updateComplaintFollowUp(complaintId, 'COMPLETED', message)
+    .subscribe({
+      next: (response) => {
+        console.log('Complaint message saved:', response);
 
-          // Update UI
-          this.selectedComplaint.AGENT_NOTE = this.complaintMessage;
+        // Remove the completed complaint from the list
+        this.complaints = this.complaints.filter(
+          c => c.COMPLAINT_ID !== complaintId
+        );
 
-          // Log it for the "Recent activity" table
-          this.complaintLog.unshift({
-            complaintId,
-            customer,
-            time: new Date().toLocaleTimeString()
-          });
+        // Clear the decision panel
+        this.selectedComplaint = null;
+        this.complaintMessage = '';
 
-          // Clear textarea
-          this.complaintMessage = '';
-          this.cdr.detectChanges();
-        },
-        error: (error) => {
-          console.error('Complaint message save error:', error);
-        }
-      });
-    this.selectedComplaint = null;
-  }
+        this.cdr.detectChanges();
+      },
+      error: (error) => {
+        console.error('Complaint message save error:', error);
+      }
+    });
+}
 
   closeComplaintMessage() {
     this.selectedComplaint = null;

@@ -1023,6 +1023,7 @@ export class Bot implements DoCheck, OnInit {
     this.isSubmittingComplaint = true;
 
     const payload = {
+      customerId: this.customerId,
       subject: f.subject,
       fullName: f.fullName,
       email: f.email,

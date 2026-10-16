@@ -7,6 +7,29 @@ const { analyzeComplaint } = require("../services/huggingFaceService");
 
 
 // ============================================================
+// GENERATE COMPLAINT ID
+// ============================================================
+
+function generateComplaintId() {
+    return `CMP-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+
+// ============================================================
+// CALLBACK MESSAGE (NON-STP)
+// ============================================================
+
+function getCallbackMessage(language) {
+
+    return language === "ar"
+
+        ? "شكراً لتسجيل شكواك. لم نتمكن من العثور على حل فوري لهذه المشكلة. سيتصل بك أحد وكلائنا للمساعدة."
+
+        : "Thank you for registering your complaint. We couldn't find an immediate solution for this issue. Our support agent will call you back to assist you.";
+}
+
+
+// ============================================================
 // REGISTER COMPLAINT
 // ============================================================
 
@@ -144,10 +167,10 @@ async function registerComplaint(req, res) {
 
         const policyResult = await connection.execute(
             `
-                SELECT POLICY_ID
-                FROM POLICY
-                WHERE POLICY_NUMBER = :policyNumber
-                `,
+            SELECT POLICY_ID
+            FROM POLICY
+            WHERE POLICY_NUMBER = :policyNumber
+            `,
             {
                 policyNumber: policyNumber || null
             },
@@ -164,69 +187,67 @@ async function registerComplaint(req, res) {
         console.log("Policy Number:", policyNumber);
         console.log("Policy ID:", policyId);
 
-        const insertResult = await connection.execute(
-    `
-    INSERT INTO COMPLAINTS (
-        CUSTOMER_ID,
-        SUBJECT,
-        FULL_NAME,
-        EMAIL,
-        MOBILE,
-        PRODUCT,
-        POLICY_ID,
-        COMPLAINT_MESSAGE,
-        ROUTE,
-        STATUS,
-        AI_REASON,
-        CREATED_AT,
-        UPDATED_AT
-    )
-    VALUES (
-        :customerId,
-        :subject,
-        :fullName,
-        :email,
-        :mobile,
-        :product,
-        :policyId,
-        :complaintMessage,
-        :route,
-        :status,
-        :aiReason,
-        CURRENT_TIMESTAMP,
-        CURRENT_TIMESTAMP
-    )
-    RETURNING COMPLAINT_ID INTO :complaintId
-    `,
-    {
-        customerId: customerId || null,
-        subject,
-        fullName: fullName || null,
-        email: email || null,
-        mobile: mobile || null,
-        product: product || null,
-
-        // IMPORTANT
-        policyId: policyId,
-
-        complaintMessage: message,
-        route,
-        status: route === "NON_STP" ? "OPEN" : "RESOLVED",
-        aiReason: reason,
-
-        complaintId: {
-            dir: oracledb.BIND_OUT,
-            type: oracledb.NUMBER
-        }
-    },
-    {
-        autoCommit: true
-    }
-);
 
         const complaintId =
-            insertResult.outBinds.complaintId[0];
+            generateComplaintId();
 
+        // ----------------------------------------------------
+        // INSERT
+        // ----------------------------------------------------
+
+        await connection.execute(
+            `
+            INSERT INTO COMPLAINTS (
+                COMPLAINT_ID,
+                CUSTOMER_ID,
+                SUBJECT,
+                FULL_NAME,
+                EMAIL,
+                MOBILE,
+                PRODUCT,
+                POLICY_ID,
+                COMPLAINT_MESSAGE,
+                ROUTE,
+                STATUS,
+                AI_REASON,
+                CREATED_AT,
+                UPDATED_AT
+            )
+            VALUES (
+                :complaintId,
+                :customerId,
+                :subject,
+                :fullName,
+                :email,
+                :mobile,
+                :product,
+                :policyId,
+                :complaintMessage,
+                :route,
+                :status,
+                :aiReason,
+                CURRENT_TIMESTAMP,
+                CURRENT_TIMESTAMP
+            )
+            `,
+            {
+                complaintId,
+                customerId: customerId || null,
+                subject,
+                fullName: fullName || null,
+                email: email || null,
+                mobile: mobile || null,
+                product: product || null,
+                policyId: policyId,
+                complaintMessage: message,
+                route,
+                status: route === "NON_STP" ? "OPEN" : "RESOLVED",
+                aiReason: reason
+            },
+            {
+                autoCommit: true
+            }
+        );
 
 
         console.log(
@@ -262,14 +283,6 @@ async function registerComplaint(req, res) {
             console.log("========================================");
 
 
-            const callbackMessage =
-                language === "ar"
-
-                    ? "شكراً لتسجيل شكواك. لم نتمكن من العثور على حل فوري لهذه المشكلة. سيتصل بك أحد وكلائنا للمساعدة."
-
-                    : "Thank you for registering your complaint. We couldn't find an immediate solution for this issue. Our support agent will call you back to assist you.";
-
-
             return res.status(200).json({
 
                 success: true,
@@ -285,7 +298,7 @@ async function registerComplaint(req, res) {
                 status: "OPEN",
 
                 message:
-                    callbackMessage
+                    getCallbackMessage(language)
 
             });
         }
@@ -337,41 +350,29 @@ async function registerComplaint(req, res) {
                 console.log("========================================");
 
 
-                // Update DB because complaint cannot
-                // actually be resolved automatically.
+                // Complaint cannot actually be resolved
+                // automatically, so move it to NON_STP.
 
                 await connection.execute(
-
                     `
-                    UPDATE COMPLAINT
+                    UPDATE COMPLAINTS
                     SET
                         ROUTE = 'NON_STP',
                         STATUS = 'OPEN',
-                        REASON = :reason
+                        AI_REASON = :reason,
+                        UPDATED_AT = CURRENT_TIMESTAMP
                     WHERE COMPLAINT_ID = :complaintId
                     `,
-
                     {
-
                         reason:
                             "Complaint was identified as STP, but no matching knowledge-base resolution was found.",
 
                         complaintId
-
                     },
-
                     {
                         autoCommit: true
                     }
                 );
-
-
-                const callbackMessage =
-                    language === "ar"
-
-                        ? "شكراً لتسجيل شكواك. لم نتمكن من العثور على حل فوري لهذه المشكلة. سيتصل بك أحد وكلائنا للمساعدة."
-
-                        : "Thank you for registering your complaint. We couldn't find an immediate solution for this issue. Our support agent will call you back to assist you.";
 
 
                 return res.status(200).json({
@@ -390,7 +391,7 @@ async function registerComplaint(req, res) {
                     status: "OPEN",
 
                     message:
-                        callbackMessage
+                        getCallbackMessage(language)
 
                 });
             }
@@ -457,11 +458,7 @@ async function registerComplaint(req, res) {
             status: "OPEN",
 
             message:
-                language === "ar"
-
-                    ? "شكراً لتسجيل شكواك. لم نتمكن من العثور على حل فوري لهذه المشكلة. سيتصل بك أحد وكلائنا للمساعدة."
-
-                    : "Thank you for registering your complaint. We couldn't find an immediate solution for this issue. Our support agent will call you back to assist you."
+                getCallbackMessage(language)
 
         });
 
