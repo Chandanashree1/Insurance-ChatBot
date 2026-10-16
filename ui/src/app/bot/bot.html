@@ -363,7 +363,55 @@
       </div>
 
     </div>
+    <div class="status-lookup-body">
 
+      <!-- Search form -->
+      <div class="status-lookup-form" *ngIf="!complaintStatusResult">
+        <label>{{ tr.complaintId }}</label>
+        <input type="text"
+              [(ngModel)]="complaintIdInput"
+              placeholder="{{ tr.complaintIdPlaceholder }}"
+              (keydown.enter)="lookupComplaintStatus()">
+
+        <div class="status-error" *ngIf="complaintLookupError">{{ complaintLookupError }}</div>
+
+        <button class="register-complaint-btn"
+                [disabled]="isLookingUpComplaint"
+                (click)="lookupComplaintStatus()">
+          {{ isLookingUpComplaint ? tr.checking : tr.checkStatus }}
+        </button>
+      </div>
+
+  <!-- Result: OPEN (waiting for agent callback) -->
+  <div class="status-result pending"
+       *ngIf="complaintStatusResult && complaintStatusResult.status === 'OPEN'">
+    <div class="status-icon-large">📞</div>
+    <h3>{{ tr.complaintOpen }}</h3>
+    <p>{{ tr.complaintWord }} <b>{{ complaintStatusResult.complaintId }}</b> {{ tr.complaintOpenText }}</p>
+    <p class="status-date">{{ tr.registeredOn }} {{ complaintStatusResult.createdAt | date:'medium' }}</p>
+    <button class="register-complaint-btn" (click)="resetComplaintLookup()">{{ tr.checkAnother }}</button>
+  </div>
+
+  <!-- Result: RESOLVED -->
+  <div class="status-result approved"
+       *ngIf="complaintStatusResult && complaintStatusResult.status === 'RESOLVED'">
+    <div class="status-icon-large">✅</div>
+    <h3>{{ tr.complaintResolved }}</h3>
+    <p>{{ tr.complaintWord }} <b>{{ complaintStatusResult.complaintId }}</b> {{ tr.complaintResolvedText }}</p>
+    <p class="status-date">{{ tr.resolvedOn }} {{ complaintStatusResult.updatedAt | date:'medium' }}</p>
+    <button class="register-complaint-btn" (click)="resetComplaintLookup()">{{ tr.checkAnother }}</button>
+  </div>
+
+  <!-- Result: any other status (safety net) -->
+  <div class="status-result pending"
+       *ngIf="complaintStatusResult && complaintStatusResult.status !== 'OPEN' && complaintStatusResult.status !== 'RESOLVED'">
+    <div class="status-icon-large">✅</div>
+    <h3>{{ complaintStatusResult.status }}</h3>
+    <p>{{ tr.complaintWord }} <b>{{ complaintStatusResult.complaintId }}</b></p>
+    <button class="register-complaint-btn" (click)="resetComplaintLookup()">{{ tr.checkAnother }}</button>
+  </div>
+
+</div>
   </div>
 
 

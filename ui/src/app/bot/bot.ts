@@ -1261,7 +1261,17 @@ export class Bot implements DoCheck, OnInit {
       creatingAccount: 'Creating account...',
       haveAccount: 'Already have an account?',
       signInLink: 'Sign in',
-      close: 'Close'
+      close: 'Close',
+      complaintId: 'Complaint ID',
+      complaintIdPlaceholder: 'e.g. CMP-1718000000000-1234',
+      enterComplaintId: 'Please enter your complaint ID.',
+      complaintWord: 'Complaint',
+      complaintOpen: 'Complaint Open',
+      complaintOpenText: 'is registered. Our support agent will call you back shortly.',
+      complaintResolved: 'Complaint Resolved',
+      complaintResolvedText: 'has been resolved.',
+      registeredOn: 'Registered on:',
+      resolvedOn: 'Resolved on:',
     },
 
     ar: {
@@ -1380,7 +1390,17 @@ export class Bot implements DoCheck, OnInit {
       creatingAccount: 'جارٍ إنشاء الحساب...',
       haveAccount: 'لديك حساب بالفعل؟',
       signInLink: 'تسجيل الدخول',
-      close: 'إغلاق'
+      close: 'إغلاق',
+      complaintId: 'رقم الشكوى',
+      complaintIdPlaceholder: 'مثال: CMP-1718000000000-1234',
+      enterComplaintId: 'الرجاء إدخال رقم الشكوى.',
+      complaintWord: 'الشكوى',
+      complaintOpen: 'الشكوى مفتوحة',
+      complaintOpenText: 'تم تسجيلها. سيتصل بك أحد وكلائنا قريباً.',
+      complaintResolved: 'تم حل الشكوى',
+      complaintResolvedText: 'تم حلها.',
+      registeredOn: 'تاريخ التسجيل:',
+      resolvedOn: 'تاريخ الحل:',
     }
   };
   t(key: keyof typeof this.translations.en): string {
@@ -1693,4 +1713,49 @@ onActionClick(action: string, msg?: ChatMessage) {
 
     });
   }
+  // ---------- Complaint status lookup ----------
+complaintIdInput = '';
+complaintStatusResult: any = null;
+complaintLookupError = '';
+isLookingUpComplaint = false;
+
+lookupComplaintStatus(): void {
+  const complaintId = this.complaintIdInput.trim();
+
+  if (!complaintId) {
+    this.complaintLookupError = this.tr.enterComplaintId || 'Please enter your complaint ID.';
+    return;
+  }
+
+  this.isLookingUpComplaint = true;
+  this.complaintLookupError = '';
+  this.complaintStatusResult = null;
+
+  this.http
+    .get<any>(`http://localhost:5000/api/complaint/status/${encodeURIComponent(complaintId)}`)
+    .subscribe({
+      next: (res) => {
+        this.isLookingUpComplaint = false;
+
+        if (res.success) {
+          this.complaintStatusResult = res.data;
+        } else {
+          this.complaintLookupError = res.message || 'Could not find a complaint for this ID.';
+        }
+
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.isLookingUpComplaint = false;
+        this.complaintLookupError = err?.error?.message || 'No complaint found for this ID.';
+        this.cdr.detectChanges();
+      }
+    });
+}
+
+resetComplaintLookup(): void {
+  this.complaintIdInput = '';
+  this.complaintStatusResult = null;
+  this.complaintLookupError = '';
+}
 }

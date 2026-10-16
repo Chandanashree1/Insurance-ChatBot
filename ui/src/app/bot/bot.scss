@@ -2065,6 +2065,11 @@ textarea:disabled::placeholder {
   color: #f9f8f6;
 }
 
+.status-date {
+  font-size: 12px;
+  opacity: 0.7;
+  margin-top: 4px;
+}
 .logged-in-row {
   display: flex;
   align-items: stretch;

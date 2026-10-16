@@ -534,7 +534,88 @@ async function registerComplaint(req, res) {
         }
     }
 }
+// ============================================================
+// GET COMPLAINT STATUS
+// ============================================================
 
+async function getComplaintStatus(req, res) {
+
+    let connection;
+
+    try {
+
+        // Status can change anytime, so don't let the browser cache it
+        res.set("Cache-Control", "no-store, no-cache, must-revalidate");
+
+        const complaintId = (req.params.complaintId || "").trim();
+
+        if (!complaintId) {
+            return res.status(400).json({
+                success: false,
+                message: "Complaint ID is required."
+            });
+        }
+
+        connection = await getConnection();
+
+        const result = await connection.execute(
+            `
+            SELECT COMPLAINT_ID,
+                   SUBJECT,
+                   PRODUCT,
+                   ROUTE,
+                   STATUS,
+                   CREATED_AT,
+                   UPDATED_AT
+            FROM COMPLAINTS
+            WHERE UPPER(COMPLAINT_ID) = UPPER(:complaintId)
+            `,
+            { complaintId },
+            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "No complaint found for this complaint ID."
+            });
+        }
+
+        const c = result.rows[0];
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                complaintId: c.COMPLAINT_ID,
+                subject: c.SUBJECT,
+                product: c.PRODUCT,
+                route: c.ROUTE,
+                status: c.STATUS,
+                createdAt: c.CREATED_AT,
+                updatedAt: c.UPDATED_AT
+            }
+        });
+
+    } catch (error) {
+
+        console.error("Get Complaint Status Error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch complaint status."
+        });
+
+    } finally {
+
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (closeError) {
+                console.error("Connection Close Error:", closeError.message);
+            }
+        }
+    }
+}
 
 // ============================================================
 // EXPORT
@@ -542,6 +623,7 @@ async function registerComplaint(req, res) {
 
 module.exports = {
 
-    registerComplaint
+    registerComplaint,
+    getComplaintStatus
 
 };
