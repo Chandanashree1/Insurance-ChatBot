@@ -31,6 +31,8 @@ interface ChatMessage {
   showLoginButton?: boolean;
   form?: InsuranceForm;
   isWelcome?: boolean;
+  quickReply?: boolean;
+  resumeData?: any;
 }
 
 type QuickAction = 'buyPolicy' | 'rop' | 'renew' | 'complaint' | 'chatWithUs';
@@ -82,12 +84,6 @@ interface HistorySession {
   PREVIEW: string;
 }
 
-// const WELCOME_MESSAGE: ChatMessage = {
-//   sender: 'bot',
-//   text: 'Welcome to ABC Insurance ! 😊. You can get help for these functions as mentioned below.',
-//   time: new Date()
-// };
-
 
 @Component({
   selector: 'app-bot', // Matches your component selector tag
@@ -135,15 +131,30 @@ export class Bot implements DoCheck, OnInit {
     };
   }
 
+ private quickRepliesFor(reply: string): { label: string; action: string }[] | null {
+  const text = reply || '';
+
+  const isEnglishQuestion = /would you like to (continue|proceed) with this quote/i.test(text);
+  const isArabicQuestion  = /هل (تود|ترغب|تريد)\s+(في\s+)?(المتابعة|الاستمرار)/.test(text);
+
+  if (isEnglishQuestion || isArabicQuestion) {
+    return this.selectedLanguage === 'ar'
+      ? [{ label: 'نعم، تابع', action: 'نعم، تابع' },
+         { label: 'لا، شكرًا', action: 'لا، شكرًا' }]
+      : [{ label: 'Yes, Continue', action: 'yes Continue' },
+         { label: 'No', action: 'No' }];
+  }
+  return null;
+}
   ngOnInit(): void {
     this.messages = [this.buildWelcomeMessage()];
     this.restoreLoginState();
     const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
     const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
-    const isFresh = shouldRestore && (Date.now() - setAt) < 30000; // only trust a flag set in the last 30s
+    const isFresh = shouldRestore && (Date.now() - setAt) < 30000; 
 
     if (isFresh) {
-      this.isOpen = true;   // auto-open the widget instead of showing the collapsed launcher
+      this.isOpen = true; 
       this.hasUserMessaged = true;
 
       this.messages.push({
@@ -1426,20 +1437,34 @@ export class Bot implements DoCheck, OnInit {
 
     this.http.post<any>('http://localhost:5000/api/chat', payload).subscribe({
       next: (response) => {
-        if (response && response.success) {
+              if (response && response.success) {
           if (response.requiresLogin) {
             this.pendingQuestion = textToSend;
           }
-          this.messages.push({
-            sender: 'bot',
-            text: response.reply,
-            uiType: response.uiType,
-            actions: response.actions,
-            form: response.form,
-            showLoginButton: response.requiresLogin || false,
-            time: new Date()
 
-          });
+          if (response.uiType === 'PROPOSAL_STATUS' && response.data?.length) {
+            // Short text bubble, then the existing Buy Policy card.
+            this.messages.push({ sender: 'bot', text: response.reply, time: new Date() });
+            this.messages.push({
+              sender: 'bot',
+              text: '',
+              uiType: 'BUY_POLICY_FORM',
+              resumeData: response.data[0],
+              time: new Date()
+            });
+          } else {
+            const quick = response.actions?.length ? null : this.quickRepliesFor(response.reply);
+            this.messages.push({
+              sender: 'bot',
+              text: response.reply,
+              uiType: response.uiType,
+              actions: quick ?? response.actions,
+              quickReply: !!quick,
+              form: response.form,
+              showLoginButton: response.requiresLogin || false,
+              time: new Date()
+            });
+          }
           this.isLoading = false;
           this.cdr.detectChanges();
         } else {
@@ -1528,28 +1553,32 @@ export class Bot implements DoCheck, OnInit {
     } catch { /* ignore */ }
   }
 
-  onActionClick(action: string) {
+onActionClick(action: string, msg?: ChatMessage) {
 
-    if (action.startsWith('VIEW_POLICY_')) {
-      const policyNumber = action.replace('VIEW_POLICY_', '');
-      this.router.navigate(['/policy-success', policyNumber]);
-      return;
-    }
+  if (msg?.quickReply) msg.actions = [];   // hide the buttons after one tap
 
-    if (["HEALTH", "MOTOR", "TRAVEL", "SURGERY", "HOSPITALIZATION", "ACCIDENT", "CONSULTATION", "YES", "NO", "BUY_HEALTH", "BUY_MOTOR", "BUY_TRAVEL", "PLAN_BASIC", "PLAN_STANDARD", "PLAN_PREMIUM"].includes(action)) {
-      this.userMessage = action;
-      this.sendMessage();
-      return;
-    }
-
-    const cannedMessage =
-      this.actionMessages[this.selectedLanguage][
-      action as keyof typeof this.actionMessages['en']
-      ];
-
-    this.userMessage = cannedMessage || action;
-    this.sendMessage();
+  if (action.startsWith('VIEW_POLICY_')) {
+    const policyNumber = action.replace('VIEW_POLICY_', '');
+    this.router.navigate(['/policy-success', policyNumber]);
+    return;
   }
+
+  if (["HEALTH", "MOTOR", "TRAVEL", "SURGERY", "HOSPITALIZATION", "ACCIDENT", "CONSULTATION", "YES", "NO", "BUY_HEALTH", "BUY_MOTOR", "BUY_TRAVEL", "PLAN_BASIC", "PLAN_STANDARD", "PLAN_PREMIUM"].includes(action)) {
+    this.userMessage = action;
+    this.sendMessage();
+    return;
+    
+  }
+
+  const cannedMessage =
+    this.actionMessages[this.selectedLanguage][
+   action as 'POLICY' | 'CLAIM' | 'RENEW_POLICY' | 'CLAIM_DOCUMENTS'
+    ];
+
+  this.userMessage = cannedMessage || action;
+  this.sendMessage();
+}
+
   onDocumentsSelected(event: any): void {
     const files: FileList = event.target.files;
 

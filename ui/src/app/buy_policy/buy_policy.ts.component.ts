@@ -119,6 +119,7 @@ interface ChatMessage {
 export class BuyPolicyChatComponent implements AfterViewChecked, OnInit {
  
   @Input() embedded: boolean = false;
+  @Input() resumeData: any = null;
  
   @ViewChild('chatBody') chatBodyRef!: ElementRef<HTMLDivElement>;
  
@@ -376,6 +377,11 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       sessionStorage.removeItem('restoreChatOnLoad');
       return;
     }
+
+    if (this.embedded && this.resumeData) {
+      this.resumeFromCard(this.resumeData);
+      return;
+    }
  
     // No restore flag → always a genuinely fresh start.
     // Clear any stale leftovers so they can never silently resurrect later.
@@ -409,7 +415,49 @@ private loadChatHistory(): { messages: ChatMessage[]; stage: Stage } | null {
       vehicleValue: 0
     };
   }
- 
+  
+
+    private resumeFromCard(c: any): void {
+    const map: Record<string, string> = {
+      PENDING: 'PENDING',
+      APPROVED: 'APPROVED',
+      COUNTER_OFFER: 'COUNTER_OFFER',
+      COUNTER_ACCEPTED: 'ACCEPTED_PROCEED',
+      COUNTER_REJECTED: 'REJECTED_BY_CUSTOMER',
+      DECLINED: 'DECLINED'
+    };
+
+    const premium = c.status === 'COUNTER_ACCEPTED' ? c.counterOfferPremium : c.premium;
+
+    const selectedOption = c.optionId
+      ? {
+          optionId: c.optionId,
+          optionNumber: 0,
+          planName: c.planName || '',
+          premium: Number(premium),
+          coverageDetails: ''
+        }
+      : undefined;
+
+    this.stage = 'ASK_FORM';
+    this.pushBot('policy-form', {
+      step: 2,
+      quoteId: c.quoteId,
+      quoteNumber: c.quoteNumber,
+      coverFrom: c.coverFrom,
+      coverTo: c.coverTo,
+      vehicle: c.vehicle,
+      proposalId: c.proposalId,
+      proposalNumber: c.proposalNumber,
+      proposalStatus: map[c.status],
+      underwritingPending: c.status === 'PENDING',
+      counterOfferPremium: c.counterOfferPremium != null ? Number(c.counterOfferPremium) : undefined,
+      underwriterNote: c.note || undefined,
+      selectedOption,
+      formData: this.emptyPolicyForm()
+    });
+  }
+
   ngAfterViewChecked(): void {
     this.scrollToBottom();
   }
@@ -767,81 +815,90 @@ respondToCounterOffer(msg: ChatMessage, response: 'ACCEPTED' | 'REJECTED'): void
       }
     });
 }
- payNowForForm(msg: ChatMessage): void {
-    if (!msg.quoteId || !msg.selectedOption || msg.submitted) {
-      return;
-    }
- 
-    msg.submitted = true;
-    this.formNotice = '';
- 
-    const civilId = msg.formData?.civilIdLicenseNo?.trim();
- 
-    this.quoteService.verifyKyc(civilId!).subscribe({
-      next: (kycRes: any) => {
- 
-        if (!kycRes.verified) {
- 
-          this.quoteService.escalateKycFailure(
-            msg.quoteId!,
-            msg.selectedOption!.optionId,
-            'KYC verification failed'
-          ).subscribe({
-            next: (res: any) => {
-              msg.proposalNumber = res.data.proposal?.proposalNumber;
-              msg.underwritingPending = true;
-              msg.proposalStatus = 'PENDING';
-              msg.submitted = false;
-              this.cdr.detectChanges();
-            },
-            error: () => {
-              msg.submitted = false;
-              this.formNotice = 'Verification failed and could not be submitted for review. Please try again.';
-              this.cdr.detectChanges();
-            }
-          });
- 
-          return;
-        }
- 
-        // KYC passed — proceed to payment as before
-        this.quoteService.processPayment(msg.quoteId!).subscribe({
-          next: (paymentRes: PaymentResponse) => {
-            if (!paymentRes?.data?.success && (paymentRes as any)?.success !== true) {
-              msg.submitted = false;
-              this.formNotice = 'Payment failed. Please try again.';
-              this.cdr.detectChanges();
-              return;
-            }
- 
-            this.quoteService.createPolicy(msg.quoteId!).subscribe({
-              next: (policyRes: PolicyResponse) => {
-                msg.policyNumber = policyRes?.data?.policy?.policyNumber;
-                msg.step = 3;
-                msg.submitted = false;
-                this.saveChatHistory();
-                this.cdr.detectChanges();
-              },
-              error: (err: HttpErrorResponse) => {
-                msg.submitted = false;
-                this.formNotice = err?.error?.message || 'Payment succeeded but policy creation failed. Please contact support.';
-                this.cdr.detectChanges();
-              }
-            });
-          },
-          error: (err: HttpErrorResponse) => {
+
+payNowForForm(msg: ChatMessage): void {
+  if (!msg.quoteId || !msg.selectedOption || msg.submitted) {
+    return;
+  }
+
+  msg.submitted = true;
+  this.formNotice = '';
+
+  // Underwriting already decided: do not run KYC again.
+  if (msg.proposalStatus === 'APPROVED' || msg.proposalStatus === 'ACCEPTED_PROCEED') {
+    this.payAfterKyc(msg);
+    return;
+  }
+
+  const civilId = msg.formData?.civilIdLicenseNo?.trim();
+
+  this.quoteService.verifyKyc(civilId!).subscribe({
+    next: (kycRes: any) => {
+
+      if (!kycRes.verified) {
+        this.quoteService.escalateKycFailure(
+          msg.quoteId!,
+          msg.selectedOption!.optionId,
+          'KYC verification failed'
+        ).subscribe({
+          next: (res: any) => {
+            msg.proposalNumber = res.data.proposal?.proposalNumber;
+            msg.proposalId = res.data.proposal?.proposalId;
+            msg.underwritingPending = true;
+            msg.proposalStatus = 'PENDING';
             msg.submitted = false;
-            this.formNotice = err?.error?.message || 'Payment could not be processed.';
+            this.cdr.detectChanges();
+          },
+          error: () => {
+            msg.submitted = false;
+            this.formNotice = 'Verification failed and could not be submitted for review. Please try again.';
             this.cdr.detectChanges();
           }
         });
-      },
-      error: () => {
-        msg.submitted = false;
-        this.formNotice = 'Could not verify your identity right now. Please try again.';
-        this.cdr.detectChanges();
+        return;
       }
-    });
+
+      this.payAfterKyc(msg);
+    },
+    error: () => {
+      msg.submitted = false;
+      this.formNotice = 'Could not verify your identity right now. Please try again.';
+      this.cdr.detectChanges();
+    }
+  });
+}
+
+private payAfterKyc(msg: ChatMessage): void {
+  this.quoteService.processPayment(msg.quoteId!).subscribe({
+    next: (paymentRes: PaymentResponse) => {
+      if (!paymentRes?.data?.success && (paymentRes as any)?.success !== true) {
+        msg.submitted = false;
+        this.formNotice = 'Payment failed. Please try again.';
+        this.cdr.detectChanges();
+        return;
+      }
+
+      this.quoteService.createPolicy(msg.quoteId!).subscribe({
+        next: (policyRes: PolicyResponse) => {
+          msg.policyNumber = policyRes?.data?.policy?.policyNumber;
+          msg.step = 3;
+          msg.submitted = false;
+          this.saveChatHistory();
+          this.cdr.detectChanges();
+        },
+        error: (err: HttpErrorResponse) => {
+          msg.submitted = false;
+          this.formNotice = err?.error?.message || 'Payment succeeded but policy creation failed. Please contact support.';
+          this.cdr.detectChanges();
+        }
+      });
+    },
+    error: (err: HttpErrorResponse) => {
+      msg.submitted = false;
+      this.formNotice = err?.error?.message || 'Payment could not be processed.';
+      this.cdr.detectChanges();
+    }
+  });
 }
  
   cancelPolicyForm(msg: ChatMessage): void {

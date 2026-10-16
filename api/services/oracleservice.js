@@ -313,7 +313,10 @@ async function getQuoteByNumber(quoteNumber, customerId) {
                 v.MODEL,
                 v.YEAR,
                 v.PLATE_NUMBER,
-                v.PLATE_CODE
+                v.PLATE_CODE,
+                v.CHASSIS_NUMBER,
+                v.BODY_TYPE,
+                v.USAGE_TYPE
             FROM QUOTE q
             LEFT JOIN PRODUCT pr ON pr.PRODUCT_ID = q.PRODUCT_ID
             LEFT JOIN VEHICLE v ON v.VEHICLE_ID = q.VEHICLE_ID

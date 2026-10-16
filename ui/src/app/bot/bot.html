@@ -499,7 +499,7 @@
 
       <!-- Buy Policy form: skip the bubble/text entirely, show only the form -->
       <div class="embedded-buy-policy" *ngIf="msg.uiType === 'BUY_POLICY_FORM'">
-        <app-buy-policy-chat [embedded]="true" [selectedLanguage]="selectedLanguage"></app-buy-policy-chat>
+      <app-buy-policy-chat [embedded]="true" [selectedLanguage]="selectedLanguage" [resumeData]="msg.resumeData"></app-buy-policy-chat>
       </div>
 
       <!-- Every other message keeps the normal bubble -->
@@ -516,10 +516,9 @@
             </span>
           </div>
           <div class="action-buttons" *ngIf="msg.actions && msg.actions.length">
-            <button *ngFor="let action of msg.actions" (click)="onActionClick(action.action)">
+            <button *ngFor="let action of msg.actions" (click)="onActionClick(action.action, msg)">
               {{ action.label }}
             </button>
-
           </div>
           <div class="application-form" *ngIf="msg.form && msg.form.fields">
 

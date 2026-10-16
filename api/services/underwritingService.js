@@ -3,7 +3,7 @@ const { getConnection } = require("../config/oracle");
 
 
 // ======================================================
-// SUBMIT PROPOSAL — now takes a triggerReason
+// SUBMIT PROPOSAL — takes a triggerReason
 // ======================================================
 async function submitProposalForUnderwriting(quoteId, optionId, additionalInfo, triggerReason = 'HIGH_VALUE') {
 
@@ -91,6 +91,8 @@ async function getProposalByQuoteNumber(quoteNumber) {
             JOIN QUOTE q ON p.QUOTE_ID = q.QUOTE_ID
             LEFT JOIN QUOTE_OPTION qo ON p.OPTION_ID = qo.OPTION_ID
             WHERE q.QUOTE_NUMBER = :quoteNumber
+            ORDER BY p.SUBMITTED_AT DESC
+            FETCH FIRST 1 ROW ONLY
             `,
             { quoteNumber },
             { outFormat: oracledb.OUT_FORMAT_OBJECT }
@@ -165,6 +167,7 @@ async function decideProposal(proposalId, decision, note, counterOfferPremium) {
 }
 
 
+// Latest proposal for a quote (a quote can be escalated more than once).
 async function getProposalByQuoteId(quoteId) {
     let connection;
     try {
@@ -180,6 +183,8 @@ async function getProposalByQuoteId(quoteId) {
             FROM PROPOSAL p
             LEFT JOIN QUOTE_OPTION qo ON p.OPTION_ID = qo.OPTION_ID
             WHERE p.QUOTE_ID = :quoteId
+            ORDER BY p.SUBMITTED_AT DESC
+            FETCH FIRST 1 ROW ONLY
             `,
             { quoteId },
             { outFormat: oracledb.OUT_FORMAT_OBJECT }

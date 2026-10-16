@@ -634,12 +634,10 @@ async function processPayment({
     // UNDERWRITING GATE
     // --------------------------------------------------
     //
-    // A quote that was escalated (KYC failure, high value,
-    // payment-failure retry, etc.) has a PROPOSAL row. Payment
-    // must never proceed unless that proposal is APPROVED (or
-    // there is no proposal at all - a normal straight-through
-    // quote). This check lives here, not just in the agent's
-    // prompt, so it holds no matter how PAY_QUOTE is reached.
+    // A quote that was escalated has a PROPOSAL row. Payment must
+    // never proceed unless that proposal is APPROVED, or a
+    // COUNTER_OFFER the customer has ACCEPTED, or there is no
+    // proposal at all (normal straight-through quote).
     // --------------------------------------------------
 
     const proposal =
@@ -677,15 +675,23 @@ async function processPayment({
         };
     }
 
-    if (proposal && proposal.PROPOSAL_STATUS === "COUNTER_OFFER") {
-        console.log("-> proposal has a COUNTER_OFFER, refusing payment until responded to.");
+    if (
+        proposal &&
+        proposal.PROPOSAL_STATUS === "COUNTER_OFFER" &&
+        proposal.CUSTOMER_RESPONSE !== "ACCEPTED"
+    ) {
+        console.log("-> counter-offer not accepted, refusing payment.");
         return {
             success: false,
             uiType: "TEXT",
             reply:
-                language === "ar"
-                    ? `قدم المكتتب عرضًا بديلاً بقسط قدره ${proposal.COUNTER_OFFER_PREMIUM}. يرجى الرد على العرض البديل قبل المتابعة للدفع.`
-                    : `The underwriter has made a counter-offer of ${proposal.COUNTER_OFFER_PREMIUM} for this quote. Please respond to the counter-offer before proceeding to payment.`,
+                proposal.CUSTOMER_RESPONSE === "REJECTED"
+                    ? (language === "ar"
+                        ? "لقد رفضت العرض البديل، لذا لا يمكن الدفع لهذا العرض."
+                        : "You rejected the counter-offer, so this quote can't be paid for.")
+                    : (language === "ar"
+                        ? `قدم المكتتب عرضًا بديلاً بقسط قدره ${proposal.COUNTER_OFFER_PREMIUM}. يرجى الرد على العرض البديل قبل المتابعة للدفع.`
+                        : `The underwriter has made a counter-offer of ${proposal.COUNTER_OFFER_PREMIUM} for this quote. Please respond to the counter-offer before proceeding to payment.`),
             actions: [],
             data: []
         };
@@ -779,11 +785,8 @@ async function processPayment({
             `تمت عملية الدفع بنجاح. تم إنشاء وثيقتك رقم ${policy.policyNumber} بنجاح.`
         ),
 
-        // Mirrors the buy-policy widget's step-3 "View Policy &
-        // Download Documents" button. VIEW_POLICY_ is a routing
-        // action, not a chat message - the frontend intercepts it
-        // in onActionClick() and navigates instead of sending it
-        // to /api/chat.
+        // VIEW_POLICY_ is a routing action: the frontend intercepts it
+        // in onActionClick() and navigates instead of calling /api/chat.
         actions: [
             {
                 label:
@@ -835,8 +838,6 @@ const chat = async (req, res) => {
         console.log("sessionId:", sessionId);
 
         // Use sessionId for conversation state.
-        // This prevents different conversations from sharing
-        // the same purchase flow.
         const flowUserId =
             sessionId || customerId || "guest";
 
@@ -932,26 +933,6 @@ const chat = async (req, res) => {
         // --------------------------------------------------
         // 3. Check active purchase flow FIRST
         // --------------------------------------------------
-        //
-        // This is the most important part.
-        //
-        // Example:
-        //
-        // User: I want to buy insurance
-        //       -> BUY_POLICY
-        //
-        // User: My car
-        //       -> Purchase LLM
-        //
-        // User: Comprehensive
-        //       -> Purchase LLM
-        //
-        // User: My plate number is 12345 and plate code is M
-        //       -> Purchase LLM
-        //
-        // We MUST NOT run detectIntent() again for these
-        // follow-up messages.
-        // --------------------------------------------------
 
         const existingPurchaseFlow =
             getPurchaseFlow(flowUserId);
@@ -988,8 +969,7 @@ const chat = async (req, res) => {
         }
 
         // --------------------------------------------------
-        // 4. No active purchase flow
-        //    Now detect the user's intent
+        // 4. No active purchase flow - detect intent
         // --------------------------------------------------
 
         const intentResult =
@@ -1057,167 +1037,78 @@ const chat = async (req, res) => {
         }
 
         // -------------------------
-// STP - Instant Resolution
-// -------------------------
-
-// if (intent === "COMPLAINT") {
-
-//     const stpResult = await resolveKnownIssue(message);
-
-//     if (stpResult.matched) {
-
-//         const stpContext = stpResult.chunks
-//             .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
-//             .join("\n\n");
-
-//         console.log("\n========== STP ISSUE ==========");
-//         console.log(stpResult.issueCode);
-
-//         console.log("\n========== STP RAG CONTEXT ==========");
-//         console.log(stpContext);
-
-//         const stpReply = await askAI(
-//             message,
-//             "",
-//             stpContext,
-//             history,
-//             language
-//         );
-
-//         // Save assistant response
-//         addMessage(userId, "assistant", stpReply);
-
-//         if (loggedIn && customerId) {
-//             await saveMessage(
-//                 customerId,
-//                 sessionId,
-//                 "bot",
-//                 stpReply,
-//                 language
-//             );
-//         }
-
-//         return res.json({
-//             success: true,
-//             intent,
-//             reply: stpReply,
-//             requiresLogin: false,
-//             uiType: "STP_RESOLUTION",
-//             stp: true,
-//             issueCode: stpResult.issueCode,
-//             actions: [
-//                 {
-//                     label: language === "ar"
-//                         ? "تم الحل"
-//                         : "Yes, resolved",
-//                     action: "STP_RESOLVED"
-//                 },
-//                 {
-//                     label: language === "ar"
-//                         ? "ما زلت بحاجة إلى مساعدة"
-//                         : "No, I still need help",
-//                     action: "STP_NOT_RESOLVED"
-//                 }
-//             ],
-//             data: []
-//         });
-//     }
-
-//     console.log("No known issue matched. Continue with normal complaint flow.");
-// }
-
+        // STP - Instant Resolution
         // -------------------------
-// STP - Instant Resolution
-// -------------------------
 
-if (intent === "COMPLAINT") {
+        if (intent === "COMPLAINT") {
 
-    const stpResult = await resolveKnownIssue(message);
+            const stpResult = await resolveKnownIssue(message);
 
-    if (stpResult.matched) {
+            if (stpResult.matched) {
 
-        const stpContext = stpResult.chunks
-            .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
-            .join("\n\n");
+                const stpContext = stpResult.chunks
+                    .map(chunk => `[${chunk.fileName}]\n${chunk.text}`)
+                    .join("\n\n");
 
-        console.log("\n========== STP ISSUE ==========");
-        console.log(stpResult.issueCode);
+                console.log("\n========== STP ISSUE ==========");
+                console.log(stpResult.issueCode);
 
-        console.log("\n========== STP RAG CONTEXT ==========");
-        console.log(stpContext);
+                console.log("\n========== STP RAG CONTEXT ==========");
+                console.log(stpContext);
 
-        const stpReply = await askAI(
-            message,
-            "",
-            stpContext,
-            history,
-            language
-        );
+                const stpReply = await askAI(
+                    message,
+                    "",
+                    stpContext,
+                    history,
+                    lang
+                );
 
-        // Save assistant response
-        addMessage(userId, "assistant", stpReply);
+                // FIX: was `userId` / `language`, which are not defined here.
+                addMessage(flowUserId, "assistant", stpReply);
 
-        if (loggedIn && customerId) {
-            await saveMessage(
-                customerId,
-                sessionId,
-                "bot",
-                stpReply,
-                language
-            );
-        }
-
-        return res.json({
-            success: true,
-            intent,
-            reply: stpReply,
-            requiresLogin: false,
-            uiType: "STP_RESOLUTION",
-            stp: true,
-            issueCode: stpResult.issueCode,
-            actions: [
-                {
-                    label: language === "ar"
-                        ? "تم الحل"
-                        : "Yes, resolved",
-                    action: "STP_RESOLVED"
-                },
-                {
-                    label: language === "ar"
-                        ? "ما زلت بحاجة إلى مساعدة"
-                        : "No, I still need help",
-                    action: "STP_NOT_RESOLVED"
+                if (loggedIn && customerId) {
+                    await saveMessage(
+                        customerId,
+                        sessionId,
+                        "bot",
+                        stpReply,
+                        lang
+                    );
                 }
-            ],
-            data: []
-        });
-    }
 
-    console.log("No known issue matched. Continue with normal complaint flow.");
-}
+                return res.json({
+                    success: true,
+                    intent,
+                    reply: stpReply,
+                    requiresLogin: false,
+                    uiType: "STP_RESOLUTION",
+                    stp: true,
+                    issueCode: stpResult.issueCode,
+                    actions: [
+                        {
+                            label: lang === "ar"
+                                ? "تم الحل"
+                                : "Yes, resolved",
+                            action: "STP_RESOLVED"
+                        },
+                        {
+                            label: lang === "ar"
+                                ? "ما زلت بحاجة إلى مساعدة"
+                                : "No, I still need help",
+                            action: "STP_NOT_RESOLVED"
+                        }
+                    ],
+                    data: []
+                });
+            }
+
+            console.log("No known issue matched. Continue with normal complaint flow.");
+        }
 
 
         // --------------------------------------------------
         // 5b. Policy / quote / claim agent
-        // --------------------------------------------------
-        //
-        // Runs BEFORE the purchase-flow start and out-of-scope
-        // checks on purpose:
-        //
-        //  - POLICY intent (a policy/quote/claim number or
-        //    question - the reference-number shortcut in
-        //    intentservice.js routes CLM- numbers here too).
-        //  - CLAIM intent (a natural-language claim question with
-        //    no number yet, e.g. "what's my claim status" - the
-        //    agent will ask for the claim number itself).
-        //  - A short follow-up ("yes", "continue") to a question
-        //    the agent just asked. On its own that reads as
-        //    BUY_POLICY, so without this it would start a brand
-        //    new purchase flow or fall into generic chat.
-        //
-        // All of these require a logged-in customer, and every
-        // agent tool is scoped to that customerId. Step 5 above
-        // has already sent logged-out requests to the login prompt.
         // --------------------------------------------------
 
         const isShortFollowUp =
@@ -1243,8 +1134,6 @@ if (intent === "COMPLAINT") {
                     customerId
                 });
 
-            // One-shot: only stay "awaiting" if the agent is
-            // still waiting on another answer.
             setAgentAwaiting(
                 flowUserId,
                 agentResult.awaitingConfirmation
@@ -1278,14 +1167,6 @@ if (intent === "COMPLAINT") {
         // --------------------------------------------------
         // 6. Out of scope
         // --------------------------------------------------
-        //
-        // This is reached ONLY when there is no active
-        // purchase flow.
-        //
-        // Therefore a purchase follow-up such as:
-        // "plate number is 12345"
-        // cannot accidentally reach this block.
-        // --------------------------------------------------
 
         if (intent === "OUT_OF_SCOPE") {
             const reply =
@@ -1312,11 +1193,6 @@ if (intent === "COMPLAINT") {
         // 7. Start purchase flow
         // --------------------------------------------------
 
-        // Only a confirmed BUY_POLICY + readyToPurchase starts the
-        // form/slot-filling flow. INSURANCE_GENERAL and any
-        // BUY_POLICY that the AI itself flagged as not-yet-ready
-        // (e.g. "planning to buy... suggest some ideas") fall
-        // through to the normal RAG/chat path below instead.
         const isPurchaseRequest =
             intent === "BUY_POLICY" &&
             readyToPurchase;
@@ -1325,10 +1201,6 @@ if (intent === "COMPLAINT") {
             const purchaseFlow =
                 startPurchaseFlow(flowUserId);
 
-            // Pre-seed the flow with the insurance type we already
-            // extracted during intent detection, so the purchase
-            // flow doesn't re-ask something the customer already
-            // told us.
             if (detectedInsuranceType !== "UNKNOWN") {
                 updatePurchaseFlow(flowUserId, {
                     insuranceType: detectedInsuranceType
@@ -1377,7 +1249,7 @@ if (intent === "COMPLAINT") {
                 .join("\n\n");
 
         const aiReply =
-                await askAI(
+            await askAI(
                 message,
                 "",
                 ragContext,
@@ -1480,16 +1352,13 @@ async function handlePurchaseFlow({
     console.log(JSON.stringify({ stage, missing, collectedData: finalFlow.collectedData }, null, 2));
 
     // --------------------------------------------------
-    // Hand off MOTOR purchases to the visual Buy Policy
-    // form — it collects productType, plate details, and
-    // dates in one screen, so skip the text slot-filling.
+    // Hand off MOTOR purchases to the visual Buy Policy form.
     // --------------------------------------------------
 
     if (
         finalFlow.insuranceType === "MOTOR" &&
         stage !== "READY_FOR_QUOTE"
     ) {
-        // Require login before showing the purchase form.
         if (!loggedIn || !customerId) {
             const loginReply = TEXT[lang].loginPurchase;
 
@@ -1520,8 +1389,7 @@ async function handlePurchaseFlow({
 
         await saveMessage(customerId, sessionId, "bot", formHandoffReply, lang);
 
-        // The form owns quote + payment from here via QuoteService,
-        // so clear the LLM-driven flow to avoid stale state.
+        // The form owns quote + payment from here via QuoteService.
         endPurchaseFlow(userId);
 
         return res.json({
@@ -1540,8 +1408,7 @@ async function handlePurchaseFlow({
     }
 
     // --------------------------------------------------
-    // Quote can only happen when backend validation
-    // says READY.
+    // Quote can only happen when backend validation says READY.
     // --------------------------------------------------
 
     if (stage === "READY_FOR_QUOTE") {
@@ -1591,8 +1458,8 @@ async function handlePurchaseFlow({
     }
 
     // --------------------------------------------------
-    // Continue purchase conversation (text Q&A for
-    // non-Motor types, or before insurance type is known).
+    // Continue purchase conversation (non-Motor types, or before
+    // insurance type is known).
     // --------------------------------------------------
 
     const reply =
@@ -1629,6 +1496,8 @@ async function handlePurchaseFlow({
         missingInformation: missing
     });
 }
+
+
 // Clear chat and purchase flow.
 
 const clearChat = (req, res) => {

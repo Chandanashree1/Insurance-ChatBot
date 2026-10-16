@@ -16,10 +16,8 @@ function sleep(ms) {
 }
 
 /*
- * The LLM host has occasionally returned a transient 5xx/gateway
- * timeout (e.g. Cloudflare 504) on a call that otherwise would
- * have succeeded. One short, silent retry absorbs that without
- * making the customer see an error for a blip that self-resolves.
+ * One short, silent retry absorbs transient 5xx/gateway timeouts
+ * from the LLM host.
  */
 async function callLLMWithRetry(messages) {
 
@@ -45,22 +43,10 @@ async function callLLMWithRetry(messages) {
 POLICY STATUS AGENT
 =========================================================
 
-Unlike the purchase flow (LLM extracts, backend decides),
-this agent is intentionally allowed to decide WHICH tool to
-call and WHEN, and can chain multiple calls before answering.
-That's safe here because:
-
-  1. Every tool is either read-only, or - for
-     resumeIncompleteQuote - only re-seeds in-memory purchase
-     flow state (collectedData) using values pulled straight
-     from the customer's own DB row. No tool here ever selects
-     an option, takes payment, or creates a policy; those still
-     only happen through the existing deterministic
-     handlePurchaseFlow once the customer confirms.
-  2. getPolicyDetails / getQuoteDetails / resumeIncompleteQuote
-     are all scoped server-side to the logged-in customerId, so
-     the agent cannot be steered into touching someone else's
-     policy or quote.
+The agent decides WHICH tool to call and WHEN. Every tool is
+read-only, or (resumeIncompleteQuote) only re-seeds in-memory
+purchase flow state from the customer's own DB row. All tools are
+scoped to the logged-in customerId.
 
 This must NOT be extended with a tool that writes payment or
 policy data directly.
@@ -76,13 +62,9 @@ const MAX_AGENT_STEPS = 4;
 AWAITING-CONFIRMATION STATE
 =========================================================
 
-Every message is intent-classified on its own, so a bare "yes"
-after the agent asked "Would you like to continue?" looks like
-BUY_POLICY and never reaches the agent. When a turn ends with the
-agent waiting for the customer's answer, we remember that here so
-the controller can route the very next short reply back to the
-agent. It is one-shot and expires, so it can't hijack later,
-unrelated messages.
+When a turn ends with the agent waiting for the customer's next
+short reply, remember it so the controller routes that reply back
+to the agent. One-shot and expires.
 =========================================================
 */
 
@@ -242,31 +224,22 @@ RULES
 
 6. getQuoteDetails may return a "proposal" - this means the quote
    was escalated to underwriting (KYC failure, high value, etc).
-   Check its status before saying anything about continuing or
-   paying:
-     - No proposal at all, or proposal.status is "APPROVED": the
-       quote is a normal in-progress purchase. If paymentStatus
-       is not "PAID", tell the customer it's still incomplete and
-       ask if they'd like to continue/complete it. Only call
-       resumeIncompleteQuote after they confirm - never resume a
-       quote the customer hasn't asked to continue, and never on
-       a quote that is already paid. A short reply such as "yes",
-       "ok", "continue" or "proceed" answers the last question you
-       asked - take the quote number from earlier in the
-       conversation and call resumeIncompleteQuote right away,
-       never asking for the quote number or insurance type again.
-     - proposal.status is "PENDING": tell the customer it's still
-       under underwriting review and they'll be notified once a
-       decision is made. Do not ask if they want to continue, and
-       do not call resumeIncompleteQuote - it will be refused.
-     - proposal.status is "DECLINED": tell the customer plainly
-       that this quote was declined during underwriting review,
-       and share the underwriter's note if one is present. Do not
-       offer to continue or resume it - it cannot be paid for.
-     - proposal.status is "COUNTER_OFFER": tell the customer the
-       underwriter offered a revised premium (state the amount)
-       and that they need to respond to the counter-offer before
-       payment can proceed. Do not call resumeIncompleteQuote.
+   For any quote that has a proposal, the system builds the final
+   customer message and card itself; never add a "continue/pay?"
+   question yourself. If the customer says they want to pay, call
+   getQuoteDetails again with the quote number from earlier in the
+   conversation.
+   For a quote with NO proposal:
+     - If paymentStatus is not "PAID", tell the customer it's
+       still incomplete and ask if they'd like to continue/complete
+       it. Only call resumeIncompleteQuote after they confirm -
+       never resume a quote the customer hasn't asked to continue,
+       and never on a quote that is already paid. A short reply
+       such as "yes", "ok", "continue" or "proceed" answers the
+       last question you asked - take the quote number from earlier
+       in the conversation and call resumeIncompleteQuote right
+       away, never asking for the quote number or insurance type
+       again.
 
 7. getClaimStatus returns a claim with one of these statuses -
    explain it plainly rather than just repeating the raw value:
@@ -317,12 +290,112 @@ To answer the customer:
 
 /*
 =========================================================
+PROPOSAL STATUS VIEW (built in code, not by the LLM)
+=========================================================
+
+For a quote that was escalated to underwriting, the reply text and
+the card data are produced here from the PROPOSAL row. The frontend
+shows the existing Buy Policy card (Under Review / Approved /
+Counter-offer / Declined), which owns the Pay Now, Accept and
+Reject buttons. No action buttons are returned from here.
+=========================================================
+*/
+
+function buildStatusView(quote, proposal, selectedOption, language) {
+
+    // Normal quotes (no proposal) and paid quotes stay with the LLM.
+    if (!proposal || quote.PAYMENT_STATUS === "PAID") return null;
+
+    const ar = language === "ar";
+    const qn = quote.QUOTE_NUMBER;
+    const pn = proposal.PROPOSAL_NUMBER;
+    const status = proposal.PROPOSAL_STATUS;
+    const response = proposal.CUSTOMER_RESPONSE;
+
+    let cardStatus = status;
+    if (status === "COUNTER_OFFER" && response === "ACCEPTED") cardStatus = "COUNTER_ACCEPTED";
+    if (status === "COUNTER_OFFER" && response === "REJECTED") cardStatus = "COUNTER_REJECTED";
+
+    const card = {
+        quoteId: quote.QUOTE_ID,
+        quoteNumber: qn,
+        proposalId: proposal.PROPOSAL_ID,
+        proposalNumber: pn,
+        optionId: proposal.OPTION_ID || selectedOption?.OPTION_ID || null,
+        status: cardStatus,
+        planName: proposal.PLAN_NAME || selectedOption?.PLAN_NAME || null,
+        premium: proposal.PREMIUM ?? selectedOption?.PREMIUM ?? null,
+        counterOfferPremium: proposal.COUNTER_OFFER_PREMIUM ?? null,
+        note: proposal.UNDERWRITER_NOTE || null,
+        coverFrom: quote.COVER_FROM,
+        coverTo: quote.COVER_TO,
+        vehicle: {
+            make: quote.MAKE,
+            model: quote.MODEL,
+            year: quote.YEAR,
+            plateNumber: quote.PLATE_NUMBER,
+            plateCode: quote.PLATE_CODE,
+            chassisNumber: quote.CHASSIS_NUMBER,
+            bodyType: quote.BODY_TYPE,
+            usageType: quote.USAGE_TYPE
+        }
+    };
+
+    const note = proposal.UNDERWRITER_NOTE;
+    let reply;
+
+    if (status === "PENDING") {
+        reply = ar
+            ? `عرضك ${qn} (الطلب ${pn}) قيد مراجعة الاكتتاب. سنبلغك فور صدور القرار.`
+            : `Your quote ${qn} (proposal ${pn}) is still under underwriting review. You'll be able to continue once a decision is made.`;
+
+    } else if (status === "APPROVED") {
+        reply = ar
+            ? `تمت الموافقة على طلبك ${pn}. يمكنك الدفع أدناه.`
+            : `Your proposal ${pn} has been approved. You can pay below.`;
+
+    } else if (status === "COUNTER_OFFER" && !response) {
+        reply = ar
+            ? `قدّم المكتتب عرضًا بديلاً. يرجى مراجعته أدناه.`
+            : `The underwriter has made a counter-offer. Please review it below.`;
+
+    } else if (status === "COUNTER_OFFER" && response === "ACCEPTED") {
+        reply = ar
+            ? `لقد قبلت العرض البديل. يمكنك الدفع أدناه.`
+            : `You've accepted the counter-offer. You can pay below.`;
+
+    } else if (status === "COUNTER_OFFER" && response === "REJECTED") {
+        reply = ar
+            ? `لقد رفضت العرض البديل، لذا لا يمكن إتمام هذا العرض.`
+            : `You rejected the counter-offer, so this quote can't be completed.`;
+
+    } else if (status === "DECLINED") {
+        reply = ar
+            ? `للأسف، تم رفض طلبك ${pn} من قبل الاكتتاب.` + (note ? ` ملاحظة: ${note}` : "")
+            : `Unfortunately, your proposal ${pn} was declined by underwriting.` + (note ? ` Note: ${note}` : "");
+
+    } else {
+        return null;
+    }
+
+    return {
+        reply,
+        uiType: "PROPOSAL_STATUS",
+        actions: [],
+        data: [card],
+        cardStatus
+    };
+}
+
+
+/*
+=========================================================
 TOOL EXECUTION
 =========================================================
 
 The LLM only ever picks a tool name + args. This function is
-the only thing that actually touches the database/RAG index,
-and it's where access control lives (see customerId scoping).
+the only thing that touches the database/RAG index, and it's
+where access control lives (customerId scoping).
 =========================================================
 */
 
@@ -425,11 +498,14 @@ async function executeTool(toolName, args, context) {
             quote,
             selectedOption: selectedOption || null,
             availableOptions,
-            // Present only when this quote was escalated to
-            // underwriting (KYC failure, high value, etc). Its
-            // status governs what you should tell the customer -
-            // see the rules above.
-            proposal: proposal || null
+            proposal: proposal || null,
+            // Reply + card for escalated quotes, built in code.
+            statusView: buildStatusView(
+                quote,
+                proposal,
+                selectedOption,
+                context.language
+            )
         };
 
     }
@@ -500,8 +576,7 @@ async function executeTool(toolName, args, context) {
         }
 
         // Same gate as the actual payment step (processPayment in
-        // chatControllers.js) - checked here too so the agent never
-        // even offers to continue a quote that can't be paid for.
+        // chatControllers.js).
         const proposal =
             await getProposalByQuoteId(quote.QUOTE_ID);
 
@@ -520,20 +595,21 @@ async function executeTool(toolName, args, context) {
             };
         }
 
-        if (proposal && proposal.PROPOSAL_STATUS === "COUNTER_OFFER") {
+        // A counter-offer can be resumed only after the customer accepted it.
+        if (
+            proposal &&
+            proposal.PROPOSAL_STATUS === "COUNTER_OFFER" &&
+            proposal.CUSTOMER_RESPONSE !== "ACCEPTED"
+        ) {
             return {
                 error:
-                    `The underwriter has made a counter-offer of ${proposal.COUNTER_OFFER_PREMIUM} for this quote (proposal ${proposal.PROPOSAL_NUMBER}). The customer must respond to the counter-offer before this can be resumed for payment.`
+                    proposal.CUSTOMER_RESPONSE === "REJECTED"
+                        ? `The customer rejected the counter-offer for proposal ${proposal.PROPOSAL_NUMBER}. It cannot be resumed.`
+                        : `The underwriter made a counter-offer of ${proposal.COUNTER_OFFER_PREMIUM} (proposal ${proposal.PROPOSAL_NUMBER}). The customer must accept it first.`
             };
         }
 
-        // Re-open the flow. This mirrors exactly what the
-        // deterministic quote-creation/quote-selection steps in
-        // chatControllers.js already store in collectedData - the
-        // agent only re-seeds state, it never selects an option or
-        // takes payment itself. The NEXT message from this customer
-        // will be picked up by the existing active-flow check at the
-        // top of chat() and routed straight into handlePurchaseFlow.
+        // Re-open the flow (re-seeds state only).
         startPurchaseFlow(context.customerId);
 
         updatePurchaseFlow(
@@ -556,7 +632,6 @@ async function executeTool(toolName, args, context) {
 
         if (selectedOption) {
 
-            // Option already chosen last time - go straight to payment.
             return {
                 resumed: true,
                 quote,
@@ -604,13 +679,6 @@ async function executeTool(toolName, args, context) {
 =========================================================
 NORMALIZE NEAR-MISS SHAPES
 =========================================================
-
-Smaller/local models reliably follow the JSON contract on the
-first turn, then drift slightly once there's a tool result in
-context (e.g. {"final": "..."} instead of
-{"action":"final_answer","reply":"..."}). Rather than failing
-the whole request on a near-miss, recognize the common variants.
-=========================================================
 */
 
 function normalizeAgentAction(parsed) {
@@ -619,12 +687,10 @@ function normalizeAgentAction(parsed) {
         return parsed;
     }
 
-    // Already correct.
     if (parsed.action === "call_tool" || parsed.action === "final_answer") {
         return parsed;
     }
 
-    // {"final_answer": "..."} or {"final_answer": {"reply": "..."}}
     if (typeof parsed.final_answer !== "undefined") {
         const inner = parsed.final_answer;
 
@@ -637,7 +703,6 @@ function normalizeAgentAction(parsed) {
         };
     }
 
-    // {"tool": "...", "args": {...}} with no/wrong action label.
     if (parsed.tool) {
         return {
             action: "call_tool",
@@ -646,7 +711,6 @@ function normalizeAgentAction(parsed) {
         };
     }
 
-    // {"reply": "..."} or {"answer": "..."} with no/wrong action label.
     if (typeof parsed.reply === "string" || typeof parsed.answer === "string") {
         return {
             action: "final_answer",
@@ -654,7 +718,6 @@ function normalizeAgentAction(parsed) {
         };
     }
 
-    // {"action": "final"} / "answer" / "respond" variants.
     if (
         typeof parsed.action === "string" &&
         ["final", "answer", "respond", "reply"].includes(
@@ -703,12 +766,6 @@ function parseAgentJson(rawResponse) {
 /*
 =========================================================
 RUN AGENT
-=========================================================
-
-customerId is required for getPolicyDetails to work at all -
-this should only be called from a path that already confirmed
-the user is logged in (e.g. the POLICY intent branch, which is
-already a PROTECTED_INTENTS entry in the controller).
 =========================================================
 */
 
@@ -774,10 +831,6 @@ async function runAgent({
         } catch (error) {
             console.error("Agent LLM Error:", error.message);
 
-            // If a tool already produced something useful (e.g. the
-            // quote options) before the LLM call failed, don't waste
-            // that - point the customer at what's already on screen
-            // instead of a bare error.
             if (lastUi) {
                 return finish(
                     language === "ar"
@@ -804,9 +857,6 @@ async function runAgent({
         try {
             parsed = parseAgentJson(raw);
         } catch (error) {
-            // Model didn't follow the JSON contract - fall back to
-            // treating its raw text as the final answer rather than
-            // failing the whole request.
             return finish(raw.trim());
         }
 
@@ -838,7 +888,7 @@ async function runAgent({
                 await executeTool(
                     toolName,
                     args,
-                    { customerId }
+                    { customerId, language }
                 );
 
             console.log(
@@ -852,17 +902,33 @@ async function runAgent({
                 lastUi = result.ui;
             }
 
-            // An unpaid, resumable quote was just described: the
-            // agent will end this turn by asking whether to continue,
-            // so the next reply ("yes") must come back to the agent.
-            // A quote with a DECLINED/PENDING/COUNTER_OFFER proposal
-            // is NOT resumable - resumeIncompleteQuote will refuse it
-            // anyway, so there's nothing to wait for an answer to.
+            // Escalated quote: reply + card come from code, skip the LLM.
+            if (toolName === "getQuoteDetails" && result?.statusView) {
+
+                const v = result.statusView;
+
+                lastUi = {
+                    uiType: v.uiType,
+                    actions: v.actions,
+                    data: v.data
+                };
+
+                // Keep routing the customer's next short message back to
+                // the agent (e.g. "I want to pay") unless this is final.
+                awaiting =
+                    v.cardStatus !== "DECLINED" &&
+                    v.cardStatus !== "COUNTER_REJECTED";
+
+                return finish(v.reply);
+            }
+
+            // Normal (no proposal) unpaid quote: the agent will ask
+            // whether to continue, so the next "yes" must come back.
             if (
                 toolName === "getQuoteDetails" &&
                 result?.quote &&
                 result.quote.PAYMENT_STATUS !== "PAID" &&
-                !(result?.proposal && result.proposal.PROPOSAL_STATUS !== "APPROVED")
+                !result?.proposal
             ) {
                 awaiting = true;
             }
@@ -895,7 +961,6 @@ async function runAgent({
         }
 
 
-        // Unrecognized action shape from the model.
         return finish(
             language === "ar"
                 ? "عذرًا، لم أتمكن من معالجة ذلك. هل يمكنك إعادة الصياغة؟"
@@ -905,7 +970,6 @@ async function runAgent({
     }
 
 
-    // Hit the step limit without a final_answer.
     return finish(
         language === "ar"
             ? "أحتاج توضيحًا أكثر للإجابة على ذلك. هل يمكنك إعادة صياغة سؤالك؟"
@@ -918,5 +982,6 @@ async function runAgent({
 module.exports = {
     runAgent,
     setAgentAwaiting,
-    isAgentAwaiting
+    isAgentAwaiting,
+    executeTool
 };

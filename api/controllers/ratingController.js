@@ -206,6 +206,7 @@ async function saveRating(
 // GET PENDING FOLLOW-UPS (LIST)
 // ==========================================
 
+
 async function fetchAgentFollowUps() {
     let connection;
 
@@ -222,9 +223,10 @@ async function fetchAgentFollowUps() {
                 LANGUAGE,
                 FOLLOW_UP_STATUS,
                 CREATED_AT
-            FROM CHAT_RATINGS
-            WHERE FOLLOW_UP_STATUS = 'PENDING'
-            ORDER BY CREATED_AT ASC`,
+             FROM CHAT_RATINGS
+             WHERE RATING <= 2
+               AND FOLLOW_UP_STATUS IN ('PENDING', 'IN_PROGRESS')
+             ORDER BY CREATED_AT DESC`,
             {},
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
@@ -234,7 +236,6 @@ async function fetchAgentFollowUps() {
         return result.rows;
 
     } finally {
-
         if (connection) {
             try {
                 await connection.close();
@@ -244,6 +245,7 @@ async function fetchAgentFollowUps() {
         }
     }
 }
+
 
 // ==========================================
 // UPDATE A FOLLOW-UP'S STATUS
