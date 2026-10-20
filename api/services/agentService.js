@@ -9,6 +9,11 @@ const { retrieveRelevantChunks } = require("./ragService");
 const { startPurchaseFlow, updatePurchaseFlow } = require("./purchaseFlowService");
 const { getProposalByQuoteId } = require("./underwritingService");
 const { getClaimByNumber } = require("./Claimservice");
+const {
+    isWrongLanguage,
+    languageReminder,
+    languageFallback
+} = require("./languageGuard");
 
 
 function sleep(ms) {
@@ -113,7 +118,7 @@ const TOOLS = {
             "Look up the logged-in customer's own policy by policy number. Returns null if no such policy exists for this customer.",
         parameters: {
             policyNumber:
-                "string - the policy number, e.g. POL-1234567890-1234"
+                "string - exactly the policy number the customer wrote (starts with POL-)"
         }
     },
 
@@ -133,7 +138,7 @@ const TOOLS = {
             "Look up the logged-in customer's own quote by quote number (not yet a policy). Returns its product, vehicle, premium options, and payment status. Returns null if no such quote exists for this customer.",
         parameters: {
             quoteNumber:
-                "string - the quote number, e.g. QT-2026-00101"
+                "string - exactly the quote number the customer wrote (starts with QT-)"
         }
     },
 
@@ -142,7 +147,7 @@ const TOOLS = {
             "Look up the logged-in customer's own claim by claim number. Returns its status (STP_APPROVED, PENDING, APPROVED, DECLINED), amount, and adjuster note if any. Returns null if no such claim exists for this customer.",
         parameters: {
             claimNumber:
-                "string - the claim number, e.g. CLM-2026-00012"
+                "string - exactly the claim number the customer wrote (starts with CLM-)"
         }
     },
 
@@ -151,7 +156,7 @@ const TOOLS = {
             "Re-open an unpaid quote so the customer can pick an option and/or pay. Only call this AFTER getQuoteDetails has confirmed the quote exists and is not yet paid, and the customer has said they want to continue/complete/pay for it. Do not call this for quotes that are already paid.",
         parameters: {
             quoteNumber:
-                "string - the quote number to resume, e.g. QT-2026-00101"
+                "string - exactly the quote number the customer wrote (starts with QT-)"
         }
     }
 
@@ -262,6 +267,9 @@ RULES
 
 10. Once you have enough information, or if no tool can help,
     give a final answer. Do not call tools you don't need.
+
+11. All money amounts are in Omani Rial. Write them as "OMR 600",
+    never with a $ sign or any other currency symbol.
 
 ${languageRule}
 
@@ -399,7 +407,45 @@ where access control lives (customerId scoping).
 =========================================================
 */
 
+/*
+ * The number passed to a lookup tool must be one the customer
+ * actually wrote in this conversation. Without this, the model can
+ * (and did) fill the argument with an example value it saw in the
+ * prompt, or invent one, and the lookup would still succeed if that
+ * number happened to belong to the logged-in customer.
+ */
+const REFERENCE_ARG = {
+    getPolicyDetails: "policyNumber",
+    getQuoteDetails: "quoteNumber",
+    resumeIncompleteQuote: "quoteNumber",
+    getClaimStatus: "claimNumber"
+};
+
+function normalizeRef(value) {
+    return String(value || "").toUpperCase().replace(/\s+/g, "");
+}
+
+function wasProvidedByCustomer(value, userText) {
+    return normalizeRef(userText).includes(normalizeRef(value));
+}
+
 async function executeTool(toolName, args, context) {
+
+    const refArg = REFERENCE_ARG[toolName];
+
+    if (refArg) {
+
+        const value = String(args?.[refArg] || "").trim();
+
+        if (value && !wasProvidedByCustomer(value, context.userText)) {
+            return {
+                error:
+                    `The ${refArg} "${value}" was not written by the customer ` +
+                    `in this conversation. Never guess a number or reuse one ` +
+                    `from an example. Ask the customer for the number instead.`
+            };
+        }
+    }
 
     if (toolName === "getPolicyDetails") {
 
@@ -427,7 +473,7 @@ async function executeTool(toolName, args, context) {
             };
         }
 
-        return { policy };
+        return { policy, currency: "OMR" };
 
     }
 
@@ -499,6 +545,7 @@ async function executeTool(toolName, args, context) {
             selectedOption: selectedOption || null,
             availableOptions,
             proposal: proposal || null,
+            currency: "OMR",
             // Reply + card for escalated quotes, built in code.
             statusView: buildStatusView(
                 quote,
@@ -537,7 +584,7 @@ async function executeTool(toolName, args, context) {
             };
         }
 
-        return { claim };
+        return { claim, currency: "OMR" };
 
     }
 
@@ -691,6 +738,19 @@ function normalizeAgentAction(parsed) {
         return parsed;
     }
 
+    // {"action": "getClaimStatus", "args": {...}} - the model put the
+    // tool name in the action field instead of using "call_tool".
+    if (
+        typeof parsed.action === "string" &&
+        Object.prototype.hasOwnProperty.call(TOOLS, parsed.action)
+    ) {
+        return {
+            action: "call_tool",
+            tool: parsed.action,
+            args: parsed.args || {}
+        };
+    }
+
     if (typeof parsed.final_answer !== "undefined") {
         const inner = parsed.final_answer;
 
@@ -805,9 +865,21 @@ async function runAgent({
     });
 
 
+    // Everything the customer has actually typed in this
+    // conversation - used to verify that a number passed to a
+    // lookup tool really came from them (see executeTool).
+    const userText =
+        (Array.isArray(history) ? history : [])
+            .filter(item => item.role === "user")
+            .map(item => item.content)
+            .concat(message)
+            .join("\n");
+
     const trace = [];
     let lastUi = null;
     let awaiting = false;
+    let formatRetries = 0;
+    let languageRetries = 0;
 
 
     function finish(reply) {
@@ -857,7 +929,13 @@ async function runAgent({
         try {
             parsed = parseAgentJson(raw);
         } catch (error) {
-            return finish(raw.trim());
+            const text = raw.trim();
+
+            return finish(
+                isWrongLanguage(text, language)
+                    ? languageFallback(language)
+                    : text
+            );
         }
 
         parsed = normalizeAgentAction(parsed);
@@ -865,11 +943,45 @@ async function runAgent({
 
         if (parsed.action === "final_answer") {
 
-            return finish(
+            const reply =
                 typeof parsed.reply === "string"
                     ? parsed.reply.trim()
-                    : ""
-            );
+                    : "";
+
+            // Only English or Arabic (the customer's language tab) is
+            // allowed. Chinese/Russian output is caught here by its
+            // writing system; ask once more, then use a fixed message.
+            if (isWrongLanguage(reply, language)) {
+
+                if (languageRetries < 1) {
+
+                    languageRetries++;
+
+                    console.warn(
+                        "Agent reply in wrong language, retrying once:",
+                        reply.slice(0, 80)
+                    );
+
+                    messages.push({
+                        role: "assistant",
+                        content: JSON.stringify(parsed)
+                    });
+
+                    messages.push({
+                        role: "system",
+                        content:
+                            "That reply was not in the required language. " +
+                            languageReminder(language) +
+                            " Return the same JSON shape again."
+                    });
+
+                    continue;
+                }
+
+                return finish(languageFallback(language));
+            }
+
+            return finish(reply);
 
         }
 
@@ -888,7 +1000,7 @@ async function runAgent({
                 await executeTool(
                     toolName,
                     args,
-                    { customerId, language }
+                    { customerId, language, userText }
                 );
 
             console.log(
@@ -960,6 +1072,37 @@ async function runAgent({
 
         }
 
+
+        // Unrecognized action shape from the model. Give it one
+        // chance to fix its own formatting before giving up, since
+        // this is usually a one-off slip (the same request often
+        // succeeds on the next try).
+        if (formatRetries < 1) {
+
+            formatRetries++;
+
+            console.warn(
+                "Agent returned an unrecognized shape, retrying once:",
+                JSON.stringify(parsed)
+            );
+
+            messages.push({
+                role: "assistant",
+                content: JSON.stringify(parsed)
+            });
+
+            messages.push({
+                role: "system",
+                content:
+                    `Your last reply did not match the required format. ` +
+                    `Respond with ONLY JSON, in exactly one of these ` +
+                    `two shapes - nothing else:\n` +
+                    `{"action": "call_tool", "tool": "...", "args": {}}\n` +
+                    `{"action": "final_answer", "reply": "..."}`
+            });
+
+            continue;
+        }
 
         return finish(
             language === "ar"

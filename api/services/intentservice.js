@@ -182,6 +182,49 @@ function normalizeIntent(result) {
  * meaning, so it is safe to do without the LLM - and it guarantees
  * a bare reference number is never misclassified as OUT_OF_SCOPE.
  */
+/*
+ * Purchase-readiness backstop.
+ *
+ * The model sometimes marks a plain request like "i need to buy a
+ * motor insurance" as not ready (readyToPurchase: false), so the
+ * purchase form never opens. This can ONLY upgrade a message the
+ * model already labelled BUY_POLICY with a known insurance type - it
+ * never creates an intent - and only when the message is a plain
+ * first-person purchase statement with no question or advice wording.
+ * Anything ambiguous is left exactly as the model decided.
+ */
+const PURCHASE_STATEMENT_PATTERN =
+    /\b(?:i|we)\s*(?:need|want|wish|would\s+like|'d\s+like)\s+to\s+(?:buy|purchase|get|take|apply\s+for)\b|^\s*(?:buy|purchase)\s+(?:a\s+|an\s+|my\s+|new\s+)?(?:motor|car|vehicle|health|travel|life)?\s*(?:insurance|policy)\b/i;
+
+const ADVICE_WORDING_PATTERN =
+    /\?|\b(?:suggest|suggestion|suggestions|idea|ideas|advice|advise|recommend|recommendation|compare|comparison|difference|which|should|what|how|why|where|can\s+i|can\s+you|explain|tell\s+me|thinking|planning|considering|wondering|not\s+sure)\b/i;
+
+function applyPurchaseBackstop(message, normalized) {
+
+    if (
+        normalized.intent === "BUY_POLICY" &&
+        !normalized.readyToPurchase &&
+        normalized.insuranceType !== "UNKNOWN" &&
+        PURCHASE_STATEMENT_PATTERN.test(String(message)) &&
+        !ADVICE_WORDING_PATTERN.test(String(message))
+    ) {
+
+        console.log(
+            "Purchase backstop: upgraded readyToPurchase to true for:",
+            message
+        );
+
+        return {
+            ...normalized,
+            readyToPurchase: true,
+            needsClarification: false
+        };
+    }
+
+    return normalized;
+}
+
+
 const REFERENCE_NUMBER_PATTERN = /\b(?:POL|QT|CLM)-\d{4}-\d+\b/i;
 
 
@@ -265,7 +308,7 @@ async function detectIntent(message, conversationHistory = [], context = {}) {
         );
 
 
-        return normalizeIntent(result);
+        return applyPurchaseBackstop(message, normalizeIntent(result));
 
     } catch (error) {
 

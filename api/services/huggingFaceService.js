@@ -1,5 +1,10 @@
 const axios = require("axios");
 const { callLLM } = require("./llmService");
+const {
+    isWrongLanguage,
+    languageReminder,
+    languageFallback
+} = require("./languageGuard");
 const insurancePrompt = require("../prompts/insurancePrompt");
 
 
@@ -354,9 +359,63 @@ Do not repeat questions that the customer has already answered.
         });
 
 
-        const result = await callLLM(messages);
+        // Last message in the prompt, where a small model pays the
+        // most attention. The language rule near the top of the long
+        // system prompt is easily lost on very short messages ("hi").
+        messages.push({
 
-        return result.trim();
+            role: "system",
+
+            content: languageReminder(language)
+
+        });
+
+
+        let result = (await callLLM(messages)).trim();
+
+        // The reply's writing system can be checked in code. If the
+        // model still answered in the wrong language, ask once more
+        // with an explicit correction, then fall back to a fixed
+        // message rather than showing Chinese/Russian to a customer.
+        if (isWrongLanguage(result, language)) {
+
+            console.warn(
+                "askAI reply in wrong language, retrying once:",
+                result.slice(0, 80)
+            );
+
+            messages.push({
+
+                role: "assistant",
+
+                content: result
+
+            });
+
+            messages.push({
+
+                role: "system",
+
+                content:
+                    "That reply was not in the required language. " +
+                    languageReminder(language) +
+                    " Answer the customer's last message again."
+
+            });
+
+            result = (await callLLM(messages)).trim();
+
+            if (isWrongLanguage(result, language)) {
+
+                console.warn(
+                    "askAI retry still in wrong language, using fallback."
+                );
+
+                return languageFallback(language);
+            }
+        }
+
+        return result;
 
     } catch (error) {
 
@@ -537,6 +596,10 @@ not confirming they are ready to proceed right now.
 
 => BUY_POLICY
 
+"i need to buy a motor insurance"
+
+=> BUY_POLICY
+
 "I need a quote for my car."
 
 => BUY_POLICY
@@ -565,6 +628,16 @@ User:
 "Something for my car."
 
 => BUY_POLICY
+
+Example:
+
+Assistant:
+"Would you like to buy a new policy or renew an existing one?"
+
+User:
+"new one"
+
+=> BUY_POLICY (readyToPurchase true)
 
 But:
 
@@ -718,19 +791,36 @@ forward — it does NOT by itself mean they are ready to purchase.
 READY TO PURCHASE
 ==================================================
 
-Set "readyToPurchase" to true ONLY when the customer has clearly
-committed to proceeding right now — starting an application,
-getting a quote, or buying — matching the same bar described
-above for BUY_POLICY.
+"readyToPurchase" answers one question: is the customer asking to
+START buying (or to get a quote) now, or are they asking for
+information or advice first?
 
-A message that mentions buying/planning/considering but is
-actually asking for advice, ideas, comparisons, or general
-information is readyToPurchase: false, even if intent ends up
-being BUY_POLICY due to ambiguous wording.
+Set it to TRUE when the customer says what they want to do, in the
+first person - even in a short, casual or lowercase message:
 
-If intent is BUY_POLICY, readyToPurchase should almost always be
-true — use false only when the BUY_POLICY classification itself
-is uncertain and the customer seems to still be exploring.
+"i need to buy a motor insurance"       => true
+"I want to buy car insurance."          => true
+"I'd like to get health insurance"      => true
+"buy motor insurance"                   => true
+"I need a quote for my car"             => true
+"yes, go ahead" (answering the assistant's offer to start) => true
+
+Set it to FALSE only when the message asks for help deciding or
+learning - it contains a question or a request for advice:
+
+"suggest me some ideas for car insurance"                 => false
+"which insurance is better for my family?"                => false
+"I'm planning to buy a policy, what should I consider?"   => false
+"I am thinking about getting insurance"                   => false
+"how does motor insurance work?"                          => false
+
+Do NOT ask for extra confirmation words such as "now" or "proceed".
+"I need to buy X" or "I want to buy X" is already a clear request
+to start.
+
+If an earlier message already asked to buy and the current message
+simply answers the assistant's question (for example "new one",
+"motor", "comprehensive"), keep readyToPurchase true.
 
 ==================================================
 RULES
@@ -759,9 +849,12 @@ RULES
 
 10. Existing claims = CLAIM.
 
-11. A message that only mentions "planning to buy" or "thinking
-    about buying" without confirming readiness is INSURANCE_GENERAL
-    with readyToPurchase: false.
+11. A message that mentions buying TOGETHER WITH a question or a
+    request for advice, ideas or comparison ("planning to buy,
+    suggest some ideas", "thinking about buying, what should I
+    consider") is INSURANCE_GENERAL with readyToPurchase: false.
+    A plain statement of need or want ("i need to buy a motor
+    insurance") is BUY_POLICY with readyToPurchase: true.
 
 ==================================================
 OUTPUT

@@ -195,59 +195,66 @@ async function registerComplaint(req, res) {
         // INSERT
         // ----------------------------------------------------
 
-        await connection.execute(
-            `
-            INSERT INTO COMPLAINTS (
-                COMPLAINT_ID,
-                CUSTOMER_ID,
-                SUBJECT,
-                FULL_NAME,
-                EMAIL,
-                MOBILE,
-                PRODUCT,
-                POLICY_ID,
-                COMPLAINT_MESSAGE,
-                ROUTE,
-                STATUS,
-                AI_REASON,
-                CREATED_AT,
-                UPDATED_AT
-            )
-            VALUES (
-                :complaintId,
-                :customerId,
-                :subject,
-                :fullName,
-                :email,
-                :mobile,
-                :product,
-                :policyId,
-                :complaintMessage,
-                :route,
-                :status,
-                :aiReason,
-                CURRENT_TIMESTAMP,
-                CURRENT_TIMESTAMP
-            )
-            `,
-            {
-                complaintId,
-                customerId: customerId || null,
-                subject,
-                fullName: fullName || null,
-                email: email || null,
-                mobile: mobile || null,
-                product: product || null,
-                policyId: policyId,
-                complaintMessage: message,
-                route,
-                status: route === "NON_STP" ? "OPEN" : "RESOLVED",
-                aiReason: reason
-            },
-            {
-                autoCommit: true
-            }
-        );
+        
+const insertResult = await connection.execute(
+    `
+    INSERT INTO COMPLAINTS (
+        CUSTOMER_ID,
+        SUBJECT,
+        FULL_NAME,
+        EMAIL,
+        MOBILE,
+        PRODUCT,
+        POLICY_ID,
+        COMPLAINT_MESSAGE,
+        ROUTE,
+        STATUS,
+        AI_REASON,
+        CREATED_AT,
+        UPDATED_AT
+    )
+    VALUES (
+        :customerId,
+        :subject,
+        :fullName,
+        :email,
+        :mobile,
+        :product,
+        :policyId,
+        :complaintMessage,
+        :route,
+        :status,
+        :aiReason,
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+    )
+    RETURNING COMPLAINT_ID INTO :complaintId
+    `,
+    {
+        customerId: customerId || null,
+        subject,
+        fullName: fullName || null,
+        email: email || null,
+        mobile: mobile || null,
+        product: product || null,
+        policyId,
+        complaintMessage: message,
+        route,
+        status: route === "NON_STP" ? "OPEN" : "RESOLVED",
+        aiReason: reason,
+        complaintId: {
+            dir: oracledb.BIND_OUT,
+            type: oracledb.NUMBER
+        }
+    },
+    {
+        autoCommit: true
+    }
+);
+
+
+console.log("Complaint ID:", complaintId);
+
 
 
         console.log(

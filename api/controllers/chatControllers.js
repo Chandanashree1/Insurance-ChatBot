@@ -55,6 +55,11 @@ const PROTECTED_INTENTS = [
 
 // General responses
 
+const AI_BUSY_REPLIES = {
+    en: "I'm taking longer than usual to respond right now. Please try again in a moment.",
+    ar: "أستغرق وقتًا أطول من المعتاد في الرد حاليًا. يرجى المحاولة مرة أخرى بعد قليل."
+};
+
 const OUT_OF_SCOPE_REPLIES = {
     en: "I am ABC Insurance's virtual assistant and can only assist with insurance-related queries.",
     ar: "أنا المساعد الافتراضي لشركة ABC للتأمين، ويمكنني فقط مساعدتك في الاستفسارات المتعلقة بالتأمين."
@@ -1190,6 +1195,56 @@ const chat = async (req, res) => {
         }
 
         // --------------------------------------------------
+        // 6b. Small talk - fixed replies, no LLM call
+        // --------------------------------------------------
+        //
+        // "hi" / "thanks" / "bye" / "help" don't need a model. Sending
+        // them to the LLM was slow on the current server and, with very
+        // short input, a 7B model sometimes answered in Russian or
+        // Chinese. These texts exist in English and Arabic and follow
+        // the language tab exactly.
+        // --------------------------------------------------
+
+        const SMALL_TALK_TEXT_KEY = {
+            GREETING: "greeting",
+            THANKS: "thanks",
+            GOODBYE: "goodbye",
+            HELP: "help"
+        };
+
+        if (SMALL_TALK_TEXT_KEY[intent]) {
+
+            const reply =
+                TEXT[lang][SMALL_TALK_TEXT_KEY[intent]];
+
+            addMessage(
+                flowUserId,
+                "assistant",
+                reply
+            );
+
+            if (loggedIn && customerId) {
+                await saveMessage(
+                    customerId,
+                    sessionId,
+                    "bot",
+                    reply,
+                    lang
+                );
+            }
+
+            return res.json({
+                success: true,
+                intent,
+                reply,
+                requiresLogin: false,
+                uiType: "TEXT",
+                actions: [],
+                data: []
+            });
+        }
+
+        // --------------------------------------------------
         // 7. Start purchase flow
         // --------------------------------------------------
 
@@ -1237,25 +1292,78 @@ const chat = async (req, res) => {
         // 8. Normal insurance chat
         // --------------------------------------------------
 
-        const retrievedChunks =
-            await retrieveRelevantChunks(message);
+        // Small talk doesn't need the knowledge base. Running
+        // retrieval anyway costs an embedding call plus a full
+        // similarity scan, and always returns the top-3 "least bad"
+        // chunks, which then get injected into the prompt even
+        // though they have nothing to do with "hi".
+        const SKIP_RAG_INTENTS = [
+            "GREETING",
+            "THANKS",
+            "GOODBYE",
+            "HELP"
+        ];
 
-        const ragContext =
-            retrievedChunks
-                .map(
-                    chunk =>
-                        `[${chunk.fileName}]\n${chunk.text}`
+        let ragContext = "";
+
+        if (!SKIP_RAG_INTENTS.includes(intent)) {
+
+            const retrievedChunks =
+                await retrieveRelevantChunks(message);
+
+            // Log scores so a minimum-similarity cutoff can be
+            // chosen from real data instead of guessed.
+            console.log(
+                "RAG top scores:",
+                retrievedChunks.map(c =>
+                    `${c.fileName}#${c.chunkId}=${Number(c.score).toFixed(3)}`
                 )
-                .join("\n\n");
-
-        const aiReply =
-            await askAI(
-                message,
-                "",
-                ragContext,
-                history,
-                lang
             );
+
+            ragContext =
+                retrievedChunks
+                    .map(
+                        chunk =>
+                            `[${chunk.fileName}]\n${chunk.text}`
+                    )
+                    .join("\n\n");
+        }
+
+        let aiReply;
+
+        try {
+
+            aiReply =
+                await askAI(
+                    message,
+                    "",
+                    ragContext,
+                    history,
+                    lang
+                );
+
+        } catch (llmError) {
+
+            // The LLM host timed out or failed. Answer with a normal
+            // chat bubble instead of letting the error escape as an
+            // HTTP 500 (the frontend shows that as "Network Link
+            // Offline"). Not saved to history, so it doesn't pollute
+            // the conversation context.
+            console.error(
+                "askAI failed, sending fallback reply:",
+                llmError.message
+            );
+
+            return res.json({
+                success: true,
+                intent,
+                reply: AI_BUSY_REPLIES[lang] || AI_BUSY_REPLIES.en,
+                requiresLogin: false,
+                uiType: "TEXT",
+                actions: [],
+                data: []
+            });
+        }
 
         addMessage(
             flowUserId,
