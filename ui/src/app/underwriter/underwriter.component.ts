@@ -16,6 +16,17 @@ interface QuoteRow {
   status: string;
 }
 
+interface FeedbackItem {
+  ratingId: number;
+  customerId: number | null;
+  sessionId: string;
+  rating: number;
+  feedback: string | null;
+  language: string;
+  followUpStatus: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'NOT_REQUIRED';
+  createdAt: string;
+}
+
 interface ProposalRow {
   proposalId: number;
   proposalNumber: string;
@@ -30,7 +41,7 @@ interface ProposalRow {
   submittedAt: string;
 }
 
-export type UwSection = 'all' | 'underwriting' | 'complaints' | 'claims';
+export type UwSection = 'all' | 'underwriting' | 'complaints' | 'claims' | 'feedback';
 
 @Component({
   selector: 'app-underwriter',
@@ -161,6 +172,8 @@ export class UnderwriterComponent implements OnInit {
     if (this.isLoggedIn) {
       this.loadProposals();
       this.loadPendingClaims();
+      this.loadFeedback();
+
     }
     this.loadComplaints()
   }
@@ -234,6 +247,7 @@ export class UnderwriterComponent implements OnInit {
       this.loginFailed = false;
       this.loadProposals();
       this.loadPendingClaims();
+      this.loadFeedback();
     } else {
       this.loginFailed = true;
     }
@@ -245,6 +259,117 @@ export class UnderwriterComponent implements OnInit {
     this.username = '';
     this.password = '';
     this.loginFailed = false;
+  }
+
+
+
+  // ==================================================
+  // FEEDBACK FOLLOW-UP
+  // ==================================================
+  feedbackGood: FeedbackItem[] = [];
+  feedbackBad: FeedbackItem[] = [];
+  selectedFeedback: FeedbackItem | null = null;
+  feedbackView: 'bad' | 'resolved' | 'good' = 'bad';
+  feedbackSearch = '';
+  isLoadingFeedback = false;
+  feedbackError = false;
+  feedbackLog: { ratingId: number; status: string; time: string }[] = [];
+
+  /** Bad reviews still needing action */
+  get feedbackOpen(): FeedbackItem[] {
+    return this.feedbackBad.filter(f => f.followUpStatus !== 'RESOLVED');
+  }
+
+  /** Bad reviews that were completed */
+  get feedbackResolved(): FeedbackItem[] {
+    return this.feedbackBad.filter(f => f.followUpStatus === 'RESOLVED');
+  }
+
+  get filteredFeedback(): FeedbackItem[] {
+    const list =
+      this.feedbackView === 'bad' ? this.feedbackOpen :
+        this.feedbackView === 'resolved' ? this.feedbackResolved :
+          this.feedbackGood;
+
+    return list.filter(f =>
+      this.matches(this.feedbackSearch, f.ratingId, f.feedback, f.customerId, f.followUpStatus));
+  }
+
+  /** Number shown on the red stat card: Pending + In progress */
+  get pendingFeedbackCount(): number {
+    return this.feedbackOpen.length;
+  }
+
+  loadFeedback(): void {
+    this.isLoadingFeedback = true;
+    this.feedbackError = false;
+
+    this.http.get<any>('http://localhost:5000/api/rating/feedback').subscribe({
+      next: (res) => {
+        this.feedbackGood = res?.good ?? [];
+        this.feedbackBad = res?.bad ?? [];
+        // keep selection only if it still exists
+        const all = [...this.feedbackGood, ...this.feedbackBad];
+        if (this.selectedFeedback) {
+          this.selectedFeedback =
+            all.find(f => f.ratingId === this.selectedFeedback!.ratingId) ?? null;
+        }
+        this.isLoadingFeedback = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Feedback load failed:', err);
+        this.feedbackError = true;
+        this.isLoadingFeedback = false;
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
+  setFeedbackView(view: 'bad' | 'resolved' | 'good'): void {
+    this.feedbackView = view;
+    this.selectedFeedback = null;
+  }
+
+  selectFeedback(item: FeedbackItem): void {
+    this.selectedFeedback = item;
+  }
+
+  updateFeedbackStatus(item: FeedbackItem, status: 'IN_PROGRESS' | 'RESOLVED'): void {
+    this.http.patch<any>(
+      `http://localhost:5000/api/rating/follow-ups/${item.ratingId}`,
+      { status }
+    ).subscribe({
+      next: () => {
+        item.followUpStatus = status;
+        this.feedbackLog.unshift({
+          ratingId: item.ratingId,
+          status,
+          time: new Date().toLocaleTimeString()
+        });
+        if (status === 'RESOLVED') this.selectedFeedback = null;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Follow-up update failed:', err);
+        alert(this.tr('Could not update the follow-up status.', 'تعذر تحديث حالة المتابعة.'));
+      }
+    });
+  }
+
+  stars(n: number): string {
+    return '★'.repeat(n) + '☆'.repeat(5 - n);
+  }
+
+  feedbackStatusLabel(code: string): string {
+    const map: Record<string, [string, string]> = {
+      PENDING: ['Pending', 'قيد الانتظار'],
+      IN_PROGRESS: ['In progress', 'قيد المتابعة'],
+      RESOLVED: ['Resolved', 'تم الحل'],
+      NOT_REQUIRED: ['No action needed', 'لا يلزم إجراء']
+    };
+    const m = map[code];
+    return m ? this.tr(m[0], m[1]) : code;
   }
 
   // ==================================================
@@ -414,36 +539,36 @@ export class UnderwriterComponent implements OnInit {
     this.callingCustomer = null;
   }
 
-sendComplaintMessage(): void {
-  if (!this.selectedComplaint) return;
+  sendComplaintMessage(): void {
+    if (!this.selectedComplaint) return;
 
-  const message = this.complaintMessage.trim();
-  if (!message) return;
+    const message = this.complaintMessage.trim();
+    if (!message) return;
 
-  const complaintId = this.selectedComplaint.COMPLAINT_ID;
+    const complaintId = this.selectedComplaint.COMPLAINT_ID;
 
-  this.flwUp
-    .updateComplaintFollowUp(complaintId, 'COMPLETED', message)
-    .subscribe({
-      next: (response) => {
-        console.log('Complaint message saved:', response);
+    this.flwUp
+      .updateComplaintFollowUp(complaintId, 'COMPLETED', message)
+      .subscribe({
+        next: (response) => {
+          console.log('Complaint message saved:', response);
 
-        // Remove the completed complaint from the list
-        this.complaints = this.complaints.filter(
-          c => c.COMPLAINT_ID !== complaintId
-        );
+          // Remove the completed complaint from the list
+          this.complaints = this.complaints.filter(
+            c => c.COMPLAINT_ID !== complaintId
+          );
 
-        // Clear the decision panel
-        this.selectedComplaint = null;
-        this.complaintMessage = '';
+          // Clear the decision panel
+          this.selectedComplaint = null;
+          this.complaintMessage = '';
 
-        this.cdr.detectChanges();
-      },
-      error: (error) => {
-        console.error('Complaint message save error:', error);
-      }
-    });
-}
+          this.cdr.detectChanges();
+        },
+        error: (error) => {
+          console.error('Complaint message save error:', error);
+        }
+      });
+  }
 
   closeComplaintMessage() {
     this.selectedComplaint = null;

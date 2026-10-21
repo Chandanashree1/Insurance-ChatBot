@@ -826,7 +826,7 @@
   <div class="rating-backdrop" *ngIf="showRatingModal" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
     <div class="rating-modal">
 
-      <button class="rating-close" type="button" (click)="skipRating()">✕</button>
+   <button class="rating-close" type="button" (click)="closeRatingModal()">✕</button>
 
       <h2>
         {{ selectedLanguage === 'ar' ? 'قيّم تجربتك' : 'Rate Your Experience' }}

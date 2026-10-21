@@ -131,30 +131,30 @@ export class Bot implements DoCheck, OnInit {
     };
   }
 
- private quickRepliesFor(reply: string): { label: string; action: string }[] | null {
-  const text = reply || '';
+  private quickRepliesFor(reply: string): { label: string; action: string }[] | null {
+    const text = reply || '';
 
-  const isEnglishQuestion = /would you like to (continue|proceed) with this quote/i.test(text);
-  const isArabicQuestion  = /هل (تود|ترغب|تريد)\s+(في\s+)?(المتابعة|الاستمرار)/.test(text);
+    const isEnglishQuestion = /would you like to (continue|proceed) with this quote/i.test(text);
+    const isArabicQuestion = /هل (تود|ترغب|تريد)\s+(في\s+)?(المتابعة|الاستمرار)/.test(text);
 
-  if (isEnglishQuestion || isArabicQuestion) {
-    return this.selectedLanguage === 'ar'
-      ? [{ label: 'نعم، تابع', action: 'نعم، تابع' },
-         { label: 'لا، شكرًا', action: 'لا، شكرًا' }]
-      : [{ label: 'Yes, Continue', action: 'yes Continue' },
-         { label: 'No', action: 'No' }];
+    if (isEnglishQuestion || isArabicQuestion) {
+      return this.selectedLanguage === 'ar'
+        ? [{ label: 'نعم، تابع', action: 'نعم، تابع' },
+        { label: 'لا، شكرًا', action: 'لا، شكرًا' }]
+        : [{ label: 'Yes, Continue', action: 'yes Continue' },
+        { label: 'No', action: 'No' }];
+    }
+    return null;
   }
-  return null;
-}
   ngOnInit(): void {
     this.messages = [this.buildWelcomeMessage()];
     this.restoreLoginState();
     const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
     const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
-    const isFresh = shouldRestore && (Date.now() - setAt) < 30000; 
+    const isFresh = shouldRestore && (Date.now() - setAt) < 30000;
 
     if (isFresh) {
-      this.isOpen = true; 
+      this.isOpen = true;
       this.hasUserMessaged = true;
 
       this.messages.push({
@@ -517,6 +517,7 @@ export class Bot implements DoCheck, OnInit {
     this.sessionId = this.generateSessionId();
 
     this.hasRatedSession = false;
+    // this.ratingSkipped = false;  
     this.hasUserMessaged = false;
 
     this.cdr.detectChanges();
@@ -614,6 +615,7 @@ export class Bot implements DoCheck, OnInit {
 
     this.hasRatedSession = false;
     this.hasUserMessaged = false;
+    // this.ratingSkipped = false;  
 
     this.selectedRating = 0;
     this.ratingFeedback = '';
@@ -631,7 +633,16 @@ export class Bot implements DoCheck, OnInit {
     this.showRatingModal = false;
     this.selectedRating = 0;
     this.ratingFeedback = "";
+    // this.ratingSkipped = true;
+    this.isOpen = false;
+    this.hasUserMessaged = false;
     // this.isOpen = false;   // REMOVED — keep chat open
+  }
+
+  closeRatingModal(): void {
+    this.showRatingModal = false;
+    this.selectedRating = 0;
+    this.ratingFeedback = '';
   }
 
   complaintForm: ComplaintForm = {
@@ -938,6 +949,7 @@ export class Bot implements DoCheck, OnInit {
   }
 
   hasRatedSession: boolean = false;
+  // ratingSkipped: boolean = false;  
 
   toggleOpen(): void {
     if (!this.isOpen) {
@@ -946,7 +958,7 @@ export class Bot implements DoCheck, OnInit {
     }
 
     // No messages sent this session — just close, nothing to rate
-    if (!this.hasUserMessaged) {
+    if (!this.hasUserMessaged || this.hasRatedSession) {
       this.isOpen = false;
       return;
     }
@@ -962,6 +974,7 @@ export class Bot implements DoCheck, OnInit {
     this.sessionId = this.generateSessionId();
     this.hasRatedSession = false;
     this.hasUserMessaged = false;
+    // this.ratingSkipped = false;  
   }
 
   private scrollToBottom(): void {
@@ -1458,19 +1471,29 @@ export class Bot implements DoCheck, OnInit {
 
     this.http.post<any>('http://localhost:5000/api/chat', payload).subscribe({
       next: (response) => {
-              if (response && response.success) {
+        if (response && response.success) {
           if (response.requiresLogin) {
             this.pendingQuestion = textToSend;
           }
 
           if (response.uiType === 'PROPOSAL_STATUS' && response.data?.length) {
-            // Short text bubble, then the existing Buy Policy card.
-            this.messages.push({ sender: 'bot', text: response.reply, time: new Date() });
+            const proposal = response.data[0];
+            const quoteNo = proposal.quoteNumber ? ` ${proposal.quoteNumber}` : '';
+
+            const question = this.selectedLanguage === 'ar'
+              ? `وجدت عرض السعر${quoteNo}. هل ترغب في المتابعة؟`
+              : `I found your quote${quoteNo}. Do you want to continue?`;
+
             this.messages.push({
               sender: 'bot',
-              text: '',
-              uiType: 'BUY_POLICY_FORM',
-              resumeData: response.data[0],
+              text: question,
+              resumeData: proposal,
+              quickReply: true,
+              actions: this.selectedLanguage === 'ar'
+                ? [{ label: 'نعم، تابع', action: 'RESUME_YES' },
+                { label: 'لا، شكرًا', action: 'RESUME_NO' }]
+                : [{ label: 'Yes, Continue', action: 'RESUME_YES' },
+                { label: 'No', action: 'RESUME_NO' }],
               time: new Date()
             });
           } else {
@@ -1525,6 +1548,38 @@ export class Bot implements DoCheck, OnInit {
     } catch { /* ignore */ }
   }
 
+
+
+  private handleResumeChoice(action: string, msg?: ChatMessage): void {
+    const yes = action === 'RESUME_YES';
+    const ar = this.selectedLanguage === 'ar';
+
+    this.messages.push({
+      sender: 'user',
+      text: yes ? (ar ? 'نعم، تابع' : 'Yes, Continue') : (ar ? 'لا، شكرًا' : 'No'),
+      time: new Date()
+    });
+
+    if (yes && msg?.resumeData) {
+      this.messages.push({
+        sender: 'bot',
+        text: '',
+        uiType: 'BUY_POLICY_FORM',
+        resumeData: msg.resumeData,
+        time: new Date()
+      });
+    } else {
+      this.messages.push({
+        sender: 'bot',
+        text: ar ? 'حسنًا. أخبرني إذا احتجت أي مساعدة أخرى.'
+          : 'No problem. Let me know if you need anything else.',
+        time: new Date()
+      });
+    }
+
+    this.cdr.detectChanges();
+  }
+
   // ===============================
   // LOGOUT
   // ===============================
@@ -1559,6 +1614,7 @@ export class Bot implements DoCheck, OnInit {
     this.sessionId = this.generateSessionId();
     this.hasUserMessaged = false;
     this.hasRatedSession = false;
+    // this.ratingSkipped = false;  
 
     this.cdr.detectChanges();
   }
@@ -1574,31 +1630,35 @@ export class Bot implements DoCheck, OnInit {
     } catch { /* ignore */ }
   }
 
-onActionClick(action: string, msg?: ChatMessage) {
+  onActionClick(action: string, msg?: ChatMessage) {
 
-  if (msg?.quickReply) msg.actions = [];   // hide the buttons after one tap
+    if (msg?.quickReply) msg.actions = [];
+    if (action === 'RESUME_YES' || action === 'RESUME_NO') {
+      this.handleResumeChoice(action, msg);
+      return;
+    }
 
-  if (action.startsWith('VIEW_POLICY_')) {
-    const policyNumber = action.replace('VIEW_POLICY_', '');
-    this.router.navigate(['/policy-success', policyNumber]);
-    return;
-  }
+    if (action.startsWith('VIEW_POLICY_')) {
+      const policyNumber = action.replace('VIEW_POLICY_', '');
+      this.router.navigate(['/policy-success', policyNumber]);
+      return;
+    }
 
-  if (["HEALTH", "MOTOR", "TRAVEL", "SURGERY", "HOSPITALIZATION", "ACCIDENT", "CONSULTATION", "YES", "NO", "BUY_HEALTH", "BUY_MOTOR", "BUY_TRAVEL", "PLAN_BASIC", "PLAN_STANDARD", "PLAN_PREMIUM"].includes(action)) {
-    this.userMessage = action;
+    if (["HEALTH", "MOTOR", "TRAVEL", "SURGERY", "HOSPITALIZATION", "ACCIDENT", "CONSULTATION", "YES", "NO", "BUY_HEALTH", "BUY_MOTOR", "BUY_TRAVEL", "PLAN_BASIC", "PLAN_STANDARD", "PLAN_PREMIUM"].includes(action)) {
+      this.userMessage = action;
+      this.sendMessage();
+      return;
+
+    }
+
+    const cannedMessage =
+      this.actionMessages[this.selectedLanguage][
+      action as 'POLICY' | 'CLAIM' | 'RENEW_POLICY' | 'CLAIM_DOCUMENTS'
+      ];
+
+    this.userMessage = cannedMessage || action;
     this.sendMessage();
-    return;
-    
   }
-
-  const cannedMessage =
-    this.actionMessages[this.selectedLanguage][
-   action as 'POLICY' | 'CLAIM' | 'RENEW_POLICY' | 'CLAIM_DOCUMENTS'
-    ];
-
-  this.userMessage = cannedMessage || action;
-  this.sendMessage();
-}
 
   onDocumentsSelected(event: any): void {
     const files: FileList = event.target.files;
@@ -1714,48 +1774,48 @@ onActionClick(action: string, msg?: ChatMessage) {
     });
   }
   // ---------- Complaint status lookup ----------
-complaintIdInput = '';
-complaintStatusResult: any = null;
-complaintLookupError = '';
-isLookingUpComplaint = false;
+  complaintIdInput = '';
+  complaintStatusResult: any = null;
+  complaintLookupError = '';
+  isLookingUpComplaint = false;
 
-lookupComplaintStatus(): void {
-  const complaintId = this.complaintIdInput.trim();
+  lookupComplaintStatus(): void {
+    const complaintId = this.complaintIdInput.trim();
 
-  if (!complaintId) {
-    this.complaintLookupError = this.tr.enterComplaintId || 'Please enter your complaint ID.';
-    return;
+    if (!complaintId) {
+      this.complaintLookupError = this.tr.enterComplaintId || 'Please enter your complaint ID.';
+      return;
+    }
+
+    this.isLookingUpComplaint = true;
+    this.complaintLookupError = '';
+    this.complaintStatusResult = null;
+
+    this.http
+      .get<any>(`http://localhost:5000/api/complaint/status/${encodeURIComponent(complaintId)}`)
+      .subscribe({
+        next: (res) => {
+          this.isLookingUpComplaint = false;
+
+          if (res.success) {
+            this.complaintStatusResult = res.data;
+          } else {
+            this.complaintLookupError = res.message || 'Could not find a complaint for this ID.';
+          }
+
+          this.cdr.detectChanges();
+        },
+        error: (err) => {
+          this.isLookingUpComplaint = false;
+          this.complaintLookupError = err?.error?.message || 'No complaint found for this ID.';
+          this.cdr.detectChanges();
+        }
+      });
   }
 
-  this.isLookingUpComplaint = true;
-  this.complaintLookupError = '';
-  this.complaintStatusResult = null;
-
-  this.http
-    .get<any>(`http://localhost:5000/api/complaint/status/${encodeURIComponent(complaintId)}`)
-    .subscribe({
-      next: (res) => {
-        this.isLookingUpComplaint = false;
-
-        if (res.success) {
-          this.complaintStatusResult = res.data;
-        } else {
-          this.complaintLookupError = res.message || 'Could not find a complaint for this ID.';
-        }
-
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.isLookingUpComplaint = false;
-        this.complaintLookupError = err?.error?.message || 'No complaint found for this ID.';
-        this.cdr.detectChanges();
-      }
-    });
-}
-
-resetComplaintLookup(): void {
-  this.complaintIdInput = '';
-  this.complaintStatusResult = null;
-  this.complaintLookupError = '';
-}
+  resetComplaintLookup(): void {
+    this.complaintIdInput = '';
+    this.complaintStatusResult = null;
+    this.complaintLookupError = '';
+  }
 }

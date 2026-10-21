@@ -140,42 +140,42 @@ async function decideProposalController(req, res) {
     }
 }
 
-async function getProposalStatus(req, res) {
-    try {
-        const { quoteId } = req.params;
+// async function getProposalStatus(req, res) {
+//     try {
+//         const { quoteId } = req.params;
 
-        // Prevent browser from caching this — status can change anytime
-        res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
+//         // Prevent browser from caching this — status can change anytime
+//         res.set('Cache-Control', 'no-store, no-cache, must-revalidate');
 
-        const proposal = await getProposalByQuoteId(quoteId);
+//         const proposal = await getProposalByQuoteId(quoteId);
 
-        if (!proposal) {
-            return res.status(404).json({ success: false, message: "No proposal found for this quote" });
-        }
+//         if (!proposal) {
+//             return res.status(404).json({ success: false, message: "No proposal found for this quote" });
+//         }
 
-        return res.status(200).json({
-            success: true,
-            data: {
-                proposalId: proposal.PROPOSAL_ID,
-                proposalNumber: proposal.PROPOSAL_NUMBER,
-                optionId: proposal.OPTION_ID,
-                planName: proposal.PLAN_NAME,
-                premium: proposal.PREMIUM,
-                status: proposal.PROPOSAL_STATUS,
-                note: proposal.UNDERWRITER_NOTE,
-                counterOfferPremium: proposal.COUNTER_OFFER_PREMIUM,
-                customerResponse: proposal.CUSTOMER_RESPONSE,
-                triggerReason: proposal.TRIGGER_REASON,
-                submittedAt: proposal.SUBMITTED_AT,
-                decidedAt: proposal.DECIDED_AT
-            }
-        });
+//         return res.status(200).json({
+//             success: true,
+//             data: {
+//                 proposalId: proposal.PROPOSAL_ID,
+//                 proposalNumber: proposal.PROPOSAL_NUMBER,
+//                 optionId: proposal.OPTION_ID,
+//                 planName: proposal.PLAN_NAME,
+//                 premium: proposal.PREMIUM,
+//                 status: proposal.PROPOSAL_STATUS,
+//                 note: proposal.UNDERWRITER_NOTE,
+//                 counterOfferPremium: proposal.COUNTER_OFFER_PREMIUM,
+//                 customerResponse: proposal.CUSTOMER_RESPONSE,
+//                 triggerReason: proposal.TRIGGER_REASON,
+//                 submittedAt: proposal.SUBMITTED_AT,
+//                 decidedAt: proposal.DECIDED_AT
+//             }
+//         });
 
-    } catch (err) {
-        console.error("Get Proposal Status Error:", err);
-        return res.status(500).json({ success: false, message: "Failed to fetch proposal status" });
-    }
-}
+//     } catch (err) {
+//         console.error("Get Proposal Status Error:", err);
+//         return res.status(500).json({ success: false, message: "Failed to fetch proposal status" });
+//     }
+// }
 
 
 async function respondToCounterOfferController(req, res) {
@@ -203,7 +203,7 @@ module.exports = {
     escalatePaymentFailure,
     listProposals,
     decideProposalController,
-    getProposalStatus,
+    // getProposalStatus,
     respondToCounterOfferController,
     getProposalStatusByQuoteNumber
 };

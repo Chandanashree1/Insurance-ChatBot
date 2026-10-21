@@ -76,9 +76,9 @@ submitProposal(quoteId: number, optionId: number, additionalInfo: string) {
   });
 }
 
-getProposalStatus(quoteId: number) {
-  return this.http.get<any>(`http://localhost:5000/api/proposals/quote/${quoteId}`);
-}
+// getProposalStatus(quoteId: number) {
+//   return this.http.get<any>(`http://localhost:5000/api/proposals/quote/${quoteId}`);
+// }
 
 respondToCounterOffer(proposalId: number, response: 'ACCEPTED' | 'REJECTED') {
   return this.http.post<any>(`http://localhost:5000/api/proposals/${proposalId}/respond`, { response });

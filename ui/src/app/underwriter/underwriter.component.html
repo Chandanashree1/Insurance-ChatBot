@@ -83,7 +83,15 @@
           <span class="stat-value">{{ pendingClaims.length }}</span>
           <span class="stat-label">{{ tr('Pending Claims', 'المطالبات المعلقة') }}</span>
         </button>
+
+        <button type="button" class="stat-card stat-red" [class.active]="activeSection === 'feedback'"
+          [attr.aria-pressed]="activeSection === 'feedback'" (click)="setSection('feedback')">
+          <span class="stat-value">{{ pendingFeedbackCount }}</span>
+          <span class="stat-label">{{ tr('Feedback Follow-ups', 'متابعة التقييمات') }}</span>
+        </button>
+
       </section>
+
 
       <div class="uw-view-hint">
         <span *ngIf="activeSection === 'all'">
@@ -132,6 +140,10 @@
                 <div class="quote-card-no-plan" *ngIf="!p.planName">
                   {{ t('noPlanSelected') }}
                 </div>
+
+                <div class="quote-card-value" *ngIf="p.triggerReason">
+                  {{ tr('Reason', 'السبب') }}: {{ p.triggerReason }}
+                </div>
                 <div class="quote-card-value">{{ t('vehicleValue') }}: OMR {{ p.vehicleValue }}</div>
               </div>
 
@@ -158,6 +170,11 @@
                   {{ t('noPlanSelected') }}
                 </div>
                 <div>{{ t('vehicleValue') }}: OMR {{ selectedProposal.vehicleValue }}</div>
+
+                <div class="ai-reason" *ngIf="selectedProposal.triggerReason">
+                  <b>{{ tr('Reason sent for review', 'سبب الإحالة للمراجعة') }}:</b>
+                  {{ selectedProposal.triggerReason }}
+                </div>
               </div>
 
               <label>{{ t('noteOptional') }}</label>
@@ -205,12 +222,14 @@
               <tr *ngFor="let entry of decisionSentLog">
                 <td class="muted">{{ entry.time }}</td>
                 <td class="ref">{{ entry.proposalNumber }}</td>
-                <td><span class="status" [attr.data-status]="entry.decision">{{ statusLabel(entry.decision) }}</span></td>
+                <td><span class="status" [attr.data-status]="entry.decision">{{ statusLabel(entry.decision) }}</span>
+                </td>
               </tr>
             </tbody>
           </table>
           <ng-template #noProposalActivity>
-            <div class="empty-state">{{ tr('No decisions yet this session.', 'لا توجد قرارات في هذه الجلسة بعد.') }}</div>
+            <div class="empty-state">{{ tr('No decisions yet this session.', 'لا توجد قرارات في هذه الجلسة بعد.') }}
+            </div>
           </ng-template>
         </section>
 
@@ -325,7 +344,8 @@
             </tbody>
           </table>
           <ng-template #noComplaintActivity>
-            <div class="empty-state">{{ tr('No complaint follow-ups yet this session.', 'لا توجد متابعات للشكاوى في هذه الجلسة بعد.') }}</div>
+            <div class="empty-state">{{ tr('No complaint follow-ups yet this session.', 'لا توجد متابعات للشكاوى في هذه
+              الجلسة بعد.') }}</div>
           </ng-template>
         </section>
 
@@ -340,6 +360,7 @@
           <h2>{{ tr('Claims', 'المطالبات') }}</h2>
           <span>{{ tr('File new claims and review pending ones', 'تسجيل المطالبات ومراجعتها') }}</span>
         </div>
+
 
         <div class="uw-subtabs" role="tablist">
           <button type="button" role="tab" class="subtab" [class.active]="claimsView === 'review'"
@@ -358,7 +379,7 @@
             <div class="panel-head">
               <h3>{{ tr('File a Claim', 'تسجيل مطالبة') }}</h3>
             </div>
-          <app-claim-form [lang]="selectedLanguage" (claimSubmitted)="onClaimSubmitted($event)"></app-claim-form>
+            <app-claim-form [lang]="selectedLanguage" (claimSubmitted)="onClaimSubmitted($event)"></app-claim-form>
           </div>
         </section>
 
@@ -384,12 +405,14 @@
                     <span class="status">OMR {{ c.claimAmount | number:'1.3-3' }}</span>
                   </div>
                   <div class="quote-card-name">{{ c.customerName }}</div>
-                  <div class="quote-card-plan">{{ c.policyNumber }}<span *ngIf="c.productName"> — {{ c.productName }}</span>
+                  <div class="quote-card-plan">{{ c.policyNumber }}<span *ngIf="c.productName"> — {{ c.productName
+                      }}</span>
                   </div>
                 </div>
 
                 <div class="empty-state" *ngIf="!filteredClaims.length">
-                  {{ pendingClaims.length ? tr('No matching claims', 'لا توجد نتائج مطابقة') : tr('No claims awaiting review.', 'لا توجد مطالبات بانتظار المراجعة.') }}
+                  {{ pendingClaims.length ? tr('No matching claims', 'لا توجد نتائج مطابقة') : tr('No claims awaiting
+                  review.', 'لا توجد مطالبات بانتظار المراجعة.') }}
                 </div>
               </div>
             </div>
@@ -406,7 +429,8 @@
                   <div>{{ selectedClaim.customerName }}</div>
                   <div>{{ selectedClaim.policyNumber }}<span *ngIf="selectedClaim.productName"> — {{
                       selectedClaim.productName }}</span></div>
-                  <div *ngIf="selectedClaim.incidentDate">Incident: {{ selectedClaim.incidentDate | date:'dd MMM yyyy' }}
+                  <div *ngIf="selectedClaim.incidentDate">Incident: {{ selectedClaim.incidentDate | date:'dd MMM yyyy'
+                    }}
                   </div>
                   <div>Claimed: OMR {{ selectedClaim.claimAmount | number:'1.3-3' }}</div>
                   <div class="claim-description" *ngIf="selectedClaim.description">{{ selectedClaim.description }}</div>
@@ -428,13 +452,16 @@
                 <div class="uw-error claim-error" *ngIf="claimError">{{ claimError }}</div>
 
                 <div class="decision-buttons">
-                  <button class="approve-btn" [disabled]="decidingClaim" (click)="decideClaim('APPROVED')">Approve</button>
-                  <button class="decline-btn" [disabled]="decidingClaim" (click)="decideClaim('DECLINED')">Decline</button>
+                  <button class="approve-btn" [disabled]="decidingClaim"
+                    (click)="decideClaim('APPROVED')">Approve</button>
+                  <button class="decline-btn" [disabled]="decidingClaim"
+                    (click)="decideClaim('DECLINED')">Decline</button>
                 </div>
               </ng-container>
 
               <ng-template #noClaim>
-                <div class="empty-state">{{ tr('Select a claim from the list to review it.', 'اختر مطالبة من القائمة لمراجعتها.') }}</div>
+                <div class="empty-state">{{ tr('Select a claim from the list to review it.', 'اختر مطالبة من القائمة
+                  لمراجعتها.') }}</div>
               </ng-template>
             </div>
 
@@ -465,7 +492,158 @@
             </tbody>
           </table>
           <ng-template #noClaimActivity>
-            <div class="empty-state">{{ tr('No claim decisions yet this session.', 'لا توجد قرارات للمطالبات في هذه الجلسة بعد.') }}</div>
+            <div class="empty-state">{{ tr('No claim decisions yet this session.', 'لا توجد قرارات للمطالبات في هذه
+              الجلسة بعد.') }}</div>
+          </ng-template>
+        </section>
+
+      </ng-container>
+
+      <!-- ================================================= -->
+      <!-- FEEDBACK FOLLOW-UP                                 -->
+      <!-- ================================================= -->
+      <ng-container *ngIf="isVisible('feedback')">
+
+        <div class="uw-section-title">
+          <h2>{{ tr('Feedback Follow-up', 'متابعة التقييمات') }}</h2>
+          <span>{{ tr('Review customer ratings from the chatbot', 'مراجعة تقييمات العملاء من المساعد الذكي') }}</span>
+        </div>
+        <div class="uw-subtabs" role="tablist">
+          <button type="button" role="tab" class="subtab" [class.active]="feedbackView === 'bad'"
+            (click)="setFeedbackView('bad')">
+            {{ tr('Needs follow-up', 'تحتاج متابعة') }}
+            <span class="count-badge">{{ feedbackOpen.length }}</span>
+          </button>
+          <button type="button" role="tab" class="subtab" [class.active]="feedbackView === 'resolved'"
+            (click)="setFeedbackView('resolved')">
+            {{ tr('Resolved', 'تم الحل') }}
+            <span class="count-badge">{{ feedbackResolved.length }}</span>
+          </button>
+          <button type="button" role="tab" class="subtab" [class.active]="feedbackView === 'good'"
+            (click)="setFeedbackView('good')">
+            {{ tr('Positive feedback', 'التقييمات الإيجابية') }}
+            <span class="count-badge">{{ feedbackGood.length }}</span>
+          </button>
+          <button type="button" class="subtab" (click)="loadFeedback()" [disabled]="isLoadingFeedback">
+            ↻ {{ isLoadingFeedback ? tr('Loading…', 'جارٍ التحميل…') : tr('Refresh', 'تحديث') }}
+          </button>
+        </div>
+
+        <div class="uw-error" *ngIf="feedbackError">
+          {{ tr('Could not load feedback. Please try again.', 'تعذر تحميل التقييمات. يرجى المحاولة مرة أخرى.') }}
+        </div>
+
+        <section class="uw-body">
+
+          <!-- LIST -->
+          <div class="uw-quote-list">
+            <div class="panel-head">
+              <h3>{{ feedbackView === 'bad' ? tr('Needs follow-up', 'تحتاج متابعة')
+                : feedbackView === 'resolved' ? tr('Resolved', 'تم الحل')
+                : tr('Positive feedback', 'التقييمات الإيجابية') }}</h3>
+              <span class="count-badge">{{ filteredFeedback.length }}</span>
+            </div>
+
+            <input class="list-search" type="search" [(ngModel)]="feedbackSearch"
+              [placeholder]="tr('Search by comment or customer…', 'ابحث بالتعليق أو العميل…')">
+
+            <div class="list-scroll">
+              <div class="quote-card" *ngFor="let f of filteredFeedback"
+                [class.selected]="selectedFeedback?.ratingId === f.ratingId" (click)="selectFeedback(f)">
+
+                <div class="quote-card-top">
+                  <span class="quote-card-id" [style.color]="feedbackView === 'good' ? '#facc15' : '#ef4444'">
+                    {{ stars(f.rating) }}
+                  </span>
+                  <span class="status" *ngIf="feedbackView !== 'good'" [attr.data-status]="f.followUpStatus">
+                    {{ feedbackStatusLabel(f.followUpStatus) }}
+                  </span>
+                </div>
+
+                <div class="quote-card-name">
+                  {{ f.customerId ? tr('Customer', 'العميل') + ' #' + f.customerId : tr('Guest', 'زائر') }}
+                </div>
+                <div class="quote-card-plan">{{ f.feedback || tr('No comment left.', 'لا يوجد تعليق.') }}</div>
+                <div class="quote-card-value">{{ f.createdAt | date:'MMM d, h:mm a' }}</div>
+              </div>
+
+              <div class="empty-state" *ngIf="!filteredFeedback.length">
+                {{ feedbackView === 'bad'
+                ? tr('No negative feedback.', 'لا توجد تقييمات سلبية.')
+                : tr('No positive feedback yet.', 'لا توجد تقييمات إيجابية بعد.') }}
+              </div>
+            </div>
+          </div>
+
+          <!-- DETAIL -->
+          <div class="uw-followup-panel">
+            <div class="panel-head">
+              <h3>{{ tr('Feedback Details', 'تفاصيل التقييم') }}</h3>
+            </div>
+
+            <ng-container *ngIf="selectedFeedback; else noFeedback">
+
+              <div class="selected-summary detail-list">
+                <div class="summary-title">{{ stars(selectedFeedback.rating) }} ({{ selectedFeedback.rating }}/5)</div>
+                <div><b>{{ t('customer') }}:</b>
+                  {{ selectedFeedback.customerId ? '#' + selectedFeedback.customerId : tr('Guest', 'زائر') }}</div>
+                <div><b>{{ tr('Comment', 'التعليق') }}:</b> {{ selectedFeedback.feedback || tr('No comment left.', 'لا
+                  يوجد تعليق.') }}</div>
+                <div><b>{{ tr('Language', 'اللغة') }}:</b> {{ selectedFeedback.language | uppercase }}</div>
+                <div><b>{{ tr('Submitted', 'تاريخ الإرسال') }}:</b> {{ selectedFeedback.createdAt | date:'dd MMM yyyy,
+                  h:mm a' }}</div>
+                <div><b>{{ t('status') }}:</b> {{ feedbackStatusLabel(selectedFeedback.followUpStatus) }}</div>
+              </div>
+
+              <div class="decision-buttons"
+                *ngIf="selectedFeedback.followUpStatus === 'PENDING' || selectedFeedback.followUpStatus === 'IN_PROGRESS'">
+                <button class="counter-btn" *ngIf="selectedFeedback.followUpStatus === 'PENDING'"
+                  (click)="updateFeedbackStatus(selectedFeedback, 'IN_PROGRESS')">
+                  {{ tr('Start follow-up', 'بدء المتابعة') }}
+                </button>
+                <button class="approve-btn" (click)="updateFeedbackStatus(selectedFeedback, 'RESOLVED')">
+                  {{ tr('Mark resolved', 'تم الحل') }}
+                </button>
+              </div>
+
+            </ng-container>
+
+            <ng-template #noFeedback>
+              <div class="empty-state" *ngIf="!filteredFeedback.length">
+                {{ feedbackView === 'bad' ? tr('No pending follow-ups.', 'لا توجد متابعات معلقة.')
+                : feedbackView === 'resolved' ? tr('No resolved feedback yet.', 'لا توجد تقييمات تم حلها بعد.')
+                : tr('No positive feedback yet.', 'لا توجد تقييمات إيجابية بعد.') }}
+              </div>
+            </ng-template>
+          </div>
+        </section>
+
+        <!-- Recent activity -->
+        <section class="uw-recent" *ngIf="feedbackView !== 'good'">
+          <div class="panel-head">
+            <h3>{{ tr('Recent activity — feedback', 'النشاط الأخير — التقييمات') }}</h3>
+            <span class="count-badge">{{ feedbackLog.length }}</span>
+          </div>
+
+          <table class="uw-table" *ngIf="feedbackLog.length; else noFeedbackActivity">
+            <thead>
+              <tr>
+                <th>{{ tr('Time', 'الوقت') }}</th>
+                <th>{{ tr('Rating', 'التقييم') }} #</th>
+                <th>{{ tr('Action', 'الإجراء') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let e of feedbackLog">
+                <td class="muted">{{ e.time }}</td>
+                <td class="ref">#{{ e.ratingId }}</td>
+                <td><span class="status" data-status="APPROVED">{{ feedbackStatusLabel(e.status) }}</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <ng-template #noFeedbackActivity>
+            <div class="empty-state">{{ tr('No feedback follow-ups yet this session.', 'لا توجد متابعات للتقييمات في هذه
+              الجلسة بعد.') }}</div>
           </ng-template>
         </section>
 

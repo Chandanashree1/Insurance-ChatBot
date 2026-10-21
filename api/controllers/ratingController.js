@@ -307,6 +307,84 @@ async function setAgentFollowUpStatus(ratingId, status) {
 }
 
 // ==========================================
+// GET ALL FEEDBACK (GOOD / BAD SPLIT)
+// ==========================================
+
+async function fetchAllFeedback() {
+    let connection;
+
+    try {
+        connection = await getConnection();
+
+        const result = await connection.execute(
+            `SELECT
+                RATING_ID,
+                CUSTOMER_ID,
+                SESSION_ID,
+                RATING,
+                FEEDBACK,
+                LANGUAGE,
+                FOLLOW_UP_STATUS,
+                CREATED_AT
+             FROM CHAT_RATINGS
+             ORDER BY CREATED_AT DESC
+             FETCH FIRST 200 ROWS ONLY`,
+            {},
+            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+
+        return result.rows.map(r => ({
+            ratingId: r.RATING_ID,
+            customerId: r.CUSTOMER_ID,
+            sessionId: r.SESSION_ID,
+            rating: r.RATING,
+            feedback: r.FEEDBACK,
+            language: r.LANGUAGE,
+            followUpStatus: r.FOLLOW_UP_STATUS,
+            createdAt: r.CREATED_AT
+        }));
+
+    } finally {
+        if (connection) {
+            try {
+                await connection.close();
+            } catch (closeErr) {
+                console.error("Connection close error:", closeErr);
+            }
+        }
+    }
+}
+
+async function getFeedbackOverview(req, res) {
+    try {
+        const all = await fetchAllFeedback();
+
+        const isBad = f => f.rating <= 2 || f.followUpStatus !== "NOT_REQUIRED";
+
+        const bad = all.filter(isBad);
+        const good = all.filter(f => !isBad(f));
+
+        res.status(200).json({
+            success: true,
+            counts: {
+                good: good.length,
+                bad: bad.length,
+                pendingBad: bad.filter(f => f.followUpStatus === "PENDING").length
+            },
+            good,
+            bad
+        });
+
+    } catch (err) {
+        console.error("Failed to fetch feedback overview:", err);
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch feedback"
+        });
+    }
+}
+
+// ==========================================
 // EXPRESS HANDLERS
 // ==========================================
 
@@ -372,5 +450,7 @@ async function updateAgentFollowUp(req, res) {
 module.exports = {
     submitRating,
     getAgentFollowUps,
-    updateAgentFollowUp
+    updateAgentFollowUp,
+    getFeedbackOverview,
+    
 };
