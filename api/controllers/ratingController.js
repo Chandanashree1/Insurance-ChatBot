@@ -413,6 +413,7 @@ async function fetchAllFeedback() {
 
 
 
+
 async function getFeedbackOverview(req, res) {
     try {
         const all = await fetchAllFeedback();
@@ -436,6 +437,7 @@ async function getFeedbackOverview(req, res) {
             good,
             bad
         };
+        return res.status(200).json(response);
 
     } catch (err) {
         console.error(
@@ -449,6 +451,7 @@ async function getFeedbackOverview(req, res) {
         });
     }
 }
+
 
 
 // ==========================================
