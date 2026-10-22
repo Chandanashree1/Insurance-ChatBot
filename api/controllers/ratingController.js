@@ -18,7 +18,7 @@ async function saveRating(
         connection = await getConnection();
 
         // CUSTOMER ID
-        let customerIdValue = null; 
+        let customerIdValue = null;
 
         if (
             customerId !== undefined &&
@@ -61,7 +61,7 @@ async function saveRating(
         // FEEDBACK
         const feedbackValue =
             typeof feedback === "string" &&
-            feedback.trim()
+                feedback.trim()
                 ? feedback.trim()
                 : null;
 
@@ -207,6 +207,7 @@ async function saveRating(
 // ==========================================
 
 
+
 async function fetchAgentFollowUps() {
     let connection;
 
@@ -224,27 +225,57 @@ async function fetchAgentFollowUps() {
                 FOLLOW_UP_STATUS,
                 CREATED_AT
              FROM CHAT_RATINGS
-             WHERE RATING <= 2
-               AND FOLLOW_UP_STATUS IN ('PENDING', 'IN_PROGRESS')
+             WHERE FOLLOW_UP_STATUS = 'PENDING'
              ORDER BY CREATED_AT DESC`,
             {},
-            {
-                outFormat: oracledb.OUT_FORMAT_OBJECT
-            }
+            { outFormat: oracledb.OUT_FORMAT_OBJECT }
         );
 
-        return result.rows;
+        const followUps = await Promise.all(
+            result.rows.map(async row => {
+                let feedback = row.FEEDBACK;
+
+                if (feedback && typeof feedback.getData === "function") {
+                    feedback = await feedback.getData();
+                } else if (feedback && typeof feedback.on === "function") {
+                    feedback = await new Promise((resolve, reject) => {
+                        let text = "";
+
+                        feedback.setEncoding("utf8");
+                        feedback.on("data", chunk => text += chunk);
+                        feedback.on("end", () => resolve(text));
+                        feedback.on("error", reject);
+                    });
+                }
+
+                return {
+                    ratingId: row.RATING_ID,
+                    customerId: row.CUSTOMER_ID,
+                    sessionId: row.SESSION_ID,
+                    rating: row.RATING,
+                    feedback: feedback ?? null,
+                    language: row.LANGUAGE,
+                    followUpStatus: row.FOLLOW_UP_STATUS,
+                    createdAt: row.CREATED_AT instanceof Date
+                        ? row.CREATED_AT.toISOString()
+                        : row.CREATED_AT ?? null
+                };
+            })
+        );
+
+        return followUps;
 
     } finally {
         if (connection) {
             try {
                 await connection.close();
-            } catch (closeErr) {
-                console.error("Connection close error:", closeErr);
+            } catch (err) {
+                console.error("Connection close error:", err);
             }
         }
     }
 }
+
 
 
 // ==========================================
@@ -310,6 +341,7 @@ async function setAgentFollowUpStatus(ratingId, status) {
 // GET ALL FEEDBACK (GOOD / BAD SPLIT)
 // ==========================================
 
+
 async function fetchAllFeedback() {
     let connection;
 
@@ -333,16 +365,40 @@ async function fetchAllFeedback() {
             { outFormat: oracledb.OUT_FORMAT_OBJECT }
         );
 
-        return result.rows.map(r => ({
-            ratingId: r.RATING_ID,
-            customerId: r.CUSTOMER_ID,
-            sessionId: r.SESSION_ID,
-            rating: r.RATING,
-            feedback: r.FEEDBACK,
-            language: r.LANGUAGE,
-            followUpStatus: r.FOLLOW_UP_STATUS,
-            createdAt: r.CREATED_AT
-        }));
+        const rows = await Promise.all(
+            result.rows.map(async r => {
+                let feedback = r.FEEDBACK;
+
+                // Convert an Oracle CLOB to a plain string.
+                if (feedback && typeof feedback.getData === "function") {
+                    feedback = await feedback.getData();
+                } else if (feedback && typeof feedback.on === "function") {
+                    feedback = await new Promise((resolve, reject) => {
+                        let data = "";
+
+                        feedback.setEncoding("utf8");
+                        feedback.on("data", chunk => data += chunk);
+                        feedback.on("end", () => resolve(data));
+                        feedback.on("error", reject);
+                    });
+                }
+
+                return {
+                    ratingId: r.RATING_ID,
+                    customerId: r.CUSTOMER_ID,
+                    sessionId: r.SESSION_ID,
+                    rating: r.RATING,
+                    feedback: feedback ?? null,
+                    language: r.LANGUAGE,
+                    followUpStatus: r.FOLLOW_UP_STATUS,
+                    createdAt: r.CREATED_AT instanceof Date
+                        ? r.CREATED_AT.toISOString()
+                        : r.CREATED_AT ?? null
+                };
+            })
+        );
+
+        return rows;
 
     } finally {
         if (connection) {
@@ -355,34 +411,45 @@ async function fetchAllFeedback() {
     }
 }
 
+
+
 async function getFeedbackOverview(req, res) {
     try {
         const all = await fetchAllFeedback();
 
-        const isBad = f => f.rating <= 2 || f.followUpStatus !== "NOT_REQUIRED";
+        const isBad = f =>
+            Number(f.rating) <= 2 ||
+            f.followUpStatus !== "NOT_REQUIRED";
 
         const bad = all.filter(isBad);
         const good = all.filter(f => !isBad(f));
 
-        res.status(200).json({
+        const response = {
             success: true,
             counts: {
                 good: good.length,
                 bad: bad.length,
-                pendingBad: bad.filter(f => f.followUpStatus === "PENDING").length
+                pendingBad: bad.filter(
+                    f => f.followUpStatus === "PENDING"
+                ).length
             },
             good,
             bad
-        });
+        };
 
     } catch (err) {
-        console.error("Failed to fetch feedback overview:", err);
-        res.status(500).json({
+        console.error(
+            "Failed to fetch feedback overview:",
+            err.stack || err.message
+        );
+
+        return res.status(500).json({
             success: false,
             message: "Failed to fetch feedback"
         });
     }
 }
+
 
 // ==========================================
 // EXPRESS HANDLERS
@@ -410,24 +477,43 @@ async function submitRating(req, res) {
     }
 }
 
+
 async function getAgentFollowUps(req, res) {
     try {
         const followUps = await fetchAgentFollowUps();
 
-        res.status(200).json({
+        console.log("Follow-ups is array:", Array.isArray(followUps));
+        console.log("Follow-up count:", followUps.length);
+
+        for (const [index, item] of followUps.entries()) {
+            try {
+                JSON.stringify(item);
+            } catch (err) {
+                console.error(`Circular data in follow-up ${index}:`);
+                console.error(err.message);
+                console.dir(item, { depth: 3 });
+            }
+        }
+
+        return res.status(200).json({
             success: true,
             count: followUps.length,
-            followUps: followUps
+            followUps
         });
 
     } catch (err) {
-        console.error("Failed to fetch follow-ups:", err);
-        res.status(500).json({
+        console.error(
+            "Failed to fetch follow-ups:",
+            err.stack || err.message
+        );
+
+        return res.status(500).json({
             success: false,
             message: "Failed to fetch follow-ups"
         });
     }
 }
+
 
 async function updateAgentFollowUp(req, res) {
     try {
@@ -452,5 +538,5 @@ module.exports = {
     getAgentFollowUps,
     updateAgentFollowUp,
     getFeedbackOverview,
-    
+
 };
