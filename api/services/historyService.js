@@ -23,6 +23,89 @@ finally {
     }
 }
 
+
+/*
+=========================================================
+SESSION TITLES (new)
+=========================================================
+
+A short title per chat session, shown in Chat History instead
+of the first message (which is often just "hi"). Stored in
+CHAT_SESSION_TITLE - see chat_session_title.sql.
+=========================================================
+*/
+
+async function hasSessionTitle(customerId, sessionId) {
+    let connection;
+
+    try {
+        connection = await getConnection();
+
+        const result = await connection.execute(
+            `SELECT 1 AS FOUND
+             FROM CHAT_SESSION_TITLE
+             WHERE CUSTOMER_ID = :customerId
+               AND SESSION_ID = :sessionId`,
+            { customerId, sessionId },
+            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+
+        return result.rows.length > 0;
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+}
+
+
+async function saveSessionTitle(customerId, sessionId, title) {
+    let connection;
+
+    try {
+        connection = await getConnection();
+
+        // Insert only if this chat has no title yet. Distinct bind names
+        // are used on purpose (sessionId / sessionIdCheck, etc.).
+        await connection.execute(
+            `INSERT INTO CHAT_SESSION_TITLE (SESSION_ID, CUSTOMER_ID, TITLE)
+             SELECT :sessionId, :customerId, :title
+             FROM DUAL
+             WHERE NOT EXISTS (
+                 SELECT 1
+                 FROM CHAT_SESSION_TITLE
+                 WHERE CUSTOMER_ID = :customerIdCheck
+                   AND SESSION_ID = :sessionIdCheck
+             )`,
+            {
+                sessionId,
+                customerId,
+                title,
+                customerIdCheck: customerId,
+                sessionIdCheck: sessionId
+            },
+            { autoCommit: true }
+        );
+
+    } catch (err) {
+
+        // ORA-00001: two messages raced to title the same session.
+        // The other one won - nothing to do.
+        if (err && err.errorNum === 1) {
+            return;
+        }
+
+        throw err;
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+}
+
+
 async function getSessionList(customerId) {
     let connection;
 
@@ -48,7 +131,37 @@ async function getSessionList(customerId) {
 
         const sessions = sessionResult.rows;
 
+        // Titles written by sessionTitleService, in one query.
+        // If the CHAT_SESSION_TITLE table doesn't exist yet, history must
+        // keep working exactly as before, so a failure here is not fatal.
+        const titles = new Map();
+
+        try {
+            const titleResult = await connection.execute(
+                `SELECT SESSION_ID, TITLE
+                 FROM CHAT_SESSION_TITLE
+                 WHERE CUSTOMER_ID = :customerId`,
+                { customerId },
+                { outFormat: oracledb.OUT_FORMAT_OBJECT }
+            );
+
+            for (const row of titleResult.rows) {
+                titles.set(row.SESSION_ID, row.TITLE);
+            }
+        } catch (titleErr) {
+            console.error(
+                "Session titles unavailable, using first message:",
+                titleErr.message
+            );
+        }
+
         for (const session of sessions) {
+
+            // A generated title wins; no extra query needed for this session.
+            if (titles.has(session.SESSION_ID)) {
+                session.PREVIEW = titles.get(session.SESSION_ID);
+                continue;
+            }
 
             const previewResult = await connection.execute(
                 `SELECT DBMS_LOB.SUBSTR(CONTENT, 500, 1) AS PREVIEW
@@ -126,4 +239,10 @@ async function getSessionMessages(customerId, sessionId) {
         }
     }
 }
-module.exports = { saveMessage, getSessionList, getSessionMessages };
+module.exports = {
+    saveMessage,
+    getSessionList,
+    getSessionMessages,
+    hasSessionTitle,
+    saveSessionTitle
+};

@@ -31,6 +31,7 @@ const {
 } = require("../services/conversationservice");
 
 const { saveMessage } = require("../services/historyService");
+const { maybeCreateSessionTitle } = require("../services/Sessiontitleservice");
 
 const {
     startPurchaseFlow,
@@ -658,9 +659,9 @@ async function processPayment({
             reply:
                 language === "ar"
                     ? `للأسف، تم رفض هذا العرض (${proposal.PROPOSAL_NUMBER}) من قبل قسم الاكتتاب ولا يمكن إتمام الدفع له.` +
-                      (proposal.UNDERWRITER_NOTE ? ` ملاحظة: ${proposal.UNDERWRITER_NOTE}` : "")
+                    (proposal.UNDERWRITER_NOTE ? ` ملاحظة: ${proposal.UNDERWRITER_NOTE}` : "")
                     : `This quote was declined during underwriting review (proposal ${proposal.PROPOSAL_NUMBER}) and can't be paid for.` +
-                      (proposal.UNDERWRITER_NOTE ? ` Note from underwriting: ${proposal.UNDERWRITER_NOTE}` : ""),
+                    (proposal.UNDERWRITER_NOTE ? ` Note from underwriting: ${proposal.UNDERWRITER_NOTE}` : ""),
             actions: [],
             data: []
         };
@@ -988,8 +989,21 @@ const chat = async (req, res) => {
         const detectedInsuranceType =
             intentResult?.insuranceType || "UNKNOWN";
 
-        const readyToPurchase =
-            Boolean(intentResult?.readyToPurchase);
+        const readyToPurchase =Boolean(intentResult?.readyToPurchase);
+        // Give this chat a short title for Chat History (first real
+        // question only, once per session). Not awaited on purpose: it
+        // runs in the background and can never delay or break the reply.
+        if (loggedIn && customerId) {
+            maybeCreateSessionTitle({
+                customerId,
+                sessionId,
+                message,
+                intent,
+                language: lang
+            }).catch(err =>
+                console.error("Session title error:", err.message)
+            );
+        }
 
         console.log(
             "\n========== AI INTENT =========="

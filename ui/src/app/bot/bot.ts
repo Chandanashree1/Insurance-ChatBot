@@ -1438,18 +1438,35 @@ export class Bot implements DoCheck, OnInit {
   selectedLanguage: 'en' | 'ar' = 'en';
 
   setLanguage(lang: 'en' | 'ar') {
-    this.selectedLanguage = lang;
-    this.messages = this.messages.map(m =>
-      m.isWelcome ? { ...m, text: this.translations[lang].welcome } : m
-    );
 
-    // this.messages = [
-    //   {
-    //     sender: 'bot',
-    //     text: this.translations[lang].welcome,
-    //     time: new Date()
-    //   }
-    // ];
+    // Clicking the tab that is already active must not wipe the chat.
+    if (lang === this.selectedLanguage) {
+      return;
+    }
+
+    this.selectedLanguage = lang;
+
+    // Switching language starts a brand-new conversation: a new session id
+    // (so the history the backend sends to the model starts clean, and the
+    // old chat stays as its own entry in Chat History) and a welcome message
+    // in the new language.
+    this.sessionId = this.generateSessionId();
+    this.messages = [this.buildWelcomeMessage()];
+
+    this.userMessage = '';
+    this.pendingQuestion = '';
+    this.activeForm = null;
+    this.isLoading = false;   // a reply still on its way belongs to the old chat
+    this.isHistoryOpen = false;
+    this.isSupportCenterOpen = false;
+    this.isMyComplaintsOpen = false;
+    this.isCheckStatusOpen = false;
+    this.hasUserMessaged = false;
+    this.hasRatedSession = false;
+    this.applicationFormData = {};
+    this.selectedDocuments = [];
+
+    this.cdr.detectChanges();
   }
 
   sendMessage() {
@@ -1468,9 +1485,12 @@ export class Bot implements DoCheck, OnInit {
       loggedIn: this.isLogginIn,
       sessionId: this.sessionId
     };
-
+    const sessionAtSend = this.sessionId;
     this.http.post<any>('http://localhost:5000/api/chat', payload).subscribe({
       next: (response) => {
+        // The customer switched language (a new conversation) while this
+        // was in flight, so this reply belongs to the old chat.
+        if (sessionAtSend !== this.sessionId) { return; }
         if (response && response.success) {
           if (response.requiresLogin) {
             this.pendingQuestion = textToSend;
@@ -1519,6 +1539,9 @@ export class Bot implements DoCheck, OnInit {
 
       },
       error: (err) => {
+        // The customer switched language (a new conversation) while this
+        // was in flight, so this reply belongs to the old chat.
+        if (sessionAtSend !== this.sessionId) { return; }
         console.error('Frontend Connection Failure:', err);
         this.messages.push({
           sender: 'bot',
