@@ -50,3 +50,46 @@ ALTER TABLE COMPLAINTS RENAME COLUMN COMPLAINT_ID_NEW TO COMPLAINT_ID;
 ALTER TABLE COMPLAINTS MODIFY COMPLAINT_ID NOT NULL;
 ALTER TABLE COMPLAINTS ADD CONSTRAINT PK_COMPLAINTS PRIMARY KEY (COMPLAINT_ID);
 COMMIT;
+
+-- =====================================================================
+-- COMPLAINTS table fix.  Run in this order, as the user that owns it.
+-- Run this BEFORE you deploy the new complaintController.js - the new
+-- insert writes the POLICY_NUMBER column, which must exist first.
+-- =====================================================================
+
+-- 0) Look at what the table REALLY looks like. Your screenshot shows a
+--    COMPLAINT_REFERENCE column and empty COMPLAINT_IDs that the script
+--    you pasted would not allow, so check before changing anything.
+SELECT COLUMN_NAME, DATA_TYPE, NULLABLE
+FROM USER_TAB_COLUMNS
+WHERE TABLE_NAME = 'COMPLAINTS'
+ORDER BY COLUMN_ID;
+
+SELECT CONSTRAINT_NAME, CONSTRAINT_TYPE
+FROM USER_CONSTRAINTS
+WHERE TABLE_NAME = 'COMPLAINTS';
+
+-- 1) Give every existing complaint an ID (the empty ones from your test
+--    inserts). Unique to the millisecond, same CMP- prefix.
+UPDATE COMPLAINTS
+SET COMPLAINT_ID = 'CMP-' || TO_CHAR(CREATED_AT, 'YYYYMMDD') || '-' ||
+                   TO_CHAR(CREATED_AT, 'HH24MISSFF3')
+WHERE COMPLAINT_ID IS NULL;
+
+COMMIT;
+
+-- Must return no rows. If it returns rows, two complaints got the same ID:
+SELECT COMPLAINT_ID, COUNT(*) FROM COMPLAINTS
+GROUP BY COMPLAINT_ID HAVING COUNT(*) > 1;
+
+-- 2) From now on an ID is mandatory and unique.
+--    Skip a line if Oracle says it is already in place
+--    (ORA-01442 "already NOT NULL" or ORA-02260 "already has a primary key").
+ALTER TABLE COMPLAINTS MODIFY COMPLAINT_ID NOT NULL;
+ALTER TABLE COMPLAINTS ADD CONSTRAINT PK_COMPLAINTS PRIMARY KEY (COMPLAINT_ID);
+
+-- 3) Keep the policy number the customer typed, even when it does not
+--    match a policy (POLICY_ID is empty in that case).
+ALTER TABLE COMPLAINTS ADD POLICY_NUMBER VARCHAR2(50);
+
+COMMIT;

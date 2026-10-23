@@ -16,9 +16,67 @@ function generateComplaintId() {
 
 
 // ============================================================
-// CALLBACK MESSAGE (NON-STP)
+// POLICY NUMBER HELPERS
 // ============================================================
 
+// "  pol-2026-00006 " -> "POL-2026-00006"
+function normalizePolicyNumber(value) {
+    return String(value || "")
+        .trim()
+        .toUpperCase()
+        .replace(/\s+/g, "");
+}
+
+/*
+ * Finds the policy the customer typed.
+ *
+ * Returns null when there is no match. When the customer is logged in
+ * the policy must belong to them, so a complaint can't be attached to
+ * somebody else's policy by typing their number.
+ */
+async function findPolicyId(connection, policyNumber, customerId) {
+
+    if (!policyNumber) {
+        return null;
+    }
+
+    let sql = `
+        SELECT POLICY_ID
+        FROM POLICY
+        WHERE UPPER(POLICY_NUMBER) = :policyNumber
+    `;
+
+    const binds = { policyNumber };
+
+    const numericCustomerId = Number(customerId);
+
+    if (
+        customerId !== null &&
+        customerId !== undefined &&
+        customerId !== "" &&
+        Number.isFinite(numericCustomerId)
+    ) {
+        sql += ` AND CUSTOMER_ID = :customerId`;
+        binds.customerId = numericCustomerId;
+    }
+
+    const result = await connection.execute(
+        sql,
+        binds,
+        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+    );
+
+    return result.rows.length > 0
+        ? result.rows[0].POLICY_ID
+        : null;
+}
+
+
+// ============================================================
+// CUSTOMER MESSAGES
+// ============================================================
+
+// CALLBACK MESSAGE (NON-STP)
 function getCallbackMessage(language) {
 
     return language === "ar"
@@ -26,6 +84,28 @@ function getCallbackMessage(language) {
         ? "شكراً لتسجيل شكواك. لم نتمكن من العثور على حل فوري لهذه المشكلة. سيتصل بك أحد وكلائنا للمساعدة."
 
         : "Thank you for registering your complaint. We couldn't find an immediate solution for this issue. Our support agent will call you back to assist you.";
+}
+
+/*
+ * The customer needs the complaint ID to check the status later, so it
+ * is added to the reply. If the policy number didn't match a policy, say
+ * so - the number they typed is still saved for the agent to verify.
+ */
+function withReference(message, complaintId, policyFound, language) {
+
+    const idLine =
+        language === "ar"
+            ? `رقم شكواك هو ${complaintId}. يمكنك استخدامه لمتابعة حالة الشكوى.`
+            : `Your complaint ID is ${complaintId}. You can use it to check the status of your complaint.`;
+
+    const policyLine =
+        policyFound
+            ? ""
+            : language === "ar"
+                ? " ملاحظة: لم نتمكن من مطابقة رقم البوليصة الذي أدخلته، وسيقوم فريقنا بالتحقق منه."
+                : " Note: we couldn't match the policy number you entered, so our team will verify it.";
+
+    return `${message} ${idLine}${policyLine}`;
 }
 
 
@@ -165,96 +245,127 @@ async function registerComplaint(req, res) {
             await getConnection();
 
 
-        const policyResult = await connection.execute(
-            `
-            SELECT POLICY_ID
-            FROM POLICY
-            WHERE POLICY_NUMBER = :policyNumber
-            `,
-            {
-                policyNumber: policyNumber || null
-            },
-            {
-                outFormat: oracledb.OUT_FORMAT_OBJECT
-            }
-        );
+        // ----------------------------------------------------
+        // FIND THE POLICY
+        // ----------------------------------------------------
+
+        const typedPolicyNumber =
+            normalizePolicyNumber(policyNumber);
 
         const policyId =
-            policyResult.rows.length > 0
-                ? policyResult.rows[0].POLICY_ID
-                : null;
+            await findPolicyId(
+                connection,
+                typedPolicyNumber,
+                customerId
+            );
 
-        console.log("Policy Number:", policyNumber);
+        const policyFound = policyId !== null;
+
+        console.log("Policy number typed:", policyNumber);
+        console.log("Policy number normalized:", typedPolicyNumber);
         console.log("Policy ID:", policyId);
 
 
-        const complaintId =
-            generateComplaintId();
-
         // ----------------------------------------------------
         // INSERT
+        //
+        // COMPLAINT_ID is a text column now (CMP-...), so it must be
+        // supplied here - the database no longer fills it in. A
+        // collision on the primary key (ORA-00001) is retried with a
+        // new id.
         // ----------------------------------------------------
 
-        
-const insertResult = await connection.execute(
-    `
-    INSERT INTO COMPLAINTS (
-        CUSTOMER_ID,
-        SUBJECT,
-        FULL_NAME,
-        EMAIL,
-        MOBILE,
-        PRODUCT,
-        POLICY_ID,
-        COMPLAINT_MESSAGE,
-        ROUTE,
-        STATUS,
-        AI_REASON,
-        CREATED_AT,
-        UPDATED_AT
-    )
-    VALUES (
-        :customerId,
-        :subject,
-        :fullName,
-        :email,
-        :mobile,
-        :product,
-        :policyId,
-        :complaintMessage,
-        :route,
-        :status,
-        :aiReason,
-        CURRENT_TIMESTAMP,
-        CURRENT_TIMESTAMP
-    )
-    RETURNING COMPLAINT_ID INTO :complaintId
-    `,
-    {
-        customerId: customerId || null,
-        subject,
-        fullName: fullName || null,
-        email: email || null,
-        mobile: mobile || null,
-        product: product || null,
-        policyId,
-        complaintMessage: message,
-        route,
-        status: route === "NON_STP" ? "OPEN" : "RESOLVED",
-        aiReason: reason,
-        complaintId: {
-            dir: oracledb.BIND_OUT,
-            type: oracledb.NUMBER
+        const initialStatus =
+            route === "NON_STP"
+                ? "OPEN"
+                : "RESOLVED";
+
+        let complaintId;
+
+        for (let attempt = 1; attempt <= 3; attempt++) {
+
+            complaintId =
+                generateComplaintId();
+
+            try {
+
+                await connection.execute(
+                    `
+                    INSERT INTO COMPLAINTS (
+                        COMPLAINT_ID,
+                        CUSTOMER_ID,
+                        SUBJECT,
+                        FULL_NAME,
+                        EMAIL,
+                        MOBILE,
+                        PRODUCT,
+                        POLICY_ID,
+                        POLICY_NUMBER,
+                        COMPLAINT_MESSAGE,
+                        ROUTE,
+                        STATUS,
+                        AI_REASON,
+                        CREATED_AT,
+                        UPDATED_AT
+                    )
+                    VALUES (
+                        :complaintId,
+                        :customerId,
+                        :subject,
+                        :fullName,
+                        :email,
+                        :mobile,
+                        :product,
+                        :policyId,
+                        :policyNumber,
+                        :complaintMessage,
+                        :route,
+                        :status,
+                        :aiReason,
+                        CURRENT_TIMESTAMP,
+                        CURRENT_TIMESTAMP
+                    )
+                    `,
+                    {
+                        complaintId,
+                        customerId:
+                            customerId !== null && customerId !== undefined && customerId !== ""
+                                ? String(customerId)
+                                : null,
+                        subject,
+                        fullName: fullName || null,
+                        email: email || null,
+                        mobile: mobile || null,
+                        product: product || null,
+                        policyId,
+                        policyNumber: typedPolicyNumber || null,
+                        complaintMessage: message,
+                        route,
+                        status: initialStatus,
+                        aiReason: reason
+                    },
+                    {
+                        autoCommit: true
+                    }
+                );
+
+                break;
+
+            } catch (insertError) {
+
+                if (insertError.errorNum === 1 && attempt < 3) {
+
+                    console.warn(
+                        "Complaint ID collision, retrying with a new ID:",
+                        complaintId
+                    );
+
+                    continue;
+                }
+
+                throw insertError;
+            }
         }
-    },
-    {
-        autoCommit: true
-    }
-);
-
-
-console.log("Complaint ID:", complaintId);
-
 
 
         console.log(
@@ -269,9 +380,7 @@ console.log("Complaint ID:", complaintId);
 
         console.log(
             "Status saved:",
-            route === "NON_STP"
-                ? "OPEN"
-                : "RESOLVED"
+            initialStatus
         );
 
 
@@ -298,6 +407,8 @@ console.log("Complaint ID:", complaintId);
 
                 complaintId,
 
+                policyFound,
+
                 route: "NON_STP",
 
                 reason,
@@ -305,7 +416,12 @@ console.log("Complaint ID:", complaintId);
                 status: "OPEN",
 
                 message:
-                    getCallbackMessage(language)
+                    withReference(
+                        getCallbackMessage(language),
+                        complaintId,
+                        policyFound,
+                        language
+                    )
 
             });
         }
@@ -390,6 +506,8 @@ console.log("Complaint ID:", complaintId);
 
                     complaintId,
 
+                    policyFound,
+
                     route: "NON_STP",
 
                     reason:
@@ -398,7 +516,12 @@ console.log("Complaint ID:", complaintId);
                     status: "OPEN",
 
                     message:
-                        getCallbackMessage(language)
+                        withReference(
+                            getCallbackMessage(language),
+                            complaintId,
+                            policyFound,
+                            language
+                        )
 
                 });
             }
@@ -422,6 +545,8 @@ console.log("Complaint ID:", complaintId);
 
                 complaintId,
 
+                policyFound,
+
                 route: "STP",
 
                 reason,
@@ -429,7 +554,12 @@ console.log("Complaint ID:", complaintId);
                 status: "RESOLVED",
 
                 message:
-                    ragResult.resolution,
+                    withReference(
+                        ragResult.resolution,
+                        complaintId,
+                        policyFound,
+                        language
+                    ),
 
                 knowledgeBase: {
 
@@ -457,6 +587,8 @@ console.log("Complaint ID:", complaintId);
 
             complaintId,
 
+            policyFound,
+
             route: "NON_STP",
 
             reason:
@@ -465,7 +597,12 @@ console.log("Complaint ID:", complaintId);
             status: "OPEN",
 
             message:
-                getCallbackMessage(language)
+                withReference(
+                    getCallbackMessage(language),
+                    complaintId,
+                    policyFound,
+                    language
+                )
 
         });
 
