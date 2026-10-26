@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, ChangeDetectorRef, OnInit } from '@angular/core';
+import { Component, ViewChild, ElementRef, ChangeDetectorRef, OnInit,OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -92,8 +92,13 @@ interface HistorySession {
   templateUrl: './bot.html',
   styleUrls: ['./bot.scss']
 })
-export class Bot implements DoCheck, OnInit {
+export class Bot implements DoCheck, OnInit, OnDestroy {
   userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    ngOnDestroy(): void {
+    clearInterval(this.greetingInterval);
+    clearTimeout(this.greetingHideTimer);
+  }
 
   email = '';
   password = '';
@@ -112,6 +117,11 @@ export class Bot implements DoCheck, OnInit {
   signupPassword = '';
   signupConfirmPassword = '';
   isSigningUp = false;
+
+  showGreeting = false;
+private greetingTimers: any[] = [];
+private greetingInterval: any;
+private greetingHideTimer: any;
 
   switchToSignup(): void {
     this.authMode = 'signup';
@@ -164,7 +174,26 @@ export class Bot implements DoCheck, OnInit {
         time: new Date()
       });
     }
+    if (!isFresh) {
+  this.greetingInterval = setInterval(() => {
+    if (this.isOpen) return;      
+
+    this.showGreeting = true;
+    this.cdr.detectChanges();
+
+    clearTimeout(this.greetingHideTimer);
+    this.greetingHideTimer = setTimeout(() => {
+      this.showGreeting = false;
+      this.cdr.detectChanges();
+    }, 5000);                         // visible for 5 seconds
+  }, 10000);                          // repeats every 10 seconds
+}
   }
+
+  closeGreeting(event: Event): void {
+  event.stopPropagation();   // so the chat doesn't open when clicking ×
+  this.showGreeting = false;
+}
 
   switchToLogin(): void {
     this.authMode = 'login';
@@ -952,6 +981,7 @@ export class Bot implements DoCheck, OnInit {
   // ratingSkipped: boolean = false;  
 
   toggleOpen(): void {
+    this.showGreeting = false; 
     if (!this.isOpen) {
       this.isOpen = true;
       return;
@@ -1159,6 +1189,7 @@ export class Bot implements DoCheck, OnInit {
   translations = {
     en: {
       title: "Insurance Chatbot",
+      greeting: "Hi ! I’m here if you need me👋",
       buyPolicy: "Buy Policy",
       rop: "ROP Submission",
       renew: "Renew Your Policy",
@@ -1289,6 +1320,7 @@ export class Bot implements DoCheck, OnInit {
 
     ar: {
       title: "دردشة التأمين",
+      greeting: 'مرحبًا! أنا هنا إذا احتجت إليّ 👋',
       buyPolicy: "شراء وثيقة تأمين",
       rop: "تقديم طلب استرداد",
       renew: "تجديد وثيقتك",

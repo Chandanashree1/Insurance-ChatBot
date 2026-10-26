@@ -1,3 +1,8 @@
+<div class="launcher-greeting" *ngIf="showGreeting && !isOpen" (click)="toggleOpen()">
+  {{ tr.greeting }}
+  <span class="greeting-close" (click)="closeGreeting($event)">×</span>
+</div>
+
 <button class="launcher" (click)="toggleOpen()" [class.open]="isOpen" aria-label="Toggle policy assistant chat">
 
   <svg *ngIf="!isOpen" viewBox="70 35 260 380" xmlns="http://www.w3.org/2000/svg">

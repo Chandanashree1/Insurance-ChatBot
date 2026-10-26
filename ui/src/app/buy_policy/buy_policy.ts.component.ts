@@ -1101,6 +1101,35 @@ export class BuyPolicyChatComponent implements AfterViewChecked, OnInit {
       }
     });
   }
+
+  canGoBack(msg: ChatMessage): boolean {
+  // Only before underwriting is involved and while nothing is processing.
+  return msg.step === 2 &&
+         !msg.submitted &&
+         !msg.proposalStatus &&
+         !msg.underwritingPending;
+}
+
+goBackToDetails(msg: ChatMessage): void {
+  if (!this.canGoBack(msg)) return;
+
+  // Drop everything tied to the old quote. A new one is created on Get Quote.
+  msg.step = 1;
+  msg.quoteId = undefined;
+  msg.quoteNumber = undefined;
+  msg.plans = undefined;
+  msg.selectedOption = undefined;
+  msg.needsAdditionalInfo = false;
+  msg.additionalInfoText = '';
+
+  this.formNotice = '';
+  this.kycVerifying = false;
+  this.kycVerified = false;
+  this.kycFailedReason = null;
+
+  this.cdr.detectChanges();
+}
+
   private async generateQuote(): Promise<void> {
 
     // ==================================================

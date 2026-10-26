@@ -1125,6 +1125,10 @@
               {{ t('payNow') }}
             </button>
 
+            <button type="button" class="back-btn" *ngIf="canGoBack(msg)" (click)="goBackToDetails(msg)">
+              <span class="arrow">←</span> {{ t('back') }}
+            </button>
+
           </ng-container>
 
 

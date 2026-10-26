@@ -131,6 +131,30 @@
   margin-top: 8px;
 }
 
+
+.back-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px 8px;
+  border-radius: 7px;
+  border: 1px solid #202431;
+  background: #0f1117;
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+
+  &:hover {
+    background: #171a23;
+  }
+}
+
+.widget.rtl .back-btn .arrow {
+  display: inline-block;
+  transform: scaleX(-1);
+}
+
 /* =========================
    TWO COLUMN FORM
 ========================= */

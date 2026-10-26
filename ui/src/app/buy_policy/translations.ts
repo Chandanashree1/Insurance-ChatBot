@@ -251,7 +251,8 @@ export const translations = {
       'Payment successful!',
 
     // Home button
-    home: 'Home'
+    home: 'Home',
+    back: 'Back',
   },
 
   // ==========================================================
@@ -533,7 +534,8 @@ export const translations = {
       'تم الدفع بنجاح!',
 
     // Home button
-    home: 'الرئيسية'
+    home: 'الرئيسية',
+    back: 'رجوع',
   }
 }
 export type TranslationKey = keyof typeof translations.en;  

@@ -609,10 +609,12 @@
             </ng-container>
 
             <ng-template #noFeedback>
-              <div class="empty-state" *ngIf="!filteredFeedback.length">
-                {{ feedbackView === 'bad' ? tr('No pending follow-ups.', 'لا توجد متابعات معلقة.')
-                : feedbackView === 'resolved' ? tr('No resolved feedback yet.', 'لا توجد تقييمات تم حلها بعد.')
-                : tr('No positive feedback yet.', 'لا توجد تقييمات إيجابية بعد.') }}
+               <div class="empty-state">
+                {{ filteredFeedback.length
+                  ? tr('Select a feedback item from the list to view details.', 'اختر تقييمًا من القائمة لعرض التفاصيل.')
+                  : feedbackView === 'bad' ? tr('No pending follow-ups.', 'لا توجد متابعات معلقة.')
+                  : feedbackView === 'resolved' ? tr('No resolved feedback yet.', 'لا توجد تقييمات تم حلها بعد.')
+                  : tr('No positive feedback yet.', 'لا توجد تقييمات إيجابية بعد.') }}
               </div>
             </ng-template>
           </div>
