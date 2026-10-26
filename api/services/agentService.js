@@ -214,6 +214,11 @@ RULES
 3. Only ever look up the policy number the customer themselves
    provided in this conversation. Never ask for, accept, or act
    on a policy number as belonging to someone else.
+   If the customer asks about their policy, quote or claim but has
+   not written a number yet, do NOT call a tool and never make a
+   number up: answer with final_answer asking them for it (policy
+   numbers start with POL-, quote numbers with QT-, claim numbers
+   with CLM-).
 
 4. If getPolicyDetails returns null, tell the customer you
    couldn't find a policy with that number under their account.
@@ -421,6 +426,33 @@ const REFERENCE_ARG = {
     getClaimStatus: "claimNumber"
 };
 
+// What to ask the customer for when a tool was called with a number they
+// never wrote.
+const REFERENCE_KIND = {
+    getPolicyDetails: "policy",
+    getQuoteDetails: "quote",
+    resumeIncompleteQuote: "quote",
+    getClaimStatus: "claim"
+};
+
+const ASK_FOR_NUMBER = {
+    en: {
+        policy: "Sure! Please send me your policy number (it starts with POL-) and I'll look it up.",
+        quote: "Sure! Please send me your quote number (it starts with QT-) and I'll look it up.",
+        claim: "Sure! Please send me your claim number (it starts with CLM-) and I'll look it up."
+    },
+    ar: {
+        policy: "بالتأكيد! يرجى إرسال رقم البوليصة الخاص بك (يبدأ بـ POL-) وسأبحث عنه.",
+        quote: "بالتأكيد! يرجى إرسال رقم عرض السعر الخاص بك (يبدأ بـ QT-) وسأبحث عنه.",
+        claim: "بالتأكيد! يرجى إرسال رقم المطالبة الخاص بك (يبدأ بـ CLM-) وسأبحث عنه."
+    }
+};
+
+function askForNumberReply(kind, language) {
+    const texts = ASK_FOR_NUMBER[language] || ASK_FOR_NUMBER.en;
+    return texts[kind] || texts.policy;
+}
+
 function normalizeRef(value) {
     return String(value || "").toUpperCase().replace(/\s+/g, "");
 }
@@ -438,11 +470,14 @@ async function executeTool(toolName, args, context) {
         const value = String(args?.[refArg] || "").trim();
 
         if (value && !wasProvidedByCustomer(value, context.userText)) {
+            // The invented number is deliberately NOT repeated here, so
+            // the model can't echo it back to the customer.
             return {
                 error:
-                    `The ${refArg} "${value}" was not written by the customer ` +
-                    `in this conversation. Never guess a number or reuse one ` +
-                    `from an example. Ask the customer for the number instead.`
+                    `The customer has not written a ${refArg} in this ` +
+                    `conversation. Never guess a number or reuse one from ` +
+                    `an example.`,
+                askForNumber: REFERENCE_KIND[toolName]
             };
         }
     }
@@ -1012,6 +1047,16 @@ async function runAgent({
 
             if (result && result.ui) {
                 lastUi = result.ui;
+            }
+
+            // The model called a lookup with a number the customer never
+            // wrote (e.g. "can I get my policy details?" with no number).
+            // Ask for the number from code - nothing to look up yet, and no
+            // second model call is needed (they take 10+ s on this server).
+            if (result?.askForNumber) {
+                return finish(
+                    askForNumberReply(result.askForNumber, language)
+                );
             }
 
             // Escalated quote: reply + card come from code, skip the LLM.
