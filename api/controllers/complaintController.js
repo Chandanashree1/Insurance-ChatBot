@@ -11,9 +11,10 @@ const { analyzeComplaint } = require("../services/huggingFaceService");
 // ============================================================
 
 function generateComplaintId() {
-    return `CMP-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    generateComplaintId.counter = (generateComplaintId.counter || 0) + 1;
+    const currentYear = new Date().getFullYear();
+    return `CMP-${currentYear}-${String(generateComplaintId.counter).padStart(5, "0")}`;
 }
-
 
 // ============================================================
 // POLICY NUMBER HELPERS
