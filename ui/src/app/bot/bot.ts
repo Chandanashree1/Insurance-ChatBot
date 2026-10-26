@@ -156,39 +156,46 @@ private greetingHideTimer: any;
     }
     return null;
   }
-  ngOnInit(): void {
-    this.messages = [this.buildWelcomeMessage()];
-    this.restoreLoginState();
-    const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
-    const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
-    const isFresh = shouldRestore && (Date.now() - setAt) < 30000;
 
-    if (isFresh) {
-      this.isOpen = true;
-      this.hasUserMessaged = true;
+  private showGreetingBubble(): void {
+  if (this.isOpen) return;            // don't show while chat is open
 
-      this.messages.push({
-        sender: 'bot',
-        text: '',
-        uiType: 'BUY_POLICY_FORM',
-        time: new Date()
-      });
-    }
-    if (!isFresh) {
-  this.greetingInterval = setInterval(() => {
-    if (this.isOpen) return;      
+  this.showGreeting = true;
+  this.cdr.detectChanges();
 
-    this.showGreeting = true;
+  clearTimeout(this.greetingHideTimer);
+  this.greetingHideTimer = setTimeout(() => {
+    this.showGreeting = false;
     this.cdr.detectChanges();
-
-    clearTimeout(this.greetingHideTimer);
-    this.greetingHideTimer = setTimeout(() => {
-      this.showGreeting = false;
-      this.cdr.detectChanges();
-    }, 5000);                         // visible for 5 seconds
-  }, 10000);                          // repeats every 10 seconds
+  }, 5000);                           // visible for 5 seconds
 }
+
+ ngOnInit(): void {
+  this.messages = [this.buildWelcomeMessage()];
+  this.restoreLoginState();
+
+  const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
+  const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
+  const isFresh = shouldRestore && (Date.now() - setAt) < 30000;
+
+  if (isFresh) {
+    this.isOpen = true;
+    this.hasUserMessaged = true;
+
+    this.messages.push({
+      sender: 'bot',
+      text: '',
+      uiType: 'BUY_POLICY_FORM',
+      time: new Date()
+    });
+  } else {
+    // 1) Show once when the website opens (after 1 second)
+    setTimeout(() => this.showGreetingBubble(), 1000);
+
+    // 2) Then repeat every 1 minute
+    this.greetingInterval = setInterval(() => this.showGreetingBubble(), 60000);
   }
+}
 
   closeGreeting(event: Event): void {
   event.stopPropagation();   // so the chat doesn't open when clicking ×
@@ -1189,7 +1196,7 @@ private greetingHideTimer: any;
   translations = {
     en: {
       title: "Insurance Chatbot",
-      greeting: "Hi ! I’m here if you need me👋",
+      greeting: "Hi, I’m Ishaq! 👋 How can I help you?",
       buyPolicy: "Buy Policy",
       rop: "ROP Submission",
       renew: "Renew Your Policy",
@@ -1320,7 +1327,7 @@ private greetingHideTimer: any;
 
     ar: {
       title: "دردشة التأمين",
-      greeting: 'مرحبًا! أنا هنا إذا احتجت إليّ 👋',
+      greeting: 'مرحبًا، أنا إسحاق! 👋 كيف يمكنني مساعدتك؟',
       buyPolicy: "شراء وثيقة تأمين",
       rop: "تقديم طلب استرداد",
       renew: "تجديد وثيقتك",
