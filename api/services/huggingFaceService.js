@@ -5,6 +5,7 @@ const {
     languageReminder,
     languageFallback
 } = require("./languageGuard");
+const { formatReply } = require("./replyFormatter");
 const insurancePrompt = require("../prompts/insurancePrompt");
 
 
@@ -366,7 +367,10 @@ Do not repeat questions that the customer has already answered.
 
             role: "system",
 
-            content: languageReminder(language)
+            content:
+                languageReminder(language) +
+                " Write plain text only: no asterisks, no markdown, " +
+                "no headings. Put each numbered point on its own new line."
 
         });
 
@@ -415,7 +419,9 @@ Do not repeat questions that the customer has already answered.
             }
         }
 
-        return result;
+        // The chat window shows plain text: turn **bold** into quotes and
+        // put numbered points on their own lines (see replyFormatter.js).
+        return formatReply(result);
 
     } catch (error) {
 

@@ -2,7 +2,7 @@ const { getConnection } = require("../config/oracle");
 const oracledb = require("oracledb");
 
 async function signup(req, res) {
-    const { name, email, password } = req.body;
+    const { name, mobileNo, otp } = req.body;
     let connection;
 
     try {
@@ -12,8 +12,8 @@ async function signup(req, res) {
         const existing = await connection.execute(
             `SELECT CUSTOMER_ID
              FROM CUSTOMER
-             WHERE EMAIL = :email`,
-            { email },
+             WHERE MOBILE_NUMBER = :mobileNo`,
+            { mobileNo },
             {
                 outFormat: oracledb.OUT_FORMAT_OBJECT
             }
@@ -31,19 +31,19 @@ async function signup(req, res) {
         const result = await connection.execute(
             `INSERT INTO CUSTOMER (
                 FULL_NAME,
-                EMAIL,
-                PASSWORD
+                MOBILE_NUMBER,
+                OTP
              )
              VALUES (
                 :name,
-                :email,
-                :password
+                :mobileNo,
+                :otp
              )
              RETURNING CUSTOMER_ID INTO :customerId`,
             {
                 name,
-                email,
-                password,
+                mobileNo,
+                otp,
                 customerId: {
                     type: oracledb.NUMBER,
                     dir: oracledb.BIND_OUT

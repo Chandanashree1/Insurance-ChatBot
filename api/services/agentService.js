@@ -14,6 +14,7 @@ const {
     languageReminder,
     languageFallback
 } = require("./languageGuard");
+const { formatReply } = require("./replyFormatter");
 
 
 function sleep(ms) {
@@ -1029,7 +1030,7 @@ async function runAgent({
             return finish(
                 isWrongLanguage(text, language)
                     ? languageFallback(language)
-                    : text
+                    : formatReply(text)
             );
         }
 
@@ -1076,7 +1077,7 @@ async function runAgent({
                 return finish(languageFallback(language));
             }
 
-            return finish(reply);
+            return finish(formatReply(reply));
 
         }
 

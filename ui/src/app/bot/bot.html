@@ -715,14 +715,14 @@
         <p class="login-description">{{ tr.loginDesc }}</p>
 
         <div class="login-field">
-          <label>{{ tr.email }}</label>
-          <input type="email" [(ngModel)]="email" [placeholder]="tr.enterEmail" autocomplete="email"
+          <label>{{ tr.phone }}</label>
+          <input type="number" [(ngModel)]="mobileNo" [placeholder]="tr.enterPhone" autocomplete="email"
             [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
         </div>
 
         <div class="login-field">
-          <label>{{ tr.password }}</label>
-          <input type="password" [(ngModel)]="password" [placeholder]="tr.enterPassword" autocomplete="current-password"
+          <label>{{ tr.otp }}</label>
+          <input type="number" [(ngModel)]="otp" [placeholder]="tr.enterOtp" autocomplete="current-password"
             [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
         </div>
 
@@ -766,22 +766,22 @@
         </div>
 
         <div class="login-field">
-          <label>{{ tr.email }}</label>
-          <input type="email" [(ngModel)]="signupEmail" [placeholder]="tr.enterEmail" autocomplete="email"
+          <label>{{ tr.phone }}</label>
+          <input type="tel" [(ngModel)]="signupPhone" [placeholder]="tr.enterPhone" autocomplete="email"
             [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
         </div>
 
         <div class="login-field">
-          <label>{{ tr.password }}</label>
-          <input type="password" [(ngModel)]="signupPassword" [placeholder]="tr.enterPassword"
+          <label>{{ tr.otp }}</label>
+          <input type="text" [(ngModel)]="signupOtp" [placeholder]="tr.enterOtp"
             autocomplete="new-password" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
         </div>
 
-        <div class="login-field">
+        <!-- <div class="login-field">
           <label>{{ tr.confirmPassword }}</label>
           <input type="password" [(ngModel)]="signupConfirmPassword" [placeholder]="tr.reenterPassword"
             [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
-        </div>
+        </div> -->
 
         <button type="button" class="signin-btn" (click)="signup()" [disabled]="isSigningUp">
           {{ isSigningUp ? tr.creatingAccount : tr.signUpBtn }}

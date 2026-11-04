@@ -1,4 +1,4 @@
-import { Component, ViewChild, ElementRef, ChangeDetectorRef, OnInit,OnDestroy } from '@angular/core';
+import { Component, ViewChild, ElementRef, ChangeDetectorRef, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -95,13 +95,13 @@ interface HistorySession {
 export class Bot implements DoCheck, OnInit, OnDestroy {
   userTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
-    ngOnDestroy(): void {
+  ngOnDestroy(): void {
     clearInterval(this.greetingInterval);
     clearTimeout(this.greetingHideTimer);
   }
 
-  email = '';
-  password = '';
+  mobileNo = '';
+  otp = '';
   isLogginIn: boolean = false;
   isLoggingIn: boolean = false;
   customerId: number | null = null;
@@ -113,22 +113,22 @@ export class Bot implements DoCheck, OnInit, OnDestroy {
   authMode: 'login' | 'signup' = 'login';
 
   signupName = '';
-  signupEmail = '';
-  signupPassword = '';
-  signupConfirmPassword = '';
+  signupPhone = '';
+  signupOtp = '';
+  // signupConfirmPassword = '';
   isSigningUp = false;
 
   showGreeting = false;
-private greetingTimers: any[] = [];
-private greetingInterval: any;
-private greetingHideTimer: any;
+  private greetingTimers: any[] = [];
+  private greetingInterval: any;
+  private greetingHideTimer: any;
 
   switchToSignup(): void {
     this.authMode = 'signup';
-    this.signupEmail = this.email;
+    this.signupPhone = this.mobileNo;
     this.signupName = '';
-    this.signupPassword = '';
-    this.signupConfirmPassword = '';
+    this.signupOtp = '';
+    // this.signupConfirmPassword = '';
   }
 
 
@@ -158,70 +158,70 @@ private greetingHideTimer: any;
   }
 
   private showGreetingBubble(): void {
-  if (this.isOpen) return;            // don't show while chat is open
+    if (this.isOpen) return;            // don't show while chat is open
 
-  this.showGreeting = true;
-  this.cdr.detectChanges();
-
-  clearTimeout(this.greetingHideTimer);
-  this.greetingHideTimer = setTimeout(() => {
-    this.showGreeting = false;
+    this.showGreeting = true;
     this.cdr.detectChanges();
-  }, 5000);                           // visible for 5 seconds
-}
 
- ngOnInit(): void {
-  this.messages = [this.buildWelcomeMessage()];
-  this.restoreLoginState();
-
-  const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
-  const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
-  const isFresh = shouldRestore && (Date.now() - setAt) < 30000;
-
-  if (isFresh) {
-    this.isOpen = true;
-    this.hasUserMessaged = true;
-
-    this.messages.push({
-      sender: 'bot',
-      text: '',
-      uiType: 'BUY_POLICY_FORM',
-      time: new Date()
-    });
-  } else {
-    // 1) Show once when the website opens (after 1 second)
-    setTimeout(() => this.showGreetingBubble(), 1000);
-
-    // 2) Then repeat every 1 minute
-    this.greetingInterval = setInterval(() => this.showGreetingBubble(), 60000);
+    clearTimeout(this.greetingHideTimer);
+    this.greetingHideTimer = setTimeout(() => {
+      this.showGreeting = false;
+      this.cdr.detectChanges();
+    }, 5000);                           // visible for 5 seconds
   }
-}
+
+  ngOnInit(): void {
+    this.messages = [this.buildWelcomeMessage()];
+    this.restoreLoginState();
+
+    const shouldRestore = sessionStorage.getItem('restoreChatOnLoad') === 'true';
+    const setAt = Number(sessionStorage.getItem('restoreChatOnLoadTime') || 0);
+    const isFresh = shouldRestore && (Date.now() - setAt) < 30000;
+
+    if (isFresh) {
+      this.isOpen = true;
+      this.hasUserMessaged = true;
+
+      this.messages.push({
+        sender: 'bot',
+        text: '',
+        uiType: 'BUY_POLICY_FORM',
+        time: new Date()
+      });
+    } else {
+      // 1) Show once when the website opens (after 1 second)
+      setTimeout(() => this.showGreetingBubble(), 1000);
+
+      // 2) Then repeat every 1 minute
+      this.greetingInterval = setInterval(() => this.showGreetingBubble(), 60000);
+    }
+  }
 
   closeGreeting(event: Event): void {
-  event.stopPropagation();   // so the chat doesn't open when clicking ×
-  this.showGreeting = false;
-}
+    event.stopPropagation();   // so the chat doesn't open when clicking ×
+    this.showGreeting = false;
+  }
 
   switchToLogin(): void {
     this.authMode = 'login';
   }
   signup(): void {
-    if (!this.signupName || !this.signupEmail || !this.signupPassword || !this.signupConfirmPassword) {
+    if (!this.signupName || !this.signupPhone || !this.signupOtp) {
       alert(this.selectedLanguage === 'ar' ? 'يرجى تعبئة جميع الحقول.' : 'Please fill all fields.');
       return;
     }
 
-    if (this.signupPassword !== this.signupConfirmPassword) {
-      alert(this.selectedLanguage === 'ar' ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.');
-      return;
-    }
+    // if (this.signupPassword !== this.signupConfirmPassword) {
+    //   alert(this.selectedLanguage === 'ar' ? 'كلمتا المرور غير متطابقتين.' : 'Passwords do not match.');
+    //   return;
+    // }
 
     this.isSigningUp = true;
 
     const body = {
       name: this.signupName,
-      email: this.signupEmail,
-      password: this.signupPassword
+      mobileNo: this.signupPhone,
+      otp: this.signupOtp
     };
 
     this.http.post<any>('http://localhost:5000/api/signup', body).subscribe({
@@ -247,7 +247,7 @@ private greetingHideTimer: any;
           }
         } else if (res.userExists) {
           alert(res.message || 'Account already exists. Please sign in.');
-          this.email = this.signupEmail;
+          this.mobileNo = this.signupPhone;
           this.openLogin(this.authReturnTo);
         } else {
           alert(res.message || 'Signup failed. Please try again.');
@@ -518,10 +518,10 @@ private greetingHideTimer: any;
     this.authReturnTo = returnTo;
     this.showSignupPopup = true;
     this.showLoginPopup = false;
-    this.signupEmail = this.email;
+    this.signupPhone = this.mobileNo;
     this.signupName = '';
-    this.signupPassword = '';
-    this.signupConfirmPassword = '';
+    this.signupOtp = '';
+    // this.signupConfirmPassword = '';
   }
 
 
@@ -894,8 +894,8 @@ private greetingHideTimer: any;
     if (this.isLoggingIn) return;   // block a second call while one is already in flight
 
     const body = {
-      email: this.email,
-      password: this.password
+      mobileNo: this.mobileNo,
+      otp: this.otp
     };
 
     this.isLoggingIn = true;
@@ -926,7 +926,7 @@ private greetingHideTimer: any;
             this.isLogginIn = false;
             if (res.userNotFound) {
               alert(res.message || 'No account found with this email.');
-              this.signupEmail = this.email;
+              this.signupPhone = this.mobileNo;
               this.openSignup(this.authReturnTo);
             } else {
               alert(res.message);
@@ -988,7 +988,7 @@ private greetingHideTimer: any;
   // ratingSkipped: boolean = false;  
 
   toggleOpen(): void {
-    this.showGreeting = false; 
+    this.showGreeting = false;
     if (!this.isOpen) {
       this.isOpen = true;
       return;
@@ -1294,10 +1294,10 @@ private greetingHideTimer: any;
       signInSubtitle: 'Access your insurance account',
       welcomeBack: 'Welcome back!',
       loginDesc: 'Sign in to view your chat history and manage your complaints.',
-      email: 'Email',
-      password: 'Password',
-      enterEmail: 'Enter your email',
-      enterPassword: 'Enter your password',
+      phone: 'Phone Number',
+      otp: 'OTP',
+      enterPhone: 'Enter your phone number',
+      enterOtp: 'Enter your otp',
       signInBtn: 'Sign In',
       signingIn: 'Signing in...',
       newHere: 'New here?',
@@ -1424,10 +1424,10 @@ private greetingHideTimer: any;
       signInSubtitle: 'الوصول إلى حسابك التأميني',
       welcomeBack: 'مرحبًا بعودتك!',
       loginDesc: 'سجّل الدخول لعرض سجل محادثاتك وإدارة شكاواك.',
-      email: 'البريد الإلكتروني',
-      password: 'كلمة المرور',
-      enterEmail: 'أدخل بريدك الإلكتروني',
-      enterPassword: 'أدخل كلمة المرور',
+      phone: 'البريد الإلكتروني',
+      otp: 'كلمة المرور',
+      enterPhone: 'أدخل بريدك الإلكتروني',
+      enterOtp: 'أدخل كلمة المرور',
       signInBtn: 'تسجيل الدخول',
       signingIn: 'جارٍ تسجيل الدخول...',
       newHere: 'جديد هنا؟',
@@ -1469,6 +1469,7 @@ private greetingHideTimer: any;
     ar: {
       POLICY: 'اعرض وثيقتي',
       CLAIM: 'اعرض حالة المطالبة',
+      
       RENEW_POLICY: 'أرغب في تجديد وثيقتي',
       CLAIM_DOCUMENTS: 'ما هي المستندات المطلوبة للمطالبة؟'
     }

@@ -8,19 +8,20 @@ async function login(req, res) {
     connection = await getConnection();
 
     // Case 1: Login request
-    if (req.body.email && req.body.password) {
-      const { email, password } = req.body;
-
+    if (req.body.mobileNo && req.body.otp) {
+      const { mobileNo, otp } = req.body;
       const result = await connection.execute(
-        `SELECT CUSTOMER_ID, FULL_NAME, EMAIL, MOBILE_NUMBER, CIVIL_ID_LICENSE_NO, PASSWORD
+        `SELECT CUSTOMER_ID, FULL_NAME, EMAIL, MOBILE_NUMBER, CIVIL_ID_LICENSE_NO, OTP
          FROM CUSTOMER
-         WHERE EMAIL = :email`,
-        { email },
-        { outFormat: oracledb.OUT_FORMAT_OBJECT }
+         WHERE MOBILE_NUMBER = :mobileNo`,
+        { mobileNo },
+        { outFormat: oracledb.OUT_FORMAT_OBJECT },
       );
+      const storedOtp =result.rows.length > 0 ? result.rows[0].OTP : null;
 
-      if (result.rows.length === 0 || result.rows[0].PASSWORD !== password) {
-        return res.json({ success: false, message: "Invalid Email or Password" });
+      if (storedOtp === null ||storedOtp === undefined ||String(storedOtp).trim() !== String(otp).trim()) {
+        console.log("false")
+        return res.json({ success: false, message: "Invalid mobile number or OTP" });
       }
 
       const user = result.rows[0];
