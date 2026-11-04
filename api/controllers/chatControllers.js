@@ -1136,11 +1136,11 @@ const chat = async (req, res) => {
         const isAgentFollowUp =
             isAgentAwaiting(flowUserId) &&
             isShortFollowUp &&
-            ["POLICY", "CLAIM", "BUY_POLICY", "PAYMENT", "UNKNOWN"]
+            ["POLICY", "CLAIM", "BUY_POLICY", "PAYMENT","DOWNLOAD_POLICY", "UNKNOWN"]
                 .includes(intent);
 
         if (
-            (intent === "POLICY" || intent === "CLAIM" || isAgentFollowUp) &&
+            (intent === "POLICY" || intent === "CLAIM" || intent === "DOWNLOAD_POLICY" || isAgentFollowUp) &&
             loggedIn &&
             customerId
         ) {

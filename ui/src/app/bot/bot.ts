@@ -1314,7 +1314,7 @@ private greetingHideTimer: any;
       signInLink: 'Sign in',
       close: 'Close',
       complaintId: 'Complaint ID',
-      complaintIdPlaceholder: 'e.g. CMP-1718000000000-1234',
+      complaintIdPlaceholder: 'e.g. CMP-2026-00001',
       enterComplaintId: 'Please enter your complaint ID.',
       complaintWord: 'Complaint',
       complaintOpen: 'Complaint Open',
@@ -1444,7 +1444,7 @@ private greetingHideTimer: any;
       signInLink: 'تسجيل الدخول',
       close: 'إغلاق',
       complaintId: 'رقم الشكوى',
-      complaintIdPlaceholder: 'مثال: CMP-1718000000000-1234',
+      complaintIdPlaceholder: 'مثال:  CMP-2026-00001',
       enterComplaintId: 'الرجاء إدخال رقم الشكوى.',
       complaintWord: 'الشكوى',
       complaintOpen: 'الشكوى مفتوحة',
@@ -1692,6 +1692,31 @@ private greetingHideTimer: any;
     } catch { /* ignore */ }
   }
 
+    downloadPolicyPdf(policyNumber: string): void {
+    this.http.get(`http://localhost:5000/api/policies/${policyNumber}/document`, {
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Policy-${policyNumber}.pdf`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+      },
+      error: () => {
+        this.messages.push({
+          sender: 'bot',
+          text: this.selectedLanguage === 'ar'
+            ? 'تعذر تحميل الوثيقة الآن. يرجى المحاولة مرة أخرى.'
+            : 'I could not download the document right now. Please try again.',
+          time: new Date()
+        });
+        this.cdr.detectChanges();
+      }
+    });
+  }
+
   onActionClick(action: string, msg?: ChatMessage) {
 
     if (msg?.quickReply) msg.actions = [];
@@ -1711,6 +1736,11 @@ private greetingHideTimer: any;
       this.sendMessage();
       return;
 
+    }
+
+        if (action.startsWith('DOWNLOAD_POLICY_')) {
+      this.downloadPolicyPdf(action.replace('DOWNLOAD_POLICY_', ''));
+      return;
     }
 
     const cannedMessage =

@@ -52,16 +52,20 @@ export class PaymentComponent implements OnInit {
     this.http.get(`http://localhost:5000/api/policies/${this.policy.policyNumber}/document`, {
       responseType: 'blob'
     }).subscribe({
-      next: (blob) => {
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `Policy-${this.policy.policyNumber}.pdf`;
-        a.click();
-        window.URL.revokeObjectURL(url);
-        this.downloading = false;
-        this.cdr.detectChanges();
-      },
+     next: (blob) => {
+  const pdf = new Blob([blob], { type: 'application/pdf' });
+  const url = window.URL.createObjectURL(pdf);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `Policy-${this.policy.policyNumber}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+
+  // Give the browser time to start reading the blob
+  setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+},
       error: () => {
         this.downloading = false;
         this.cdr.detectChanges();

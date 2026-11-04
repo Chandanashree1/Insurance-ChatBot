@@ -3,29 +3,6 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
 import { uwTranslations, UwKey, UwLang } from './underwriter.translations';
-import { ComplaintFlwUp } from '../services/complaint-flw-up'
-import { ClaimService, PendingClaim, SubmitClaimResult } from '../services/claim.service';
-import { ClaimFormComponent } from '../claim/claim';
-
-interface QuoteRow {
-  quoteId: number;
-  quoteNumber: string;
-  customerName: string;
-  planName: string;
-  premium: number;
-  status: string;
-}
-
-interface FeedbackItem {
-  ratingId: number;
-  customerId: number | null;
-  sessionId: string;
-  rating: number;
-  feedback: string | null;
-  language: string;
-  followUpStatus: 'PENDING' | 'IN_PROGRESS' | 'RESOLVED' | 'NOT_REQUIRED';
-  createdAt: string;
-}
 
 interface ProposalRow {
   proposalId: number;
@@ -41,12 +18,10 @@ interface ProposalRow {
   submittedAt: string;
 }
 
-export type UwSection = 'all' | 'underwriting' | 'complaints' | 'claims' | 'feedback';
-
 @Component({
   selector: 'app-underwriter',
   standalone: true,
-  imports: [CommonModule, FormsModule, ClaimFormComponent],
+  imports: [CommonModule, FormsModule],
   templateUrl: './underwriter.component.html',
   styleUrls: ['./underwriter.component.scss']
 })
@@ -57,7 +32,6 @@ export class UnderwriterComponent implements OnInit {
   // ==================================================
   selectedLanguage: UwLang = 'en';
 
-  /** Maps backend status / decision codes to translation keys. */
   private statusKeys: Record<string, UwKey> = {
     PENDING: 'statusPending',
     APPROVED: 'statusApproved',
@@ -69,12 +43,10 @@ export class UnderwriterComponent implements OnInit {
     return uwTranslations[this.selectedLanguage]?.[key] ?? uwTranslations.en[key] ?? key;
   }
 
-  /** Inline English/Arabic helper for text that has no translation key yet. */
   tr(en: string, ar: string): string {
     return this.selectedLanguage === 'ar' ? ar : en;
   }
 
-  /** Translates a backend status/decision code; falls back to the raw value. */
   statusLabel(code: string): string {
     const key = this.statusKeys[code];
     return key ? this.t(key) : code;
@@ -87,24 +59,6 @@ export class UnderwriterComponent implements OnInit {
   }
 
   // ==================================================
-  // SECTION TABS (stat cards)
-  // ==================================================
-  activeSection: UwSection = 'all';
-
-  /** Clicking the active card again goes back to showing everything. */
-  setSection(section: Exclude<UwSection, 'all'>): void {
-    this.activeSection = this.activeSection === section ? 'all' : section;
-  }
-
-  showAll(): void {
-    this.activeSection = 'all';
-  }
-
-  isVisible(section: Exclude<UwSection, 'all'>): boolean {
-    return this.activeSection === 'all' || this.activeSection === section;
-  }
-
-  // ==================================================
   // LOGIN STATE
   // ==================================================
   isLoggedIn = false;
@@ -113,14 +67,8 @@ export class UnderwriterComponent implements OnInit {
   loginFailed = false;
 
   // ==================================================
-  // DASHBOARD STATE
+  // PROPOSALS STATE
   // ==================================================
-  quotes: QuoteRow[] = [];
-  selectedQuoteId: number | null = null;
-  followUpMessage = '';
-  sentLog: { quoteId: number; message: string; time: string }[] = [];
-  sending = false;
-
   proposals: ProposalRow[] = [];
   selectedProposal: ProposalRow | null = null;
   decisionNote = '';
@@ -128,56 +76,53 @@ export class UnderwriterComponent implements OnInit {
   deciding = false;
   decisionSentLog: { proposalNumber: string; decision: string; time: string }[] = [];
 
-  isCalling = false;
-  callingCustomer: any = null;
-
-  // ==================================================
-  // SEARCH
-  // ==================================================
   proposalSearch = '';
-  complaintSearch = '';
-  claimSearch = '';
-
-  private matches(term: string, ...values: unknown[]): boolean {
-    const q = term.trim().toLowerCase();
-    if (!q) return true;
-    return values.some(v => String(v ?? '').toLowerCase().includes(q));
-  }
 
   get filteredProposals(): ProposalRow[] {
+    const q = this.proposalSearch.trim().toLowerCase();
+    if (!q) return this.proposals;
     return this.proposals.filter(p =>
-      this.matches(this.proposalSearch, p.proposalNumber, p.customerName, p.planName));
+      [p.proposalNumber, p.customerName, p.planName]
+        .some(v => String(v ?? '').toLowerCase().includes(q)));
   }
 
-  get filteredComplaints(): any[] {
-    return this.complaints.filter(c =>
-      this.matches(this.complaintSearch, c.COMPLAINT_ID, c.FULL_NAME, c.SUBJECT, c.PRODUCT));
-  }
-
-  get filteredClaims(): PendingClaim[] {
-    return this.pendingClaims.filter(c =>
-      this.matches(this.claimSearch, c.claimNumber, c.customerName, c.policyNumber, c.productName));
-  }
-
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef, private flwUp: ComplaintFlwUp, private claimSvc: ClaimService) { }
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) { }
 
   ngOnInit(): void {
-    // Restore the last chosen language
     try {
       const saved = localStorage.getItem('underwriterLang');
       if (saved === 'en' || saved === 'ar') this.selectedLanguage = saved;
     } catch { /* ignore */ }
 
     this.isLoggedIn = sessionStorage.getItem('underwriterAuth') === 'true';
-    if (this.isLoggedIn) {
-      this.loadProposals();
-      this.loadPendingClaims();
-      this.loadFeedback();
-
-    }
-    this.loadComplaints()
+    if (this.isLoggedIn) this.loadProposals();
   }
 
+  // ==================================================
+  // LOGIN
+  // ==================================================
+  onLogin(): void {
+    if (this.username === 'underwriter' && this.password === 'demo123') {
+      sessionStorage.setItem('underwriterAuth', 'true');
+      this.isLoggedIn = true;
+      this.loginFailed = false;
+      this.loadProposals();
+    } else {
+      this.loginFailed = true;
+    }
+  }
+
+  logout(): void {
+    sessionStorage.removeItem('underwriterAuth');
+    this.isLoggedIn = false;
+    this.username = '';
+    this.password = '';
+    this.loginFailed = false;
+  }
+
+  // ==================================================
+  // PROPOSALS
+  // ==================================================
   loadProposals(): void {
     this.http.get<any>('http://localhost:5000/api/proposals').subscribe({
       next: (res) => {
@@ -202,7 +147,7 @@ export class UnderwriterComponent implements OnInit {
     if (!this.selectedProposal) return;
 
     if (decision === 'COUNTER_OFFER' && (!this.counterOfferPremium || this.counterOfferPremium <= 0)) {
-      return; // require a valid counter premium
+      return;
     }
 
     this.deciding = true;
@@ -216,7 +161,6 @@ export class UnderwriterComponent implements OnInit {
       }
     ).subscribe({
       next: () => {
-        // Store the raw code; it is translated at render time via statusLabel()
         this.decisionSentLog.unshift({
           proposalNumber: this.selectedProposal!.proposalNumber,
           decision,
@@ -235,342 +179,5 @@ export class UnderwriterComponent implements OnInit {
         this.cdr.detectChanges();
       }
     });
-  }
-
-  // ==================================================
-  // LOGIN
-  // ==================================================
-  onLogin(): void {
-    if (this.username === 'underwriter' && this.password === 'demo123') {
-      sessionStorage.setItem('underwriterAuth', 'true');
-      this.isLoggedIn = true;
-      this.loginFailed = false;
-      this.loadProposals();
-      this.loadPendingClaims();
-      this.loadFeedback();
-    } else {
-      this.loginFailed = true;
-    }
-  }
-
-  logout(): void {
-    sessionStorage.removeItem('underwriterAuth');
-    this.isLoggedIn = false;
-    this.username = '';
-    this.password = '';
-    this.loginFailed = false;
-  }
-
-
-
-  // ==================================================
-  // FEEDBACK FOLLOW-UP
-  // ==================================================
-  feedbackGood: FeedbackItem[] = [];
-  feedbackBad: FeedbackItem[] = [];
-  selectedFeedback: FeedbackItem | null = null;
-  feedbackView: 'bad' | 'resolved' | 'good' = 'bad';
-  feedbackSearch = '';
-  isLoadingFeedback = false;
-  feedbackError = false;
-  feedbackLog: { ratingId: number; status: string; time: string }[] = [];
-
-  /** Bad reviews still needing action */
-  get feedbackOpen(): FeedbackItem[] {
-    return this.feedbackBad.filter(f => f.followUpStatus !== 'RESOLVED');
-  }
-
-  /** Bad reviews that were completed */
-  get feedbackResolved(): FeedbackItem[] {
-    return this.feedbackBad.filter(f => f.followUpStatus === 'RESOLVED');
-  }
-
-  get filteredFeedback(): FeedbackItem[] {
-    const list =
-      this.feedbackView === 'bad' ? this.feedbackOpen :
-        this.feedbackView === 'resolved' ? this.feedbackResolved :
-          this.feedbackGood;
-
-    return list.filter(f =>
-      this.matches(this.feedbackSearch, f.ratingId, f.feedback, f.customerId, f.followUpStatus));
-  }
-
-  /** Number shown on the red stat card: Pending + In progress */
-  get pendingFeedbackCount(): number {
-    return this.feedbackOpen.length;
-  }
-
-  loadFeedback(): void {
-    this.isLoadingFeedback = true;
-    this.feedbackError = false;
-
-    this.http.get<any>('http://localhost:5000/api/rating/feedback').subscribe({
-      next: (res) => {
-        this.feedbackGood = res?.good ?? [];
-        this.feedbackBad = res?.bad ?? [];
-        // keep selection only if it still exists
-        const all = [...this.feedbackGood, ...this.feedbackBad];
-        if (this.selectedFeedback) {
-          this.selectedFeedback =
-            all.find(f => f.ratingId === this.selectedFeedback!.ratingId) ?? null;
-        }
-        this.isLoadingFeedback = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Feedback load failed:', err);
-        this.feedbackError = true;
-        this.isLoadingFeedback = false;
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  setFeedbackView(view: 'bad' | 'resolved' | 'good'): void {
-    this.feedbackView = view;
-    this.selectedFeedback = null;
-  }
-
-  selectFeedback(item: FeedbackItem): void {
-    this.selectedFeedback = item;
-  }
-
-  updateFeedbackStatus(item: FeedbackItem, status: 'IN_PROGRESS' | 'RESOLVED'): void {
-    this.http.patch<any>(
-      `http://localhost:5000/api/rating/follow-ups/${item.ratingId}`,
-      { status }
-    ).subscribe({
-      next: () => {
-        item.followUpStatus = status;
-        this.feedbackLog.unshift({
-          ratingId: item.ratingId,
-          status,
-          time: new Date().toLocaleTimeString()
-        });
-        if (status === 'RESOLVED') this.selectedFeedback = null;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Follow-up update failed:', err);
-        alert(this.tr('Could not update the follow-up status.', 'تعذر تحديث حالة المتابعة.'));
-      }
-    });
-  }
-
-  stars(n: number): string {
-    return '★'.repeat(n) + '☆'.repeat(5 - n);
-  }
-
-  feedbackStatusLabel(code: string): string {
-    const map: Record<string, [string, string]> = {
-      PENDING: ['Pending', 'قيد الانتظار'],
-      IN_PROGRESS: ['In progress', 'قيد المتابعة'],
-      RESOLVED: ['Resolved', 'تم الحل'],
-      NOT_REQUIRED: ['No action needed', 'لا يلزم إجراء']
-    };
-    const m = map[code];
-    return m ? this.tr(m[0], m[1]) : code;
-  }
-
-  // ==================================================
-  // DASHBOARD
-  // ==================================================
-  loadQuotes(): void {
-    this.http.get<any>('http://localhost:5000/api/quotes').subscribe({
-      next: (res) => this.quotes = res.data || [],
-      error: () => this.quotes = []
-    });
-  }
-
-  selectQuote(quoteId: number): void {
-    this.selectedQuoteId = quoteId;
-  }
-
-  sendFollowUp(): void {
-    if (!this.selectedQuoteId || !this.followUpMessage.trim()) return;
-
-    this.sending = true;
-
-    this.http.post('http://localhost:5000/api/underwriter/send-message', {
-      quoteId: this.selectedQuoteId,
-      message: this.followUpMessage.trim()
-    }).subscribe({
-      next: () => {
-        this.sentLog.unshift({
-          quoteId: this.selectedQuoteId!,
-          message: this.followUpMessage.trim(),
-          time: new Date().toLocaleTimeString()
-        });
-        this.followUpMessage = '';
-        this.sending = false;
-      },
-      error: () => { this.sending = false; }
-    });
-  }
-
-  // ==================================================
-  // CLAIMS
-  // ==================================================
-  pendingClaims: PendingClaim[] = [];
-  selectedClaim: PendingClaim | null = null;
-  claimNote = '';
-  claimApprovedAmount: number | null = null;
-  claimError = '';
-  decidingClaim = false;
-  claimDecisionLog: { claimNumber: string; decision: string; time: string }[] = [];
-
-  claimsView: 'review' | 'file' = 'review';
-
-  loadPendingClaims(): void {
-    this.claimSvc.getPendingClaims().subscribe({
-      next: (claims) => {
-        this.pendingClaims = claims;
-        // Keep the selection only if that claim is still pending
-        if (this.selectedClaim && !claims.some(c => c.claimId === this.selectedClaim!.claimId)) {
-          this.selectedClaim = null;
-        }
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        console.error('Pending claims fetch failed:', err);
-        this.pendingClaims = [];
-        this.cdr.detectChanges();
-      }
-    });
-  }
-
-  onClaimSubmitted(_result: SubmitClaimResult): void {
-    // STP claims never enter the queue; PENDING ones do
-    this.loadPendingClaims();
-  }
-
-  selectClaim(claim: PendingClaim): void {
-    this.selectedClaim = claim;
-    this.claimNote = '';
-    this.claimApprovedAmount = null;
-    this.claimError = '';
-  }
-
-  claimImageUrl(claim: PendingClaim): string | null {
-    return this.claimSvc.imageUrl(claim.imagePath);
-  }
-
-  decideClaim(decision: 'APPROVED' | 'DECLINED'): void {
-    const claim = this.selectedClaim;
-    if (!claim) return;
-
-    const note = this.claimNote.trim();
-
-    if (decision === 'DECLINED' && !note) {
-      this.claimError = 'Add a note explaining the decline. The customer will see it.';
-      return;
-    }
-
-    let approvedAmount: number | null = null;
-    if (decision === 'APPROVED') {
-      approvedAmount = this.claimApprovedAmount ?? claim.claimAmount;
-      if (!(approvedAmount > 0) || approvedAmount > claim.claimAmount) {
-        this.claimError = `Approved amount must be between 0 and OMR ${claim.claimAmount}.`;
-        return;
-      }
-    }
-
-    this.claimError = '';
-    this.decidingClaim = true;
-
-    this.claimSvc.decideClaim(claim.claimId, decision, note || null, approvedAmount).subscribe({
-      next: () => {
-        this.claimDecisionLog.unshift({
-          claimNumber: claim.claimNumber,
-          decision,
-          time: new Date().toLocaleTimeString()
-        });
-        this.pendingClaims = this.pendingClaims.filter(c => c.claimId !== claim.claimId);
-        this.selectedClaim = null;
-        this.claimNote = '';
-        this.claimApprovedAmount = null;
-        this.decidingClaim = false;
-        this.cdr.detectChanges();
-      },
-      error: (err) => {
-        this.claimError = err?.error?.message || 'Could not save the decision. Please try again.';
-        this.decidingClaim = false;
-        // The claim may already have been decided elsewhere; resync the queue
-        this.loadPendingClaims();
-      }
-    });
-  }
-
-  // ==================================================
-  // COMPLAINTS
-  // ==================================================
-  complaints: any[] = [];
-  selectedComplaint: any = null;
-  complaintMessage: string = '';
-  complaintLog: { complaintId: number; customer: string; time: string }[] = [];
-
-  loadComplaints() {
-    this.flwUp.getNonStpComplaints()
-      .subscribe({
-        next: (response) => {
-          this.complaints = response.complaints;
-          console.log('complaints received:', this.complaints);
-        },
-        error: (error) => {
-          console.error('Error loading complaints:', error);
-        }
-      });
-  }
-
-  selectComplaint(complaint: any): void {
-    this.selectedComplaint = complaint;
-    // Clear message box when opening another complaint
-    this.complaintMessage = '';
-    console.log('Selected Complaint:', complaint);
-  }
-
-  callCustomer(complaint: any) {
-    this.callingCustomer = complaint;
-    this.isCalling = true;
-  }
-
-  endCall() {
-    this.isCalling = false;
-    this.callingCustomer = null;
-  }
-
-  sendComplaintMessage(): void {
-    if (!this.selectedComplaint) return;
-
-    const message = this.complaintMessage.trim();
-    if (!message) return;
-
-    const complaintId = this.selectedComplaint.COMPLAINT_ID;
-
-    this.flwUp
-      .updateComplaintFollowUp(complaintId, 'COMPLETED', message)
-      .subscribe({
-        next: (response) => {
-          console.log('Complaint message saved:', response);
-
-          // Remove the completed complaint from the list
-          this.complaints = this.complaints.filter(
-            c => c.COMPLAINT_ID !== complaintId
-          );
-
-          // Clear the decision panel
-          this.selectedComplaint = null;
-          this.complaintMessage = '';
-
-          this.cdr.detectChanges();
-        },
-        error: (error) => {
-          console.error('Complaint message save error:', error);
-        }
-      });
-  }
-
-  closeComplaintMessage() {
-    this.selectedComplaint = null;
   }
 }

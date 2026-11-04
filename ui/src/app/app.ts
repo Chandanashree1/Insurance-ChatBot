@@ -15,12 +15,14 @@ export class App {
 
   showWidget = true;
 
+  // routes where the chatbot must NOT appear
+  private hiddenRoutes = ['/policy-success', '/underwriter', '/customer-service', '/surveyor'];
+
   constructor(private router: Router) {
     this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
       .subscribe((e: any) => {
-        this.showWidget = !e.urlAfterRedirects.startsWith('/policy-success')
-                && !e.urlAfterRedirects.startsWith('/underwriter');
+        this.showWidget = !this.hiddenRoutes.some(r => e.urlAfterRedirects.startsWith(r));
       });
   }
 }

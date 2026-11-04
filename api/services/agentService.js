@@ -122,6 +122,15 @@ const TOOLS = {
         }
     },
 
+    getPolicyDocument: {
+        description:
+            "Prepare a download button for the customer's own policy document (PDF). Call this when the customer asks to download, get, or receive their policy as a PDF/document/copy. Returns null if no such policy exists for this customer.",
+        parameters: {
+            policyNumber:
+                "string - exactly the policy number the customer wrote (starts with POL-)"
+        }
+    },
+
     searchPolicyTerms: {
         description:
             "Search insurance terms & conditions / coverage documents for clauses relevant to a question.",
@@ -276,6 +285,11 @@ RULES
 11. All money amounts are in Omani Rial. Write them as "OMR 600",
     never with a $ sign or any other currency symbol.
 
+12. If the customer asks to download, get, or receive their policy
+    as a PDF or document, call getPolicyDocument. Never write a
+    link or URL yourself, and never repeat the policy details as
+    text in that case.
+
 ${languageRule}
 
 ==================================================
@@ -421,6 +435,7 @@ where access control lives (customerId scoping).
  */
 const REFERENCE_ARG = {
     getPolicyDetails: "policyNumber",
+    getPolicyDocument: "policyNumber",
     getQuoteDetails: "quoteNumber",
     resumeIncompleteQuote: "quoteNumber",
     getClaimStatus: "claimNumber"
@@ -430,6 +445,7 @@ const REFERENCE_ARG = {
 // never wrote.
 const REFERENCE_KIND = {
     getPolicyDetails: "policy",
+    getPolicyDocument: "policy",
     getQuoteDetails: "quote",
     resumeIncompleteQuote: "quote",
     getClaimStatus: "claim"
@@ -506,12 +522,56 @@ async function executeTool(toolName, args, context) {
                 error:
                     "No policy with that number was found for this customer."
             };
+
         }
 
         return { policy, currency: "OMR" };
 
     }
 
+    if (toolName === "getPolicyDocument") {
+
+        const policyNumber =
+            String(args?.policyNumber || "").trim().toUpperCase();
+
+        if (!policyNumber) {
+            return { error: "No policy number was provided." };
+        }
+
+        if (!context.customerId) {
+            return { error: "No logged-in customer to look up a policy for." };
+        }
+
+        // Ownership check: only this customer's own policy is found.
+        const policy =
+            await getPolicyByNumber(policyNumber, context.customerId);
+
+        if (!policy) {
+            return {
+                error: "No policy with that number was found for this customer."
+            };
+        }
+
+        const number = policy.POLICY_NUMBER || policyNumber;
+
+        return {
+            found: true,
+            policyNumber: number,
+            ui: {
+                uiType: "POLICY_DOCUMENTS",
+                actions: [
+                    {
+                        label:
+                            context.language === "ar"
+                                ? "تحميل وثيقة التأمين (PDF)"
+                                : "Download Policy Document (PDF)",
+                        action: `DOWNLOAD_POLICY_${number}`
+                    }
+                ],
+                data: [{ policyNumber: number }]
+            }
+        };
+    }
 
     if (toolName === "searchPolicyTerms") {
 
@@ -1054,8 +1114,18 @@ async function runAgent({
             // Ask for the number from code - nothing to look up yet, and no
             // second model call is needed (they take 10+ s on this server).
             if (result?.askForNumber) {
+                awaiting = true;
                 return finish(
                     askForNumberReply(result.askForNumber, language)
+                );
+            }
+
+            if (toolName === "getPolicyDocument" && result?.found) {
+                awaiting = false;
+                return finish(
+                    language === "ar"
+                        ? `وثيقتك ${result.policyNumber} جاهزة. اضغط على الزر أدناه لتحميل ملف PDF.`
+                        : `Your policy ${result.policyNumber} is ready. Use the button below to download the PDF.`
                 );
             }
 
