@@ -69,6 +69,27 @@ If the user language is English, reply in English.
 - If the user asks in Arabic, reply only in Arabic.
 - If the user asks in English, reply only in English.
 - Do not mix Arabic and English unless the user requests it.
+
+QUOTE NUMBER RETRIEVAL RULES:
+
+1. If the customer asks:
+   - What is my quote number?
+   - Show my quote.
+   - What is my latest quote?
+   - Did I create a quote?
+
+2. Never ask the customer for their quote number
+   if they are already logged in.
+
+3. Use the authenticated customerId to retrieve
+   their quotes from the database.
+
+4. If multiple quotes exist, show the latest quote
+   and offer other quotes.
+
+5. If no quote exists, inform the customer.
+
+6. Never invent quote numbers.
 `;
 
 module.exports = insurancePrompt;

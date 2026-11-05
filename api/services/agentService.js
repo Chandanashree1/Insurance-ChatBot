@@ -3,7 +3,8 @@ const {
     getPolicyByNumber,
     getQuoteByNumber,
     getQuoteOptions,
-    getSelectedQuoteOption
+    getSelectedQuoteOption,
+    getMyQuotes
 } = require("./oracleservice");
 const { retrieveRelevantChunks } = require("./ragService");
 const { startPurchaseFlow, updatePurchaseFlow } = require("./purchaseFlowService");
@@ -200,10 +201,16 @@ function buildAgentSystemPrompt(language) {
     return `
 You are ABC Insurance's policy assistant agent.
 
-You help the currently logged-in customer understand the status
-and terms of their OWN policies, in-progress quotes, and claims.
-You do
-not have any other capability.
+You help the currently logged-in customer retrieve and understand
+their OWN policies, in-progress quotes, claims, and insurance terms.
+
+You must use available tools to retrieve real customer-specific
+information. You do not have direct database access.
+You help the currently logged-in customer retrieve and understand
+their OWN policies, in-progress quotes, claims, and insurance terms.
+
+You must use available tools to retrieve real customer-specific
+information. You do not have direct database access.
 
 ==================================================
 AVAILABLE TOOLS
@@ -290,6 +297,21 @@ RULES
     as a PDF or document, call getPolicyDocument. Never write a
     link or URL yourself, and never repeat the policy details as
     text in that case.
+    
+13. When the customer asks for their quote number,
+   quote details, or "my quotes" without providing
+   a QT number, call getMyQuotes.
+
+   Do not ask the customer to provide a quote number
+   when they are asking you to find their own quotes.
+
+   If multiple quotes are returned, display all
+   relevant quote numbers with their product and status.
+
+   If no quotes are returned, explain that no quotes
+   were found under their account.
+
+   Never invent a quote number.
 
 ${languageRule}
 
@@ -811,6 +833,34 @@ async function executeTool(toolName, args, context) {
         };
 
     }
+
+    if (toolName === "getMyQuotes") {
+
+    if (!context.customerId) {
+        return {
+            error: "Please login to view your quotes."
+        };
+    }
+
+    const quotes = await getMyQuotes(context.customerId);
+
+    if (!quotes || quotes.length === 0) {
+        return {
+            found: false,
+            message: "No quotes found for this customer."
+        };
+    }
+
+    return {
+        found: true,
+        quotes: quotes.map(q => ({
+            quoteNumber: q.QUOTE_NUMBER,
+            product: q.PRODUCT_TYPE,
+            paymentStatus: q.PAYMENT_STATUS,
+            createdAt: q.CREATED_AT
+        }))
+    };
+}
 
 
     return { error: `Unknown tool: ${toolName}` };
