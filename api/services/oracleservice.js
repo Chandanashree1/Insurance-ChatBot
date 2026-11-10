@@ -726,6 +726,39 @@ async function convertQuote(quoteId) {
     }
 }
 
+async function getMyQuotes(customerId) {
+    let connection;
+
+    try {
+        connection = await getConnection();
+
+        const result = await connection.execute(
+            `
+            SELECT
+                QUOTE_ID,
+                QUOTE_NUMBER,
+                QUOTE_STATUS,
+                PAYMENT_STATUS,
+                COVER_FROM,
+                COVER_TO
+            FROM QUOTE
+            WHERE CUSTOMER_ID = :customerId
+            ORDER BY QUOTE_ID DESC
+            FETCH FIRST 5 ROWS ONLY
+            `,
+            { customerId },
+            { outFormat: oracledb.OUT_FORMAT_OBJECT }
+        );
+
+        return result.rows;
+
+    } finally {
+        if (connection) {
+            await connection.close();
+        }
+    }
+}
+
 
 /*
 =========================================================
@@ -750,7 +783,7 @@ module.exports = {
     createQuote,
     getQuoteOptions,
     selectQuoteOption,
-    getSelectedQuoteOption,
+    getSelectedQuoteOption,getMyQuotes,
 
     // Payment
     updatePaymentStatus,
