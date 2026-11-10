@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { DoCheck } from '@angular/core';
 import { BuyPolicyChatComponent } from '../buy_policy/buy_policy.ts.component';
 import { Router } from '@angular/router';
+import { RenewalFormComponent } from '../renewal-form/renewal-form.component';
 
 interface FormField {
   name: string;
@@ -33,6 +34,8 @@ interface ChatMessage {
   isWelcome?: boolean;
   quickReply?: boolean;
   resumeData?: any;
+  data?: any[];
+  renewalPaid?: boolean;
 }
 
 type QuickAction = 'buyPolicy' | 'rop' | 'renew' | 'complaint' | 'chatWithUs';
@@ -88,7 +91,7 @@ interface HistorySession {
 @Component({
   selector: 'app-bot', // Matches your component selector tag
   standalone: true,
-  imports: [CommonModule, FormsModule, BuyPolicyChatComponent],
+  imports: [CommonModule, FormsModule, BuyPolicyChatComponent, RenewalFormComponent],
   templateUrl: './bot.html',
   styleUrls: ['./bot.scss']
 })
@@ -179,16 +182,20 @@ export class Bot implements DoCheck, OnInit, OnDestroy {
     const isFresh = shouldRestore && (Date.now() - setAt) < 30000;
 
     if (isFresh) {
-      this.isOpen = true;
-      this.hasUserMessaged = true;
+  this.isOpen = true;
+  this.hasUserMessaged = true;
 
-      this.messages.push({
-        sender: 'bot',
-        text: '',
-        uiType: 'BUY_POLICY_FORM',
-        time: new Date()
-      });
-    } else {
+  sessionStorage.removeItem('restoreChatOnLoad');
+  sessionStorage.removeItem('restoreChatOnLoadTime');
+
+  this.messages.push({
+    sender: 'bot',
+    text: this.selectedLanguage === 'ar'
+      ? 'مرحبًا بعودتك! هل هناك شيء آخر يمكنني مساعدتك به؟'
+      : 'Welcome back! Is there anything else I can help you with?',
+    time: new Date()
+  });
+}else {
       // 1) Show once when the website opens (after 1 second)
       setTimeout(() => this.showGreetingBubble(), 1000);
 
@@ -300,6 +307,62 @@ export class Bot implements DoCheck, OnInit, OnDestroy {
     this.selectedRating = rating;
   }
 
+   selectedRenewalOption: Record<number, number> = {};
+  payingQuoteId: number | null = null;
+
+  onRenewalQuote(data: any, formMsg?: ChatMessage) {
+    if (formMsg) formMsg.uiType = 'TEXT';   // hide the form
+    this.messages.push({
+      sender: 'bot',
+      text: this.selectedLanguage === 'ar'
+        ? 'عرض التجديد جاهز. يرجى اختيار خطة أدناه.'
+        : 'Your renewal quote is ready. Please choose a plan below.',
+      uiType: 'RENEWAL_QUOTE',
+      data: [data],
+      time: new Date()
+    });
+    this.cdr.detectChanges();
+  }
+
+  payRenewal(msg: ChatMessage) {
+    const d = msg.data?.[0];
+    if (!d || !this.customerId) return;
+    const quoteId = d.quote.quoteId;
+    const optionId = this.selectedRenewalOption[quoteId];
+    if (!optionId || this.payingQuoteId) return;
+
+    this.payingQuoteId = quoteId;
+    this.http.post<any>('http://localhost:5000/api/renewals/pay', {
+      customerId: this.customerId, quoteId, optionId
+    }).subscribe({
+      next: (res) => {
+        this.payingQuoteId = null;
+        msg.renewalPaid = true;
+        const pn = res.data.policy.policyNumber;
+        this.messages.push({
+          sender: 'bot',
+          text: this.selectedLanguage === 'ar'
+            ? `تم الدفع وتجديد وثيقتك. رقم الوثيقة الجديدة ${pn}.`
+            : `Payment completed. Your policy has been renewed. New policy number: ${pn}.`,
+          actions: [{
+            label: this.selectedLanguage === 'ar' ? 'عرض الوثيقة وتحميل المستندات' : 'View Policy & Download Documents',
+            action: `VIEW_POLICY_${pn}`
+          }],
+          time: new Date()
+        });
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        this.payingQuoteId = null;
+        this.messages.push({
+          sender: 'bot',
+          text: err?.error?.message || 'Payment could not be completed. Please try again.',
+          time: new Date()
+        });
+        this.cdr.detectChanges();
+      }
+    });
+  }
 
   // ===============================
   // CHECK STATUS
@@ -1562,6 +1625,7 @@ export class Bot implements DoCheck, OnInit, OnDestroy {
               sender: 'bot',
               text: response.reply,
               uiType: response.uiType,
+              data: response.data,
               actions: quick ?? response.actions,
               quickReply: !!quick,
               form: response.form,

@@ -16,6 +16,8 @@ const {
 } = require("./languageGuard");
 const { formatReply } = require("./replyFormatter");
 
+const { lookupPolicies } = require("./renewalService");
+
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -168,6 +170,15 @@ const TOOLS = {
             quoteNumber:
                 "string - exactly the quote number the customer wrote (starts with QT-)"
         }
+    },
+
+    getRenewalStatus: {
+        description:
+            "Check whether the logged-in customer's own policy can be renewed. Returns eligibility, the reason if not eligible, days to expiry, and the cover end date. Call this when the customer asks about renewing, expiry, or whether their policy can be renewed. Returns an error if no such policy exists for this customer.",
+        parameters: {
+            policyNumber:
+                "string - exactly the policy number the customer wrote (starts with POL-)"
+        }
     }
 
 };
@@ -290,6 +301,23 @@ RULES
     as a PDF or document, call getPolicyDocument. Never write a
     link or URL yourself, and never repeat the policy details as
     text in that case.
+
+13. Renewal rules (use these to answer general questions, no tool needed):
+    - A policy can be renewed from 30 days before its end date, up to
+      15 days after it ends.
+    - Earlier than that, renewal is not open yet. Later than that, the
+      policy has lapsed and the customer must buy a new policy.
+    - A policy that is cancelled or already renewed cannot be renewed.
+    - If the customer asks whether THEIR policy can be renewed, or when
+      it expires, call getRenewalStatus with the policy number they wrote.
+    - Explain the result in plain words using the returned reason:
+        TOO_EARLY: say the cover end date and that renewal opens 30 days before it.
+        LAPSED: say it expired more than 15 days ago and offer to help buy a new policy.
+        ALREADY_RENEWED: say it has already been renewed.
+        CANCELLED: say it was cancelled and cannot be renewed.
+        eligible true: say it can be renewed now. The system shows a
+        Renew Now button, so do not ask for more details and never
+        create or promise a renewal yourself.
 
 ${languageRule}
 
@@ -439,7 +467,9 @@ const REFERENCE_ARG = {
     getPolicyDocument: "policyNumber",
     getQuoteDetails: "quoteNumber",
     resumeIncompleteQuote: "quoteNumber",
-    getClaimStatus: "claimNumber"
+    getClaimStatus: "claimNumber",
+    getRenewalStatus: "policyNumber"
+
 };
 
 // What to ask the customer for when a tool was called with a number they
@@ -449,7 +479,8 @@ const REFERENCE_KIND = {
     getPolicyDocument: "policy",
     getQuoteDetails: "quote",
     resumeIncompleteQuote: "quote",
-    getClaimStatus: "claim"
+    getClaimStatus: "claim",
+    getRenewalStatus: "policy"
 };
 
 const ASK_FOR_NUMBER = {
@@ -489,6 +520,8 @@ async function executeTool(toolName, args, context) {
         if (value && !wasProvidedByCustomer(value, context.userText)) {
             // The invented number is deliberately NOT repeated here, so
             // the model can't echo it back to the customer.
+
+           
             return {
                 error:
                     `The customer has not written a ${refArg} in this ` +
@@ -498,6 +531,60 @@ async function executeTool(toolName, args, context) {
             };
         }
     }
+
+     if (toolName === "getRenewalStatus") {
+
+                const policyNumber =
+                    String(args?.policyNumber || "").trim().toUpperCase();
+
+                if (!policyNumber) {
+                    return { error: "No policy number was provided." };
+                }
+
+                if (!context.customerId) {
+                    return { error: "No logged-in customer to look up a policy for." };
+                }
+
+                const policies = await lookupPolicies({
+                    customerId: context.customerId,
+                    method: "policy",
+                    policyNumber
+                });
+
+                const p = policies[0];
+
+                if (!p) {
+                    return { error: "No policy with that number was found for this customer." };
+                }
+
+                const result = {
+                    policyNumber: p.policyNumber,
+                    policyStatus: p.status,
+                    productName: p.productName,
+                    coverTo: p.coverTo,
+                    eligible: p.eligible,
+                    reason: p.reason,
+                    daysToExpiry: p.daysToExpiry ?? null,
+                    renewalWindowDays: 30,
+                    graceDays: 15
+                };
+
+                // Only offer the button when the policy can really be renewed.
+                if (p.eligible) {
+                    result.ui = {
+                        uiType: "RENEWAL_OFFER",
+                        actions: [
+                            {
+                                label: context.language === "ar" ? "جدّد الآن" : "Renew Now",
+                                action: `RENEW_POLICY_${p.policyId}`
+                            }
+                        ],
+                        data: [p]
+                    };
+                }
+
+                return result;
+            }
 
     if (toolName === "getPolicyDetails") {
 
@@ -916,6 +1003,51 @@ function parseAgentJson(rawResponse) {
 
     return JSON.parse(clean);
 
+}
+
+function buildRenewalReply(r, language) {
+
+    const ar = language === "ar";
+    const end = new Date(r.coverTo);
+    const endText = end.toLocaleDateString("en-GB");
+    const opens = new Date(end.getTime() - (r.renewalWindowDays || 30) * 86400000)
+        .toLocaleDateString("en-GB");
+    const days = Math.abs(r.daysToExpiry ?? 0);
+    const pn = r.policyNumber;
+
+    if (r.eligible) {
+        if ((r.daysToExpiry ?? 0) < 0) {
+            return ar
+                ? `انتهت وثيقتك ${pn} قبل ${days} يومًا، لكن لا يزال بإمكانك تجديدها (ضمن مهلة ${r.graceDays} يومًا). اضغط على الزر أدناه.`
+                : `Your policy ${pn} expired ${days} day(s) ago, but you can still renew it (within the ${r.graceDays}-day grace period). Use the button below.`;
+        }
+        return ar
+            ? `وثيقتك ${pn} تنتهي في ${endText} ويمكنك تجديدها الآن. اضغط على الزر أدناه.`
+            : `Your policy ${pn} ends on ${endText} and can be renewed now. Use the button below.`;
+    }
+
+    switch (r.reason) {
+        case "TOO_EARLY":
+            return ar
+                ? `وثيقتك ${pn} سارية حتى ${endText}. يفتح التجديد في ${opens}.`
+                : `Your policy ${pn} is valid until ${endText}. Renewal opens on ${opens}.`;
+        case "LAPSED":
+            return ar
+                ? `انتهت وثيقتك ${pn} منذ أكثر من ${r.graceDays} يومًا ولا يمكن تجديدها. هل تود شراء وثيقة جديدة؟`
+                : `Your policy ${pn} expired more than ${r.graceDays} days ago and can't be renewed. Would you like to buy a new policy?`;
+        case "ALREADY_RENEWED":
+            return ar
+                ? `تم تجديد الوثيقة ${pn} مسبقًا.`
+                : `Policy ${pn} has already been renewed.`;
+        case "CANCELLED":
+            return ar
+                ? `تم إلغاء الوثيقة ${pn} ولا يمكن تجديدها.`
+                : `Policy ${pn} was cancelled and can't be renewed.`;
+        default:
+            return ar
+                ? `لا يمكن تجديد الوثيقة ${pn} حاليًا.`
+                : `Policy ${pn} can't be renewed right now.`;
+    }
 }
 
 

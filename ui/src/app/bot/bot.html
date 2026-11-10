@@ -117,6 +117,7 @@
 
     </div>
   </div>
+
   <!-- SUPPORT CENTER -->
   <div class="support-center" *ngIf="isSupportCenterOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
 
@@ -300,6 +301,7 @@
   </div>
 
 
+  <!-- CHECK STATUS -->
   <div class="complaints-drawer" *ngIf="isCheckStatusOpen" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
 
     <div class="complaints-header">
@@ -373,50 +375,44 @@
       <!-- Search form -->
       <div class="status-lookup-form" *ngIf="!complaintStatusResult">
         <label>{{ tr.complaintId }}</label>
-        <input type="text"
-              [(ngModel)]="complaintIdInput"
-              placeholder="{{ tr.complaintIdPlaceholder }}"
-              (keydown.enter)="lookupComplaintStatus()">
+        <input type="text" [(ngModel)]="complaintIdInput" placeholder="{{ tr.complaintIdPlaceholder }}"
+          (keydown.enter)="lookupComplaintStatus()">
 
         <div class="status-error" *ngIf="complaintLookupError">{{ complaintLookupError }}</div>
 
-        <button class="register-complaint-btn"
-                [disabled]="isLookingUpComplaint"
-                (click)="lookupComplaintStatus()">
+        <button class="register-complaint-btn" [disabled]="isLookingUpComplaint" (click)="lookupComplaintStatus()">
           {{ isLookingUpComplaint ? tr.checking : tr.checkStatus }}
         </button>
       </div>
 
-  <!-- Result: OPEN (waiting for agent callback) -->
-  <div class="status-result pending"
-       *ngIf="complaintStatusResult && complaintStatusResult.status === 'OPEN'">
-    <div class="status-icon-large">📞</div>
-    <h3>{{ tr.complaintOpen }}</h3>
-    <p>{{ tr.complaintWord }} <b>{{ complaintStatusResult.complaintId }}</b> {{ tr.complaintOpenText }}</p>
-    <p class="status-date">{{ tr.registeredOn }} {{ complaintStatusResult.createdAt | date:'medium' }}</p>
-    <button class="register-complaint-btn" (click)="resetComplaintLookup()">{{ tr.checkAnother }}</button>
-  </div>
+      <!-- Result: OPEN (waiting for agent callback) -->
+      <div class="status-result pending" *ngIf="complaintStatusResult && complaintStatusResult.status === 'OPEN'">
+        <div class="status-icon-large">📞</div>
+        <h3>{{ tr.complaintOpen }}</h3>
+        <p>{{ tr.complaintWord }} <b>{{ complaintStatusResult.complaintId }}</b> {{ tr.complaintOpenText }}</p>
+        <p class="status-date">{{ tr.registeredOn }} {{ complaintStatusResult.createdAt | date:'medium' }}</p>
+        <button class="register-complaint-btn" (click)="resetComplaintLookup()">{{ tr.checkAnother }}</button>
+      </div>
 
-  <!-- Result: RESOLVED -->
-  <div class="status-result approved"
-       *ngIf="complaintStatusResult && complaintStatusResult.status === 'RESOLVED'">
-    <div class="status-icon-large">✅</div>
-    <h3>{{ tr.complaintResolved }}</h3>
-    <p>{{ tr.complaintWord }} <b>{{ complaintStatusResult.complaintId }}</b> {{ tr.complaintResolvedText }}</p>
-    <p class="status-date">{{ tr.resolvedOn }} {{ complaintStatusResult.updatedAt | date:'medium' }}</p>
-    <button class="register-complaint-btn" (click)="resetComplaintLookup()">{{ tr.checkAnother }}</button>
-  </div>
+      <!-- Result: RESOLVED -->
+      <div class="status-result approved" *ngIf="complaintStatusResult && complaintStatusResult.status === 'RESOLVED'">
+        <div class="status-icon-large">✅</div>
+        <h3>{{ tr.complaintResolved }}</h3>
+        <p>{{ tr.complaintWord }} <b>{{ complaintStatusResult.complaintId }}</b> {{ tr.complaintResolvedText }}</p>
+        <p class="status-date">{{ tr.resolvedOn }} {{ complaintStatusResult.updatedAt | date:'medium' }}</p>
+        <button class="register-complaint-btn" (click)="resetComplaintLookup()">{{ tr.checkAnother }}</button>
+      </div>
 
-  <!-- Result: any other status (safety net) -->
-  <div class="status-result pending"
-       *ngIf="complaintStatusResult && complaintStatusResult.status !== 'OPEN' && complaintStatusResult.status !== 'RESOLVED'">
-    <div class="status-icon-large">✅</div>
-    <h3>{{ complaintStatusResult.status }}</h3>
-    <p>{{ tr.complaintWord }} <b>{{ complaintStatusResult.complaintId }}</b></p>
-    <button class="register-complaint-btn" (click)="resetComplaintLookup()">{{ tr.checkAnother }}</button>
-  </div>
+      <!-- Result: any other status (safety net) -->
+      <div class="status-result pending"
+        *ngIf="complaintStatusResult && complaintStatusResult.status !== 'OPEN' && complaintStatusResult.status !== 'RESOLVED'">
+        <div class="status-icon-large">✅</div>
+        <h3>{{ complaintStatusResult.status }}</h3>
+        <p>{{ tr.complaintWord }} <b>{{ complaintStatusResult.complaintId }}</b></p>
+        <button class="register-complaint-btn" (click)="resetComplaintLookup()">{{ tr.checkAnother }}</button>
+      </div>
 
-</div>
+    </div>
   </div>
 
 
@@ -474,7 +470,6 @@
       *ngIf="isLogginIn && !isLoadingHistory && !historyError && filteredHistorySessions.length > 0">
       <button class="history-item" *ngFor="let session of filteredHistorySessions"
         (click)="loadSession(session.SESSION_ID)">
-        <!-- <span class="history-item-icon"><i class="bi bi-chat-square-text-fill"></i></span> -->
         <span class="history-item-body">
           <span class="history-item-preview">{{ session.PREVIEW }}</span>
           <span class="history-item-date">{{ session.LAST_MESSAGE_AT | date:'MMM d, h:mm a' }}</span>
@@ -483,6 +478,7 @@
     </div>
   </div>
 
+  <!-- ============ MESSAGES ============ -->
   <div class="messages" #chatContainer>
 
     <!-- Welcome message -->
@@ -547,93 +543,106 @@
     </div>
 
     <!-- User/Bot Conversation -->
-    <!-- User/Bot Conversation -->
     <ng-container *ngFor="let msg of messages.slice(1)">
 
-      <!-- Buy Policy form: skip the bubble/text entirely, show only the form -->
+      <!-- Buy Policy form -->
       <div class="embedded-buy-policy" *ngIf="msg.uiType === 'BUY_POLICY_FORM'">
-      <app-buy-policy-chat [embedded]="true" [selectedLanguage]="selectedLanguage" [resumeData]="msg.resumeData"></app-buy-policy-chat>
+        <app-buy-policy-chat [embedded]="true" [selectedLanguage]="selectedLanguage"
+          [resumeData]="msg.resumeData"></app-buy-policy-chat>
       </div>
 
-      <!-- Every other message keeps the normal bubble -->
+      <!-- Normal bubble -->
       <div class="row" [class.user]="msg.sender === 'user'" [class.bot]="msg.sender === 'bot'"
         *ngIf="msg.uiType !== 'BUY_POLICY_FORM'">
         <div class="bubble">
           <div class="message-line">
-            <span class="message-text">
-              {{ msg.text }}
-            </span>
-
+            <span class="message-text">{{ msg.text }}</span>
             <span class="message-time inline-time" *ngIf="!msg.actions?.length && !msg.showLoginButton">
               {{ msg.time | date:'h:mm a':userTimeZone }}
             </span>
           </div>
+
           <div class="action-buttons" *ngIf="msg.actions && msg.actions.length">
             <button *ngFor="let action of msg.actions" (click)="onActionClick(action.action, msg)">
               {{ action.label }}
             </button>
           </div>
-          <div class="application-form" *ngIf="msg.form && msg.form.fields">
 
+          <div class="application-form" *ngIf="msg.form && msg.form.fields">
             <h3>{{ msg.form.name }}</h3>
 
             <div class="form-field" *ngFor="let field of msg.form.fields">
-
               <label>
                 {{ field.label }}
-
-                <span *ngIf="field.required" class="required">
-                  *
-                </span>
+                <span *ngIf="field.required" class="required">*</span>
               </label>
 
-              <input *ngIf="
-        field.type === 'text' ||
-        field.type === 'email' ||
-        field.type === 'tel' ||
-        field.type === 'number' ||
-        field.type === 'date'
-      " [type]="field.type" [placeholder]="field.label" [required]="field.required ?? false"
+              <input
+                *ngIf="field.type === 'text' || field.type === 'email' || field.type === 'tel' || field.type === 'number' || field.type === 'date'"
+                [type]="field.type" [placeholder]="field.label" [required]="field.required ?? false"
                 [(ngModel)]="applicationFormData[field.name]" />
 
               <select *ngIf="field.type === 'select'" [required]="field.required ?? false"
                 [(ngModel)]="applicationFormData[field.name]">
-
-                <option value="">
-                  Select {{ field.label }}
-                </option>
-
-                <option *ngFor="let option of field.options" [value]="option">
-                  {{ option }}
-                </option>
-
+                <option value="">Select {{ field.label }}</option>
+                <option *ngFor="let option of field.options" [value]="option">{{ option }}</option>
               </select>
 
               <div class="radio-group" *ngIf="field.type === 'radio'">
-
                 <label *ngFor="let option of field.options" class="radio-option">
-
                   <input type="radio" [name]="field.name" [value]="option" [required]="field.required ?? false"
                     [(ngModel)]="applicationFormData[field.name]" />
-
                   {{ option }}
-
                 </label>
-
               </div>
-
             </div>
 
             <button type="button" class="application-submit" (click)="submitInsuranceApplication()">
               Continue
             </button>
-
           </div>
 
           <button *ngIf="msg.showLoginButton" class="login-btn" (click)="openLogin()">
             {{ translations[selectedLanguage].loginBtn }}
           </button>
         </div>
+      </div>
+
+      <!-- Renewal form -->
+
+      <div class="embedded-buy-policy" *ngIf="msg.uiType === 'RENEWAL_FORM' && customerId">
+        <app-renewal-form [customerId]="customerId" (quoteReady)="onRenewalQuote($event, msg)"
+          (cancelled)="msg.uiType = 'TEXT'">
+        </app-renewal-form>
+      </div>
+
+
+      <!-- Renewal quote summary -->
+      <div class="renew-summary" *ngIf="msg.uiType === 'RENEWAL_QUOTE' && msg.data?.length">
+        <ng-container *ngIf="msg.data![0] as d">
+          <div class="rs-head">
+            <strong>{{ d.vehicle.make }} {{ d.vehicle.model }} {{ d.vehicle.year }}</strong>
+            <span class="rs-plate">{{ d.vehicle.plateNumber }} {{ d.vehicle.plateCode }}</span>
+          </div>
+          <span class="rs-badge">Renewal of {{ d.quote.originalPolicyNumber }}</span>
+          <div class="rs-line"><span>Quote No</span><span>{{ d.quote.quoteNumber }}</span></div>
+          <div class="rs-line"><span>Valid From</span><span>{{ d.quote.coverFrom | date:'d MMM y' }}</span></div>
+          <div class="rs-line"><span>Valid To</span><span>{{ d.quote.coverTo | date:'d MMM y' }}</span></div>
+
+          <div class="rs-title">Select Plan</div>
+          <div class="rs-option" *ngFor="let o of d.options"
+            [class.selected]="selectedRenewalOption[d.quote.quoteId] === o.optionId"
+            (click)="!msg.renewalPaid && (selectedRenewalOption[d.quote.quoteId] = o.optionId)">
+            <span>{{ o.planName }}</span>
+            <strong>OMR {{ o.premium | number:'1.3-3' }}</strong>
+          </div>
+
+          <button class="rs-pay"
+            [disabled]="!selectedRenewalOption[d.quote.quoteId] || payingQuoteId === d.quote.quoteId || msg.renewalPaid"
+            (click)="payRenewal(msg)">
+            {{ msg.renewalPaid ? 'Paid' : (payingQuoteId === d.quote.quoteId ? 'Processing…' : 'Pay Now') }}
+          </button>
+        </ng-container>
       </div>
 
     </ng-container>
@@ -773,15 +782,9 @@
 
         <div class="login-field">
           <label>{{ tr.otp }}</label>
-          <input type="text" [(ngModel)]="signupOtp" [placeholder]="tr.enterOtp"
-            autocomplete="new-password" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
-        </div>
-
-        <!-- <div class="login-field">
-          <label>{{ tr.confirmPassword }}</label>
-          <input type="password" [(ngModel)]="signupConfirmPassword" [placeholder]="tr.reenterPassword"
+          <input type="text" [(ngModel)]="signupOtp" [placeholder]="tr.enterOtp" autocomplete="new-password"
             [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'" />
-        </div> -->
+        </div>
 
         <button type="button" class="signin-btn" (click)="signup()" [disabled]="isSigningUp">
           {{ isSigningUp ? tr.creatingAccount : tr.signUpBtn }}
@@ -794,6 +797,7 @@
       </div>
 
     </div>
+
     <!-- Typing indicator -->
     <div class="row bot" *ngIf="isLoading">
       <div class="typing">
@@ -802,6 +806,7 @@
     </div>
 
   </div>
+  <!-- ============ END MESSAGES ============ -->
 
   <!-- Composer -->
   <div class="composer" [class.composer-disabled]="activeForm !== null">
@@ -827,11 +832,11 @@
     </button>
   </div>
 
-  <!-- RATING MODAL — now correctly INSIDE .folder -->
+  <!-- RATING MODAL -->
   <div class="rating-backdrop" *ngIf="showRatingModal" [dir]="selectedLanguage === 'ar' ? 'rtl' : 'ltr'">
     <div class="rating-modal">
 
-   <button class="rating-close" type="button" (click)="closeRatingModal()">✕</button>
+      <button class="rating-close" type="button" (click)="closeRatingModal()">✕</button>
 
       <h2>
         {{ selectedLanguage === 'ar' ? 'قيّم تجربتك' : 'Rate Your Experience' }}

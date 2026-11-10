@@ -224,8 +224,35 @@ function applyPurchaseBackstop(message, normalized) {
     return normalized;
 }
 
+/*
+ * Renewal shortcut. Only for plain "I want to renew" statements
+ * (English / Arabic). Questions like "how does renewal work?" are
+ * left to the model and the agent.
+ */
+const RENEW_STATEMENT_PATTERN =
+    /\brenew(?:al)?\b|تجديد|جدد|جدّد/i;
+
+const RENEW_QUESTION_PATTERN =
+    /\b(?:how|what|why|when|which|document|documents|cost|price|fee|fees|rules?|work|works)\b|كيف|ماذا|متى|لماذا|كم/i;
+
+function isRenewalRequest(message) {
+    const text = String(message);
+    return RENEW_STATEMENT_PATTERN.test(text) &&
+           !RENEW_QUESTION_PATTERN.test(text);
+}
 
 const REFERENCE_NUMBER_PATTERN = /\b(?:POL|QT|CLM)-\d{4}-\d+\b/i;
+
+        // if (isRenewalRequest(message)) {
+        //     console.log("\n========== AI INTENT (renewal shortcut) ==========");
+        //     return {
+        //         intent: "RENEW_POLICY",
+        //         insuranceType: "UNKNOWN",
+        //         confidence: 1,
+        //         readyToPurchase: false,
+        //         needsClarification: false
+        //     };
+        // }
 
 
 async function detectIntent(message, conversationHistory = [], context = {}) {
@@ -252,6 +279,17 @@ async function detectIntent(message, conversationHistory = [], context = {}) {
 
             return {
                 intent: "POLICY",
+                insuranceType: "UNKNOWN",
+                confidence: 1,
+                readyToPurchase: false,
+                needsClarification: false
+            };
+        }
+
+                if (isRenewalRequest(message)) {
+            console.log("\n========== AI INTENT (renewal shortcut) ==========");
+            return {
+                intent: "RENEW_POLICY",
                 insuranceType: "UNKNOWN",
                 confidence: 1,
                 readyToPurchase: false,

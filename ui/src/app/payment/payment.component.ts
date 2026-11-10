@@ -65,6 +65,10 @@ export class PaymentComponent implements OnInit {
 
   // Give the browser time to start reading the blob
   setTimeout(() => window.URL.revokeObjectURL(url), 10000);
+
+  this.downloading = false;    
+  this.cdr.detectChanges(); 
+
 },
       error: () => {
         this.downloading = false;

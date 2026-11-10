@@ -27,7 +27,7 @@ async function createPolicy(req, res) {
 
     } catch (error) {
         console.error("Policy Controller Error:", error);
-        return res.status(500).json({
+        return res.status(error.status || 500).json({
             success: false,
             message: error.message
         });
@@ -191,7 +191,9 @@ function mapPolicyRow(policy) {
         sumInsured: policy.SUM_INSURED,
         coverFrom: policy.COVER_FROM,
         coverTo: policy.COVER_TO,
-        status: policy.POLICY_STATUS
+        status: policy.POLICY_STATUS,
+        renewedFromPolicyNumber: policy.RENEWED_FROM_POLICY_NUMBER || null
+
     };
 }
 
@@ -218,6 +220,9 @@ function generatePolicyPdf(doc, policy) {
     row(doc, 'Plan', policy.planName);
     row(doc, 'Policy Type', policy.policyType);
     row(doc, 'Status', policy.status);
+     if (policy.renewedFromPolicyNumber) {
+        row(doc, 'Renewal Of', policy.renewedFromPolicyNumber);
+    }
     doc.moveDown();
 
     sectionHeader(doc, 'Coverage', primaryColor);

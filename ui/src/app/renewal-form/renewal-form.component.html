@@ -1,0 +1,88 @@
+<div class="renew-card">
+  <h3>Renew Policy</h3>
+
+  <div class="row">
+    <div class="col">
+      <label>Plate Number <span class="req">*</span></label>
+      <input [(ngModel)]="plateNumber" [disabled]="locked()" placeholder="Enter plate number" />
+    </div>
+   <div class="col">
+  <label>Plate Code <span class="req">*</span></label>
+  <select *ngIf="!locked()" [(ngModel)]="plateCode">
+    <option value="" disabled>Select an option</option>
+    <option value="M">M</option>
+    <option value="A">A</option>
+    <option value="25">25</option>
+  </select>
+  <input *ngIf="locked()" [value]="plateCode" disabled />
+</div>
+  </div>
+
+  <label>Confirm with</label>
+  <div class="tabs">
+    <button type="button" [disabled]="locked()" [class.active]="method === 'mobile'" (click)="setMethod('mobile')">Mobile</button>
+    <button type="button" [disabled]="locked()" [class.active]="method === 'civil'" (click)="setMethod('civil')">Civil ID</button>
+    <button type="button" [disabled]="locked()" [class.active]="method === 'policy'" (click)="setMethod('policy')">Policy No</button>
+  </div>
+
+  <div *ngIf="method === 'mobile'">
+    <label>Mobile Number <span class="req">*</span></label>
+    <input type="tel" [(ngModel)]="mobileNumber" [disabled]="locked()" placeholder="Enter your mobile number" />
+  </div>
+
+  <div *ngIf="method === 'civil'">
+    <label>Civil ID / License No <span class="req">*</span></label>
+    <input [(ngModel)]="civilId" [disabled]="locked()" placeholder="Enter your civil ID or license number" />
+  </div>
+
+  <div *ngIf="method === 'policy'">
+    <label>Policy Number <span class="req">*</span></label>
+    <input [(ngModel)]="policyNumber" [disabled]="locked()" placeholder="Enter your policy number" />
+  </div>
+
+  <div class="error" *ngIf="error()">{{ error() }}</div>
+
+  <div class="buttons">
+    <button type="button" class="btn-secondary" (click)="cancelled.emit()">Cancel</button>
+
+    <button type="button" class="btn-secondary" *ngIf="found()" (click)="searchAgain()">Search again</button>
+
+    <button type="button" class="btn-primary" *ngIf="!found()"
+            [disabled]="!canSearch || loading()" (click)="findPolicy()">
+      {{ loading() ? 'Searching…' : 'Find Policy' }}
+    </button>
+  </div>
+
+  <div class="results" *ngIf="found()">
+    <div class="policy" *ngFor="let p of policies()">
+      <div class="top">
+        <strong>{{ p.vehicle.make }} {{ p.vehicle.model }} {{ p.vehicle.year }}</strong>
+        <span class="plate">{{ p.vehicle.plateNumber }} {{ p.vehicle.plateCode }}</span>
+      </div>
+      <div class="line"><span>Policy No</span><span>{{ p.policyNumber }}</span></div>
+      <div class="line"><span>Product</span><span>{{ p.productName }}</span></div>
+      <div class="line"><span>Valid To</span><span>{{ p.coverTo | date:'d MMM y' }}</span></div>
+
+      <ng-container *ngIf="p.eligible">
+        <div class="note ok" *ngIf="p.daysToExpiry < 0">
+          Expired {{ -p.daysToExpiry }} day(s) ago, but you can still renew.
+        </div>
+        <div class="note ok" *ngIf="p.daysToExpiry >= 0">
+          Expires in {{ p.daysToExpiry }} day(s). You can renew now.
+        </div>
+
+        <div *ngIf="p.needsVehicleValue">
+          <label>Vehicle Value (OMR) <span class="req">*</span></label>
+          <input type="number" [(ngModel)]="vehicleValues[p.policyId]" />
+        </div>
+
+        <button type="button" class="btn-primary full"
+                [disabled]="renewingId() === p.policyId" (click)="renew(p)">
+          {{ renewingId() === p.policyId ? 'Preparing…' : 'Renew Now' }}
+        </button>
+      </ng-container>
+
+      <div class="note bad" *ngIf="!p.eligible">{{ reasonFor(p) }}</div>
+    </div>
+  </div>
+</div>

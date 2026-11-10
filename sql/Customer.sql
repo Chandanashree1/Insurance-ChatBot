@@ -18,7 +18,7 @@ ALTER TABLE CUSTOMER
 ADD (
     OTP number(25)
 );
-alter table customer drop column OTP;
+alter table customer drop column password;
 
 -- Check identity column
 SELECT sequence_name

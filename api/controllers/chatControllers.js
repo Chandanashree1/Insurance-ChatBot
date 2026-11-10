@@ -41,6 +41,8 @@ const {
     decidePurchaseStage
 } = require("../services/purchaseFlowService");
 
+const { createRenewalQuote}= require("../services/renewalService");
+
 
 // Protected intents
 
@@ -93,6 +95,33 @@ const TEXT = {
         quoteCreated: "ممتاز! تم إنشاء عرض السعر الخاص بك. إليك الخيارات المتاحة."
     }
 };
+
+const RENEWAL_RULES_CONTEXT = `
+Renewal rules for ABC Insurance motor policies:
+- A policy can be renewed from 30 days before its end date, up to 15 days after it ends.
+- Earlier than that, renewal is not open yet. Later than that, the policy has lapsed and a new policy must be bought.
+- A cancelled policy or a policy that was already renewed cannot be renewed.
+- To renew, the customer gives a mobile number and finds the policy by plate number and code, Civil ID, or policy number.
+- The vehicle details are copied from the old policy. The system calculates the premium and shows plan options.
+- The new cover starts the day after the old one ends and lasts one year.
+- The customer must be logged in to renew.
+`;
+
+// A question about renewal, not a request to renew.
+function isRenewalQuestion(message) {
+    const text = String(message).trim();
+
+    const startsAsQuestion =
+        /^(what|how|when|why|who|where|which|can|could|does|do|is|are|explain|tell me|ما|ماذا|كيف|متى|لماذا|هل)(\s|$)/i.test(text);
+
+    const endsAsQuestion = /[?؟]\s*$/.test(text);
+
+    const isRequest =
+        /\b(i want|i'd like|i would like|i need|let me|help me)\b/i.test(text) ||
+        /(أريد|اريد|أرغب|ارغب|أبغى)/.test(text);
+
+    return (startsAsQuestion || endsAsQuestion) && !isRequest;
+}
 
 
 function getLanguage(language) {
@@ -868,6 +897,105 @@ const chat = async (req, res) => {
 
         const history = getHistory(flowUserId);
 
+                // --------------------------------------------------
+        // 0. Renew button (from the agent's RENEWAL_OFFER card)
+        // --------------------------------------------------
+
+        const renewMatch = String(message).trim().toUpperCase().match(/^RENEW_POLICY_(\d+)$/);
+
+        if (renewMatch) {
+
+            if (!loggedIn || !customerId) {
+                const reply = TEXT[lang].login;
+                addMessage(flowUserId, "assistant", reply);
+                return res.json({
+                    success: true,
+                    intent: "RENEW_POLICY",
+                    requiresLogin: true,
+                    uiType: "LOGIN_REQUIRED",
+                    reply,
+                    actions: [],
+                    data: []
+                });
+            }
+
+            try {
+                // Re-checks eligibility and ownership inside the service.
+                const result = await createRenewalQuote({
+                    customerId,
+                    policyId: Number(renewMatch[1])
+                });
+
+                const reply = purchaseReply(
+                    lang,
+                    "Your renewal quote is ready. Please choose a plan below.",
+                    "عرض التجديد جاهز. يرجى اختيار خطة أدناه."
+                );
+
+                addMessage(flowUserId, "assistant", reply);
+                await saveMessage(customerId, sessionId, "bot", reply, lang);
+
+                return res.json({
+                    success: true,
+                    intent: "RENEW_POLICY",
+                    reply,
+                    requiresLogin: false,
+                    uiType: "RENEWAL_QUOTE",
+                    actions: [],
+                    data: [result]
+                });
+
+            } catch (err) {
+                // Business errors (not eligible, vehicle value needed) shown as chat text
+                return res.json({
+                    success: true,
+                    intent: "RENEW_POLICY",
+                    reply: err.message,
+                    requiresLogin: false,
+                    uiType: "TEXT",
+                    actions: [],
+                    data: []
+                });
+            }
+        }
+
+                // Renew button shown under a renewal explanation
+        if (String(message).trim().toUpperCase() === "RENEW_START") {
+
+            if (!loggedIn || !customerId) {
+                const reply = TEXT[lang].login;
+                addMessage(flowUserId, "assistant", reply);
+                return res.json({
+                    success: true,
+                    intent: "RENEW_POLICY",
+                    requiresLogin: true,
+                    uiType: "LOGIN_REQUIRED",
+                    reply,
+                    actions: [],
+                    data: []
+                });
+            }
+
+            const reply = purchaseReply(
+                lang,
+                "Sure! Please enter your details below and I'll find your policy.",
+                "بالتأكيد! يرجى إدخال بياناتك أدناه وسأبحث عن وثيقتك."
+            );
+
+            addMessage(flowUserId, "assistant", reply);
+            await saveMessage(customerId, sessionId, "bot", reply, lang);
+
+            return res.json({
+                success: true,
+                intent: "RENEW_POLICY",
+                reply,
+                requiresLogin: false,
+                uiType: "RENEWAL_FORM",
+                actions: [],
+                data: []
+            });
+        }
+
         // --------------------------------------------------
         // 1. Quote option selection
         // --------------------------------------------------
@@ -1027,6 +1155,56 @@ const chat = async (req, res) => {
             )
         );
 
+                // --------------------------------------------------
+        // 4b. Question about renewal -> explain, then offer the button
+        // --------------------------------------------------
+
+        if (
+            intent === "RENEW_POLICY" &&
+            !/POL-/i.test(message) &&
+            isRenewalQuestion(message)
+        ) {
+            let reply;
+
+            try {
+                reply = await askAI(
+                    message,
+                    "",
+                    RENEWAL_RULES_CONTEXT,
+                    history,
+                    lang
+                );
+            } catch (llmError) {
+                console.error("Renewal explanation failed:", llmError.message);
+                reply = purchaseReply(
+                    lang,
+                    "You can renew a policy from 30 days before it ends, up to 15 days after. I can help you start a renewal whenever you're ready.",
+                    "يمكنك تجديد الوثيقة قبل 30 يومًا من انتهائها وحتى 15 يومًا بعد الانتهاء. يمكنني مساعدتك في بدء التجديد متى شئت."
+                );
+            }
+
+            addMessage(flowUserId, "assistant", reply);
+
+            if (loggedIn && customerId) {
+                await saveMessage(customerId, sessionId, "bot", reply, lang);
+            }
+
+            return res.json({
+                success: true,
+                intent: "RENEW_POLICY",
+                reply,
+                requiresLogin: false,
+                uiType: "TEXT",
+                actions: [
+                    {
+                        label: purchaseReply(lang, "Renew my policy", "جدّد وثيقتي"),
+                        action: "RENEW_START"
+                    }
+                ],
+                data: []
+            });
+        }
+
         // --------------------------------------------------
         // 5. Protected intents
         // --------------------------------------------------
@@ -1050,6 +1228,34 @@ const chat = async (req, res) => {
                 requiresLogin: true,
                 uiType: "LOGIN_REQUIRED",
                 reply,
+                actions: [],
+                data: []
+            });
+        }
+
+                // --------------------------------------------------
+        // 5a. Renewal: no policy number -> show the renewal form
+        // --------------------------------------------------
+
+        const hasPolicyNo = /POL-/i.test(message);
+
+        if (intent === "RENEW_POLICY" && !hasPolicyNo && loggedIn && customerId) {
+
+            const reply = purchaseReply(
+                lang,
+                "Sure! Please enter your details below and I'll find your policy.",
+                "بالتأكيد! يرجى إدخال بياناتك أدناه وسأبحث عن وثيقتك."
+            );
+
+            addMessage(flowUserId, "assistant", reply);
+            await saveMessage(customerId, sessionId, "bot", reply, lang);
+
+            return res.json({
+                success: true,
+                intent: "RENEW_POLICY",
+                reply,
+                requiresLogin: false,
+                uiType: "RENEWAL_FORM",
                 actions: [],
                 data: []
             });
@@ -1139,8 +1345,9 @@ const chat = async (req, res) => {
             ["POLICY", "CLAIM", "BUY_POLICY", "PAYMENT","DOWNLOAD_POLICY", "UNKNOWN"]
                 .includes(intent);
 
-        if (
-            (intent === "POLICY" || intent === "CLAIM" || intent === "DOWNLOAD_POLICY" || isAgentFollowUp) &&
+       if (
+            (intent === "POLICY" || intent === "CLAIM" || intent === "DOWNLOAD_POLICY" ||
+             (intent === "RENEW_POLICY" && hasPolicyNo) || isAgentFollowUp) &&
             loggedIn &&
             customerId
         ) {

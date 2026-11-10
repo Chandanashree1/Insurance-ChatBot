@@ -1,6 +1,12 @@
 const oracledb = require("oracledb");
 const { getConnection } = require("../config/oracle");
 
+function bizError(message, status = 400) {
+    const e = new Error(message);
+    e.status = status;
+    return e;
+}
+
 
 // ======================================================
 // CREATE POLICY FROM PAID QUOTE
@@ -31,6 +37,8 @@ async function createPolicyFromQuote(quoteId) {
                 q.COVER_TO,
                 q.QUOTE_STATUS,
                 q.PAYMENT_STATUS,
+                q.QUOTE_TYPE,
+                q.ORIGINAL_POLICY_ID,
 
                 p.PRODUCT_NAME,
                 p.PRODUCT_TYPE
@@ -138,6 +146,37 @@ async function createPolicyFromQuote(quoteId) {
 
 
         // ==================================================
+        // 4b. RENEWAL GUARD
+        // ==================================================
+        const isRenewal = quote.QUOTE_TYPE === "RENEWAL";
+        const renewedFromId = isRenewal ? quote.ORIGINAL_POLICY_ID : null;
+
+        if (isRenewal) {
+            // lock the old policy row so two simultaneous payments can't both renew it
+            const old = await connection.execute(
+                `SELECT POLICY_STATUS FROM POLICY WHERE POLICY_ID = :id FOR UPDATE`,
+                { id: renewedFromId },
+                { outFormat: oracledb.OUT_FORMAT_OBJECT }
+            );
+            if (old.rows.length === 0) {
+                throw bizError("Original policy not found", 404);
+            }
+            if (old.rows[0].POLICY_STATUS === "CANCELLED") {
+                throw bizError("The original policy was cancelled and cannot be renewed", 409);
+            }
+
+            const already = await connection.execute(
+                `SELECT COUNT(*) AS CNT FROM POLICY WHERE RENEWED_FROM_POLICY_ID = :id`,
+                { id: renewedFromId },
+                { outFormat: oracledb.OUT_FORMAT_OBJECT }
+            );
+            if (already.rows[0].CNT > 0 || old.rows[0].POLICY_STATUS === "RENEWED") {
+                throw bizError("This policy has already been renewed", 409);
+            }
+        }
+
+
+        // ==================================================
         // 5. GENERATE POLICY NUMBER
         // ==================================================
 
@@ -190,7 +229,8 @@ async function createPolicyFromQuote(quoteId) {
                     PREMIUM,
                     COVER_FROM,
                     COVER_TO,
-                    POLICY_STATUS
+                    POLICY_STATUS,
+                    RENEWED_FROM_POLICY_ID
                 )
                 VALUES (
                     :policyNumber,
@@ -202,7 +242,8 @@ async function createPolicyFromQuote(quoteId) {
                     :premium,
                     :coverFrom,
                     :coverTo,
-                    'ACTIVE'
+                    'ACTIVE',
+                    :renewedFromId
                 )
                 RETURNING POLICY_ID INTO :policyId
                 `,
@@ -231,6 +272,8 @@ async function createPolicyFromQuote(quoteId) {
 
                     coverTo:
                         quote.COVER_TO,
+
+                    renewedFromId,
 
                     policyId: {
                         dir: oracledb.BIND_OUT,
@@ -263,6 +306,13 @@ async function createPolicyFromQuote(quoteId) {
                 quoteId
             }
         );
+
+        if (isRenewal) {
+            await connection.execute(
+                `UPDATE POLICY SET POLICY_STATUS = 'RENEWED' WHERE POLICY_ID = :id`,
+                { id: renewedFromId }
+            );
+        }
 
 
         // ==================================================
@@ -482,6 +532,7 @@ async function getPolicyByNumber(policyNumber) {
                 pol.COVER_TO,
                 pol.POLICY_STATUS,
                 pol.CREATED_AT,
+                 old.POLICY_NUMBER AS RENEWED_FROM_POLICY_NUMBER,
 
                 prod.PRODUCT_TYPE,
                 prod.PRODUCT_NAME,
@@ -500,6 +551,8 @@ async function getPolicyByNumber(policyNumber) {
 
             JOIN QUOTE q
                 ON pol.QUOTE_ID = q.QUOTE_ID
+
+            LEFT JOIN POLICY old ON pol.RENEWED_FROM_POLICY_ID = old.POLICY_ID
 
             WHERE pol.POLICY_NUMBER = :policyNumber
             `,
